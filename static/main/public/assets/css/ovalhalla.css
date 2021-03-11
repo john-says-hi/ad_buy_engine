@@ -1,0 +1,33 @@
+
+
+.logo{
+    height: 69px;
+    width: 69px;
+}
+
+.archived{
+ text-decoration: line-through;
+}
+
+html {
+    /*background-image: url("../assets/logo.svg");*/
+    background-image: url("/assets/background.svg");
+    background-size: 100%;
+}
+
+.button-light {
+    background: url("../assets/button_light.svg") no-repeat
+}
+assets/button_light.sv
+
+ .scroll {
+  display: flex; /* [1] */
+  flex-wrap: nowrap; /* [1] */
+  overflow-x: auto; /* [2] */
+  -webkit-overflow-scrolling: touch; /* [3] */
+  -ms-overflow-style: -ms-autohiding-scrollbar; /* [4] */ }
+
+/* [6] */
+.scroll::-webkit-scrollbar {
+  display: none; }
+*/

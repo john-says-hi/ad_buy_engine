@@ -1,0 +1,9 @@
+pub mod check_your_email;
+pub mod footer;
+pub mod header;
+pub mod home;
+pub mod home_2;
+pub mod invitation;
+pub mod join_the_team;
+pub mod login;
+pub mod register;

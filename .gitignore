@@ -1,0 +1,16 @@
+/target
+Cargo.lock
+
+**/target
+.idea
+**/Cargo.lock
+**/private_frontend/pkg
+**/auth_frontend/pkg
+**/main_server/static/private_server/static/pkg/.gitignore
+dist
+node_modules
+crate/pkg
+crate/target
+crate/Cargo.lock
+crate/wasm-pack.log
+.cache

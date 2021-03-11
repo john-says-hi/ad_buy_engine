@@ -1,0 +1,37 @@
+[package]
+name = "tertiary_frontend"
+version = "0.1.0"
+authors = ["john"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yew-components = "0.2.0"
+web-sys = {version="0.3.45", features=["MouseEvent"]}
+web_logger = "0.2.0"
+wasm-logger = "0.2.0"
+
+ad_buy_engine = { version = "0.2.0", path = "../" }
+yew = "0.17.4"
+yew-router = "0.14.0"
+dotenv_codegen = "0.15.0"
+serde_derive = "1.0.116"
+serde = { version = "1.0.116", features = ["derive", "rc","alloc"] }
+wee_alloc = "0.4.5"
+wasm-bindgen = "0.2.68"
+mailchecker = "3.3.3"
+yewtil = "0.3.2"
+anyhow = "1.0.32"
+yew-state = "0.3.0"
+either = {version="1.6.1",features=["serde"]}
+educe = "0.4.13"
+lexical-core = "0.7.4"
+#rand = { version = "0.8.3" }
+boyer-moore-magiclen = "0.2.10"
+half = {version="1.6.0",features=["serde"]}
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name="secure"
+path= "src/lib.rs"
