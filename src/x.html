@@ -1,0 +1,11 @@
+<pre><span style="background-color:#FFFFFF"><font color="#300A24">efore=umount.target</font></span>
+
+<span style="background-color:#FFFFFF"><font color="#300A24">[Service]</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">Type=oneshot</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">User=root</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">ExecStartPre=/bin/chown -Rf john /tmp/ramdisk/</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">ExecStart=/usr/bin/rsync -ar /mnt/ramdisk_backup/ /tmp/ramdisk/</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">ExecStop=/usr/bin/rsync -ar /tmp/ramdisk/ /mnt/ramdisk_backup/</font></span>
+<span style="background-color:#FFFFFF"><font color="#300A24">ExecStopPost=/bin/chown -Rf john /mnt/ramdisk_backup</font></span>
+
+</pre>
