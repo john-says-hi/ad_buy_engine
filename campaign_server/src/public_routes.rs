@@ -1,4 +1,4 @@
-use crate::handlers::account::{get_account_model, get_all_accounts, update_account};
+use crate::handlers::account::{get_account_model, get_all_accounts, update_account, delete_all_accounts};
 use crate::handlers::campaign_state::process_click;
 use crate::handlers::crud::process_crud;
 use crate::handlers::health::get_team_id;
@@ -28,12 +28,11 @@ use ad_buy_engine::constant::local_system_location::{
 use ad_buy_engine::string_manipulation::backend::api_path_builder::{
     parse_api_v2_url, parse_v1_api, trim_api_v1,
 };
-use std::sync::mpsc::Sender;
 
 pub fn public_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/health", web::get().to(get_health))
-        .service(resource("/stop").route(get().to(stop_server)))
         .service(resource("all").route(get().to(get_all_accounts)))
+        .service(resource("delete_all_accounts").route(get().to(delete_all_accounts)))
         .service(resource(API_URL_LOGIN).route(post().to(login)))
         .service(
             web::scope("/api/v2").service(
@@ -60,9 +59,4 @@ pub fn public_routes(cfg: &mut web::ServiceConfig) {
                     .use_last_modified(true),
             ),
         );
-}
-
-async fn stop_server(stopper: Data<Sender<()>>) -> HttpResponse {
-    stopper.send(()).unwrap();
-    HttpResponse::NoContent().finish()
 }

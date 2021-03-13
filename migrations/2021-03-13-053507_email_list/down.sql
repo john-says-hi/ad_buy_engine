@@ -1,0 +1,1 @@
+DROP TABLE email_list_table;

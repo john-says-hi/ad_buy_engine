@@ -11,3 +11,17 @@ pub mod user;
 pub mod visit;
 pub mod visit_identity;
 pub mod visit_ledger;
+
+#[cfg(feature = "backend")]
+use crate::schema::*;
+
+#[cfg_attr(
+feature = "backend",
+derive(Queryable, Insertable, AsChangeset, Identifiable),
+table_name = "email_list_table",
+primary_key("email")
+)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EmailModel {
+	pub email: String,
+}

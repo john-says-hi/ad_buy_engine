@@ -12,7 +12,8 @@ RUN apt-get update -y && \
    apt-get update -y && \
    apt install pkg-config -y && \
    apt-get update -y && \
-    apt install libssl-dev
+    apt install libssl-dev && \
+    apt install curl -y
 
 COPY migrations /app/migrations
 COPY static /app/static

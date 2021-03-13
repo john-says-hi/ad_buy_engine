@@ -16,6 +16,12 @@ table! {
 }
 
 table! {
+    email_list_table (email) {
+        email -> Varchar,
+    }
+}
+
+table! {
     funnel_table (funnel_id) {
         funnel_id -> Varchar,
         account_id -> Varchar,
@@ -98,6 +104,7 @@ table! {
 allow_tables_to_appear_in_same_query!(
     account_table,
     campaign_table,
+    email_list_table,
     funnel_table,
     invitation_table,
     landing_page_table,

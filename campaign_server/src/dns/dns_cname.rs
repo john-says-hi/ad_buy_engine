@@ -58,7 +58,7 @@ pub async fn request_subdomain(
         .arg("-d")
         .arg(jstr)
         .arg("https://api.linode.com/v4/domains/1534143/records")
-        .output().expect("DSAFG");
+        .output().map_err(|e| std::io::Error::new(e.kind(), e))?;
 
     if !output.status.success() {
         let err = String::from_utf8(output.stderr).expect("SFDGsdf");

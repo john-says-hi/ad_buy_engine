@@ -16,6 +16,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use uuid::Uuid;
 use validator::Validate;
+use crate::model;
 
 pub async fn get_user(
     uid: Path<Uuid>,
@@ -31,6 +32,7 @@ pub async fn create_user(
     params: Json<CreateUserRequest>,
 ) -> Result<Json<UserResponse>, ApiError> {
     let pool_a = pool.clone();
+    let pool_b = pool.clone();
     let params_a = params.clone();
     let params_b = params.clone();
 
@@ -41,26 +43,20 @@ pub async fn create_user(
         let new_user = User {
             user_id: Uuid::new_v4(),
             account_id: Uuid::new_v4(),
-            email: inv.email,
+            email: inv.email.clone(),
             password: hash(&params_b.password),
         };
 
         let new_account = Account::from(new_user.clone());
-
-        let sd = new_account
-            .domains_configuration
-            .subdomain
-            .clone()
-            .to_string();
-        println!("1");
-        let res = request_subdomain(client, sd).await;
-        if let Ok(x) = res {
-            println!("Sub Domain created")
-        } else {
-            println!("Sub domain not created")
-        }
+        
+            println!("Sub Domain created, {}", request_subdomain(client, new_account
+                .domains_configuration
+                .subdomain
+                .clone()
+                .to_string()).await?);
 
         let user = block(move || create(&pool, new_user.into(), new_account.into())).await?;
+        block(move || model::invitation::remove(&pool_b, &inv.invitation_id)).await?;
 
         respond_json(user.into())
     } else {
