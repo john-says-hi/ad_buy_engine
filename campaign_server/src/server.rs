@@ -6,7 +6,7 @@ use crate::public_routes::public_routes;
 use crate::utils::authentication::get_identity_service;
 use crate::utils::cache::add_cache;
 use crate::utils::config::CONFIG;
-use crate::utils::database::{add_pool, InferPool};
+use crate::utils::database::{establish_connection};
 use crate::utils::middleware::click_processor::ClickProcessor;
 use crate::utils::state::init_state;
 use actix_cors::Cors;
@@ -33,6 +33,7 @@ use r2d2_diesel::ConnectionManager;
 use std::sync::mpsc;
 use std::time::Duration;
 use actix_web_middleware_redirect_scheme::RedirectSchemeBuilder;
+use diesel_migrations::run_pending_migrations;
 
 pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -40,16 +41,15 @@ pub async fn server() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init();
 
-    let pool = match InferPool::init_pool(CONFIG.clone()).expect("Failed to create connection pool")
-    {
-        InferPool::Postgres(pool) => Some(pool),
-        _ => None,
-    };
+    let pool = establish_connection();
 
+    run_pending_migrations(&pool.clone().get().expect("hyuu"))
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    
     let mut filtered_restored: Vec<Campaign> = {
         use crate::schema::campaign_table::dsl::campaign_table;
         campaign_table
-            .load::<CampaignModel>(&pool.clone().expect("F$#2sad").get().expect("4rgfsadf"))
+            .load::<CampaignModel>(&pool.clone().get().expect("4rgfsadf"))
             .unwrap()
             .iter()
             .cloned()
@@ -64,11 +64,11 @@ pub async fn server() -> std::io::Result<()> {
     let app_state = init_state(filtered_restored);
     let store = MemoryStore::new();
     let (stop_svr_sender, rx) = mpsc::channel::<()>();
-    let campaign_agent = CampaignAgent::start("72.14.190.165:1488");
+    let campaign_agent = CampaignAgent::start("localhost:1488");
 
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(RedirectSchemeBuilder::new().enable(true).build())
+            // .wrap(RedirectSchemeBuilder::new().enable(true).build())
             .configure(add_cache)
             .wrap(
                 Cors::new()
@@ -81,7 +81,7 @@ pub async fn server() -> std::io::Result<()> {
             .data(JsonConfig::default().limit(4_096_000))
             .wrap(get_identity_service())
             .data(Client::new())
-            .data(pool.clone().expect("g3s"))
+            .data(pool.clone())
             .app_data(app_state.clone())
             // .service(
             //     scope("/click")
@@ -105,8 +105,8 @@ pub async fn server() -> std::io::Result<()> {
             .data(stop_svr_sender.clone())
             .data(campaign_agent.clone())
     })
-        .bind("72.14.190.165:80")?
-    .bind_openssl("72.14.190.165:443", ssl_config())?
+        .bind("localhost:80")?
+    // .bind_openssl("localhost:443", ssl_config())?
     .workers(4)
     .run();
 

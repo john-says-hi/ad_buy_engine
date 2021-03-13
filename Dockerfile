@@ -1,24 +1,70 @@
-FROM rust:1-slim-buster AS base
+FROM rust:slim-buster
 
-ENV USER=root
+WORKDIR /app
 
-WORKDIR /code
-RUN cargo init
-COPY Cargo.toml /code/Cargo.toml
-RUN cargo fetch
+RUN mkdir /app/migrations && mkdir /app/static
 
-COPY src /code/src
+RUN apt-get update -y && \
+    apt-get -y upgrade && \
+    apt-get -y install libpq-dev && \
+    apt-get update -y && \
+    apt-get install -y libsqlite3-dev && \
+   apt-get update -y && \
+   apt install pkg-config -y && \
+   apt-get update -y && \
+    apt install libssl-dev
 
-CMD [ "cargo", "test", "--offline" ]
+COPY migrations /app/migrations
+COPY static /app/static
+COPY ./bin/campaign_server /app
+COPY .env /app
 
-FROM base AS builder
-
-RUN cargo build --release -p campaign_server --features=backend
-
-FROM rust:1-slim-buster
-
-COPY --from=builder /code/target/release/campaign_server /usr/bin/campaign_server
-
+EXPOSE 80
 EXPOSE 443
 
-ENTRYPOINT [ "/usr/bin/ad_buy_engine" ]
+ENTRYPOINT [ "/app/campaign_server" ]
+
+#FROM rust:slim-buster AS base
+#
+#RUN apt-get update -y && \
+#    apt-get -y upgrade && \
+#    apt-get -y install libpq-dev && \
+#    apt-get update -y && \
+#    apt-get install -y libsqlite3-dev && \
+##   apt-get update -y && \
+##   apt-get install -y default-libmysqlclient-dev && \
+#   apt-get update -y && \
+#   apt install pkg-config -y && \
+#   apt-get update -y && \
+#    apt install libssl-dev
+#
+#RUN rustup default nightly
+#
+#WORKDIR /code
+#COPY . /code
+#
+#RUN cargo build -p campaign_server --features=backend --release
+#
+#FROM rust:slim-buster
+#
+#RUN apt-get update -y && \
+#    apt-get -y upgrade && \
+#    apt-get -y install libpq-dev && \
+#    apt-get update -y && \
+#    apt-get install -y libsqlite3-dev && \
+##   apt-get update -y && \
+##   apt-get install -y default-libmysqlclient-dev && \
+#   apt-get update -y && \
+#   apt install pkg-config -y && \
+#   apt-get update -y && \
+#    apt install libssl-dev
+#
+#RUN  mkdir /usr/bin/static
+#RUN  mkdir /usr/bin/migrations
+#COPY --from=base /code/target/release/campaign_server /usr/bin/campaign_server
+#
+#
+#EXPOSE 80
+#EXPOSE 443
+#
+#ENTRYPOINT [ "/usr/bin/campaign_server" ]

@@ -40,38 +40,11 @@ async fn send<'a>(redis: Cache, command: RespValue) -> Result<String, ApiError> 
 
 /// Add the redis actor to actix data_types if the URL is set
 pub fn add_cache(cfg: &mut ServiceConfig) {
-    if !&CONFIG.redis_url.is_empty() {
-        // Start a new supervisor with redis actor
-        let cache = RedisActor::start(&CONFIG.redis_url);
+    if let Ok(var) = std::env::var("REDIS_URL") {
+        println!("Redis URL: {}",&var);
+        let cache = RedisActor::start(&var);
         cfg.data(cache);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn get_cache() -> Cache {
-        let cache = RedisActor::start(&CONFIG.redis_url);
-        Data::new(cache)
-    }
-
-    #[actix_rt::test]
-    async fn it_creates_new_application_cache_and_sets_and_reads_it() {
-        let cache = get_cache();
-        set(cache.clone(), "testing", "123").await.unwrap();
-        let value = get(cache, "testing").await.unwrap();
-        assert_eq!(value, "123");
-    }
-
-    #[actix_rt::test]
-    async fn it_removes_an_entry_in_application_cache() {
-        let cache = get_cache();
-        set(cache.clone(), "testing", "123").await.unwrap();
-        let value = get(cache.clone(), "testing").await.unwrap();
-        assert_eq!(value, "123");
-        delete(cache.clone(), "testing").await.unwrap();
-        let value = get(cache, "testing").await.unwrap();
-        assert_eq!(value, "");
+    } else {
+        println!("Redis URL env var not found")
     }
 }

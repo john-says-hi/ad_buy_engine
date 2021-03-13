@@ -21,7 +21,9 @@ openssl = "0.10.32"
 argon2rs = "0.2.5"
 chrono = { version = "0.4.15", features = ["serde"] }
 derive_more = "0.99.10"
-diesel = { version = "1.4.5", features = ["chrono", "mysql", "postgres", "sqlite", "r2d2", "uuidv07"] }
+diesel = { version = "1.4.5", features = ["chrono", "postgres", "sqlite", "r2d2", "uuidv07"] }
+#diesel = { version = "1.4.5", features = ["chrono", "mysql", "postgres", "sqlite", "r2d2", "uuidv07"] }
+diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 envy = "0.4.1"
 env_logger = "0.7.1"
