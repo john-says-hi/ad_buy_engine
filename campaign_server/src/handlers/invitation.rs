@@ -12,6 +12,7 @@ use rayon::prelude::*;
 use serde::Serialize;
 use uuid::Uuid;
 use validator::Validate;
+use ad_buy_engine::data::backend_models::EmailModel;
 
 pub async fn create(
     pool: Data<PoolType>,
@@ -66,3 +67,5 @@ pub async fn delete(_id: Path<Uuid>, pool: Data<PoolType>) -> Result<HttpRespons
     block(move || crate::model::invitation::remove(&pool, &_id.to_string())).await?;
     respond_ok()
 }
+
+

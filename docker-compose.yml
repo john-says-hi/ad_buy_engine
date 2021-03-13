@@ -40,6 +40,7 @@ services:
       - API_KEY=${API_KEY}
     ports:
       - ${PORT}:80
+#      - ${PORT}:80
       - ${PORT_SECURE}:443
     restart: always
     volumes:

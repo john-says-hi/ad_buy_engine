@@ -146,3 +146,17 @@ impl From<SendRequestError> for ApiError {
         ApiError::ClientSendRequestError(format!("{:?}", error))
     }
 }
+
+impl From<std::io::Error> for ApiError {
+    fn from(err:std::io::Error)->ApiError{
+        match err.kind() {
+            _=>ApiError::InternalServerError(err.to_string())
+        }
+    }
+}
+
+impl From<BlockingError<diesel::result::Error>> for ApiError {
+    fn from(err:BlockingError<diesel::result::Error>)->ApiError{
+        ApiError::BlockingError("diesel blocking err detected".to_string())
+    }
+}

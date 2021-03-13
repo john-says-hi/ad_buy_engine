@@ -30,6 +30,7 @@ pub mod model;
 mod private_routes;
 mod public_routes;
 mod server;
+pub mod management;
 pub mod utils;
 
 #[actix_web::main]

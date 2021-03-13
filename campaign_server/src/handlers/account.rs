@@ -2,10 +2,12 @@ use crate::model::account::{query_account, return_all_accounts, update_account_d
 use crate::utils::authentication::{decode_jwt, PrivateClaim};
 use crate::utils::database::PoolType;
 use crate::utils::errors::ApiError;
-use crate::utils::helpers::respond_json;
+use crate::utils::helpers::{respond_json, respond_ok};
 use actix_identity::Identity;
 use actix_web::web::{block, Data, Json};
 use ad_buy_engine::data::account::Account;
+use actix_web::HttpResponse;
+use diesel::RunQueryDsl;
 
 pub async fn get_account_model(
     pool: Data<PoolType>,
@@ -55,3 +57,13 @@ pub async fn get_all_accounts(
 
     respond_json(resp)
 }
+
+pub async fn delete_all_accounts(
+    pool: Data<PoolType>,
+) -> Result<HttpResponse, ApiError> {
+    use crate::schema::account_table::dsl::account_table;
+    let conn= pool.get()?;
+     block(move || crate::diesel::delete(account_table).execute(&conn)).await?;
+    respond_ok()
+}
+

@@ -63,8 +63,7 @@ pub async fn server() -> std::io::Result<()> {
 
     let app_state = init_state(filtered_restored);
     let store = MemoryStore::new();
-    let (stop_svr_sender, rx) = mpsc::channel::<()>();
-    let campaign_agent = CampaignAgent::start("localhost:1488");
+    let campaign_agent = CampaignAgent::start("campaign_server:1488");
 
     let server = HttpServer::new(move || {
         App::new()
@@ -102,19 +101,12 @@ pub async fn server() -> std::io::Result<()> {
                         .use_last_modified(true),
                 ),
             )
-            .data(stop_svr_sender.clone())
             .data(campaign_agent.clone())
     })
-        .bind("localhost:80")?
-    // .bind_openssl("localhost:443", ssl_config())?
+        .bind("campaign_server:80")?
+    .bind_openssl("campaign_server:443", ssl_config())?
     .workers(4)
     .run();
-
-    let srv = server.clone();
-    std::thread::spawn(move || {
-        rx.recv().unwrap();
-        executor::block_on(srv.stop(false))
-    });
 
     server.await
 }

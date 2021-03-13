@@ -1,32 +1,30 @@
-#docker-save1:
-#	docker save <my_image> | ssh -C user@my.remote.host.com docker load  && docker push valknutengine/ad-buy-engine:tagname
-#docker-save:
-#	docker save -o . ad_buy_engine &&  sudo docker login --username=valknutengine --email=johnwalton@protonmail.com
-#sudo docker run --name postgres_alpine -e POSTGRES_PASSWORD=uiJWhNm7k5zAtn79qThEtQFB -d postgres
-#docker inspect --format '{{.State.Pid}}' 385ef826cd14
-#nsenter --target 3677 --mount --uts --ipc --net --pid
-#docker exec -ti NAME_OF_CONTAINER psql -U YOUR_POSTGRES_USERNAME
-#docker tag valknutengine/ad-buy-engine valknutengine/ad-buy-engine
-#docker push docker-registry-username/docker-image-name
-#docker commit -m "added Node.js" -a "sammy" d9b100f2f636 sammy/ubuntu-nodejs
 
-#sudo docker run -d -p 5432:5432 e4784b8b1c35
+update-frontend:
+	make build-secure-frontend && make docker-down && make upload-frontend && make docker-up
 
-#docker tag local-image:tagname new-repo:tagname
-#docker push new-repo:tagname
+update-migration:
+	make docker-down && make upload-migrations && make docker-up
 
-#sudo certbot certonly --manual --preferred-challenges=dns --email johnwalton@protonmail.com --server https://acme-v02.api.letsencrypt.org/directory -d adbuyengine.com -d '*.adbuyengine.com'
-#run-all:
-#	make build-secure-frontend && make build-public-frontend && make build-n-run-master-server
+update-server:
+	make build-campaign-server && make docker-down && make upload-campaign-server && make docker-up
 
-#build-click-server:
-#	cargo build -p click_server --release --features use-ua-parser
+server-upload-all:
+	make upload-static &&  scp ./Dockerfile ad_buy_engine@72.14.190.165:~/ && scp ./docker-compose.yml ad_buy_engine@72.14.190.165:~/ && scp -r ./migrations ad_buy_engine@72.14.190.165:~/ && scp -C ./target/release/campaign_server ad_buy_engine@72.14.190.165:~/bin/ && scp -C ./GeoLite2-ASN.mmdb ad_buy_engine@72.14.190.165:~/ && scp -C ./GeoLite2-City.mmdb ad_buy_engine@72.14.190.165:~/ && scp -C ./GeoLite2-Country.mmdb ad_buy_engine@72.14.190.165:~/ && scp ./regexes.yaml ad_buy_engine@72.14.190.165:~/ && scp .env ad_buy_engine@72.14.190.165:~/
+
+upload-migrations:
+	scp -r ./migrations ad_buy_engine@72.14.190.165:~/
+
+update-docker-files:
+	scp ./Dockerfile ad_buy_engine@72.14.190.165:~/ && scp ./docker-compose.yml ad_buy_engine@72.14.190.165:~/
+
+docker-down:
+	ssh ad_buy_engine@72.14.190.165 'docker-compose down'
+
+docker-up:
+	ssh ad_buy_engine@72.14.190.165 'docker-compose up -d'
 
 fix-hashnames:
 	cd dist/ && sed -i 's/index-.*.js/abe.js/g' index.html && sed -i 's/index-.*.wasm/abe.wasm/g' index.html && mv ./*.js ./abe.js && mv ./*.wasm ./abe.wasm &&  cd ..
-
-#sed-indexhtml:
-#	sed -i 's/index-.*.js/abe.js/g' index.html && sed -i 's/index-.*.wasm/abe.wasm/g' index.html
 
 rename-js-file:
 	mv ./*.js ./abe.js
@@ -37,8 +35,8 @@ rename-wasm-file:
 start-server:
 	sshpass -f "~/.abe.pw" ssh ad_buy_engine@72.14.190.165 ' ./campaign_server'
 
-stop-server:
-	curl -X GET "https://www.adbuyengine.com/stop" || true
+#stop-server:
+	#curl -X GET "https://www.adbuyengine.com/stop" || true
 
 check-frontend:
 	cargo check -p frontend
@@ -46,32 +44,23 @@ check-frontend:
 check-server:
 	cargo check -p campaign_server --features=backend
 
-build-and-upload-server:
-	make stop-server && make build-server && make upload-server
-
-build-and-upload-frontend:
-	make stop-server && make build-secure-frontend && make upload-frontend-lean
-
-build-server:
-	cargo build -p campaign_server --features=backend --release
+build-campaign-server:
+	cargo build -p campaign_server --features=backend --release && cp target/release/campaign_server bin/
 
 upload-static:
 		scp -r ./static/ ad_buy_engine@72.14.190.165:~/
 
-upload-frontend-lean:
+upload-frontend:
 	scp ./static/main/secure/index.html ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/abe.js ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/abe.wasm ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js ad_buy_engine@72.14.190.165:~/static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js
-
-upload-frontend-all:
-	scp -r -C ./static/main/secure/* ad_buy_engine@72.14.190.165:~/static/main/secure/
 
 upload-env:
 	scp ./.env ad_buy_engine@72.14.190.165:~/
 
 save:
-	git add . && git commit -m "Auto Save" && git push -u origin master
+	git add . && git commit -m "Auto Save" && git push
 
-upload-server:
-	scp -C ./target/release/campaign_server ad_buy_engine@72.14.190.165:~/
+upload-campaign-server:
+	scp -C ./target/release/campaign_server ad_buy_engine@72.14.190.165:~/bin/
 
 build-secure-frontend:
 	rm -rf static/main/secure/* || true && cd frontend && trunk clean && trunk build  --release --public-url secure && cd dist/ && sed -i 's/index-.*.js/abe.js/g' index.html && sed -i 's/index-.*.wasm/abe.wasm/g' index.html && mv ./*.js ./abe.js && mv ./*.wasm ./abe.wasm &&  cd .. && mv dist/* ../static/main/secure/ && trunk clean && cd ..
