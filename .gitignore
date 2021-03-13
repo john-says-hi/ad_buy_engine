@@ -4,8 +4,6 @@ Cargo.lock
 **/target
 .idea
 **/Cargo.lock
-**/private_frontend/pkg
-**/auth_frontend/pkg
 **/main_server/static/private_server/static/pkg/.gitignore
 dist
 node_modules
@@ -17,3 +15,4 @@ crate/wasm-pack.log
 GeoLite2-City.mmdb
 GeoLite2-Country.mmdb
 GeoLite2-ASN.mmdb
+.vscode

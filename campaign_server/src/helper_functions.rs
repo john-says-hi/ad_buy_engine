@@ -1,17 +1,17 @@
 use actix_ratelimit::{MemoryStore, MemoryStoreActor, RateLimiter};
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 
-pub fn ssl_config() -> SslAcceptorBuilder {
+pub fn  ssl_config() -> SslAcceptorBuilder {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     builder
         .set_private_key_file(
-            "/etc/letsencrypt/live/adbuyengine.com/privkey.pem",
+            "privkey.pem",
             SslFiletype::PEM,
         )
-        .unwrap();
+        .expect("ho345fd");
     builder
-        .set_certificate_chain_file("/etc/letsencrypt/live/adbuyengine.com/fullchain.pem")
-        .unwrap();
+        .set_certificate_chain_file("fullchain.pem")
+        .expect("hi53gs");
     builder
 }
 
@@ -24,3 +24,17 @@ pub fn rate_limit(
         .with_interval(std::time::Duration::from_secs(time_limit))
         .with_max_requests(max_request)
 }
+
+// pub fn  ssl_config() -> SslAcceptorBuilder {
+//     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+//     builder
+//         .set_private_key_file(
+//             "/etc/letsencrypt/live/adbuyengine.com/privkey.pem",
+//             SslFiletype::PEM,
+//         )
+//         .expect("ho345fd");
+//     builder
+//         .set_certificate_chain_file("/etc/letsencrypt/live/adbuyengine.com/fullchain.pem")
+//         .expect("hi53gs");
+//     builder
+// }
