@@ -8,19 +8,19 @@ use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct  SyncUnitRequest {
+pub struct  SyncElementUnit {
     pub id:Uuid,
     pub last_updated:DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct  SyncElementRequest {
-    pub offer_sources:Vec<SyncUnitRequest>,
-    pub offers:Vec<SyncUnitRequest>,
-    pub landers:Vec<SyncUnitRequest>,
-    pub funnels:Vec<SyncUnitRequest>,
-    pub traffic_sources:Vec<SyncUnitRequest>,
-    pub campaigns:Vec<SyncUnitRequest>,
+    pub offer_sources:Vec<SyncElementUnit>,
+    pub offers:Vec<SyncElementUnit>,
+    pub landers:Vec<SyncElementUnit>,
+    pub funnels:Vec<SyncElementUnit>,
+    pub traffic_sources:Vec<SyncElementUnit>,
+    pub campaigns:Vec<SyncElementUnit>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -1,10 +1,10 @@
 use crate::api::account::{get_account_model, get_all_accounts, update_account};
 use crate::api::campaign_state::process_click;
-use crate::api::crud::process_crud;
+use crate::api::crud_element::process_crud;
 use crate::api::health::get_team_id;
 use crate::api::{
     auth::{login, logout},
-    crud,
+    crud_element,
     health::get_health,
     invitation,
     user::{create_user, get_user},
