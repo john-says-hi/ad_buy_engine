@@ -50,7 +50,7 @@ pub enum AppRoute {
     Devices,
     #[to = "/secure/#brand"]
     Brand,
-    #[to = "/secure/#model"]
+    #[to = "/secure/#db"]
     Model,
     #[to = "/secure/#os"]
     OS,

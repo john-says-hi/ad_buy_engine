@@ -1,8 +1,8 @@
-use crate::handlers::account::{get_account_model, get_all_accounts, update_account};
-use crate::handlers::campaign_state::process_click;
-use crate::handlers::crud::process_crud;
-use crate::handlers::health::get_team_id;
-use crate::handlers::{
+use crate::api::account::{get_account_model, get_all_accounts, update_account};
+use crate::api::campaign_state::process_click;
+use crate::api::crud::process_crud;
+use crate::api::health::get_team_id;
+use crate::api::{
     auth::{login, logout},
     crud,
     health::get_health,
@@ -33,10 +33,11 @@ pub fn private_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
             .wrap(AuthMiddleware)
-                .service(resource("/auth/logout").route(web::delete().to(logout))))
-            .service(resource("/get_account").route(post().to(get_account_model)))
-            .service(resource("/crud_element").route(post().to(process_crud)))
+            .service(resource("/auth/logout").route(web::delete().to(logout)))
+        .service(resource("/get_account").route(get().to(get_account_model)))
+        .service(resource("/crud_element").route(post().to(process_crud)))
             .service(resource("/account").route(post().to(update_account)))
+    )
     .service(
         web::scope("/secure").wrap(AuthMiddleware).service(
             Files::new("", DIRECTORY_LOCATION_MAIN_SECURE_STATIC)

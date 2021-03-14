@@ -10,3 +10,4 @@ pub mod report;
 pub mod selected;
 pub mod user_account_state;
 pub mod tab_state;
+pub mod sync_app_state;

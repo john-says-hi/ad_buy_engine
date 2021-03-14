@@ -14,6 +14,7 @@ pub mod visit_ledger;
 
 #[cfg(feature = "backend")]
 use crate::schema::*;
+#[cfg(feature = "backend")]
 use diesel::{PgConnection, QueryResult, RunQueryDsl};
 
 #[cfg_attr(
@@ -27,8 +28,13 @@ pub struct EmailModel {
 	pub email: String,
 }
 
+#[cfg(feature = "backend")]
 impl EmailModel {
 	pub fn all(conn:&PgConnection)->QueryResult<Vec<Self>> {
 		email_list_table::dsl::email_list_table.load(conn)
 	}
+	
+		pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
+			diesel::delete(email_list_table::dsl::email_list_table).execute(conn)
+		}
 }

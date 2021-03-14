@@ -4,6 +4,8 @@ use crate::schema::*;
 use crate::UserResponse;
 use chrono::{Local, NaiveDateTime, Utc};
 use uuid::Uuid;
+#[cfg(feature = "backend")]
+use diesel::{PgConnection, QueryResult, RunQueryDsl};
 
 #[cfg_attr(
     feature = "backend",
@@ -18,6 +20,13 @@ pub struct UserModel {
     pub email: String,
     pub password: String,
     pub last_updated: i64,
+}
+
+#[cfg(feature = "backend")]
+impl UserModel {
+    pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
+        diesel::delete(user_table::dsl::user_table).execute(conn)
+    }
 }
 
 impl From<User> for UserModel {
