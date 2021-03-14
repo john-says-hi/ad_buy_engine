@@ -1,4 +1,4 @@
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::account::AccountModel;
 use ad_buy_engine::data::backend_models::offer::OfferModel;
@@ -9,14 +9,14 @@ use diesel::query_builder::IntoUpdateTarget;
 use diesel::update;
 use uuid::Uuid;
 
-pub fn create_offer(pool: &PoolType, payload: OfferModel) -> Result<OfferModel, ApiError> {
+pub fn create_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, ApiError> {
     use crate::schema::offer_table::dsl::offer_table;
     Ok(insert_into(offer_table)
         .values(payload)
         .get_result::<OfferModel>(&pool.get()?)?)
 }
 
-pub fn update_offer(pool: &PoolType, payload: OfferModel) -> Result<OfferModel, ApiError> {
+pub fn update_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, ApiError> {
     use crate::schema::offer_table::dsl::{offer_id, offer_table};
 
     Ok(

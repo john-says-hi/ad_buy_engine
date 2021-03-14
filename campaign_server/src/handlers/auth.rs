@@ -1,6 +1,6 @@
 use crate::model::user::find_by_auth;
 use crate::utils::authentication::{create_jwt, hash, PrivateClaim};
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::{respond_json, respond_ok};
 use actix_identity::Identity;
@@ -11,7 +11,7 @@ use validator::Validate;
 
 pub async fn login(
     id: Identity,
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     params: Json<LoginRequest>,
 ) -> Result<Json<UserResponse>, ApiError> {
     let hashed = hash(&params.password);

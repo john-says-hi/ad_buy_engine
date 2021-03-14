@@ -17,3 +17,9 @@ where
 pub fn respond_ok() -> Result<HttpResponse, ApiError> {
     Ok(HttpResponse::Ok().body(Body::Empty))
 }
+
+pub fn redirect_to(location: &str) -> HttpResponse {
+    HttpResponse::Found()
+        .header(actix_web::http::header::LOCATION, location)
+        .finish()
+}

@@ -28,28 +28,22 @@ use ad_buy_engine::constant::local_system_location::{
 use ad_buy_engine::string_manipulation::backend::api_path_builder::{
     parse_api_v2_url, parse_v1_api, trim_api_v1,
 };
+use crate::management::api::email::get_email_list;
 
 pub fn public_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/health", web::get().to(get_health))
-        .service(resource("all").route(get().to(get_all_accounts)))
-        .service(resource("delete_all_accounts").route(get().to(delete_all_accounts)))
+        .service(resource("/version").to(|| async {HttpResponse::Ok().body("Version 1.2")}))
+        .service(resource("/all").route(get().to(get_all_accounts)))
+        .service(resource("/delete_all_accounts").route(get().to(delete_all_accounts)))
+        .service(resource("/get_all_accounts").route(get().to(get_all_accounts)))
+        .service(resource("/get_all_emails").route(get().to(get_email_list)))
         .service(resource(API_URL_LOGIN).route(post().to(login)))
         .service(
             web::scope("/api/v2").service(
-                web::scope("invitation")
-                    .route(
-                        parse_api_v2_url("invitation", API_URL_CREATE_REGISTER, false).as_str(),
-                        web::post().to(create_user),
-                    )
-                    .route(
-                        parse_api_v2_url("invitation", API_URL_CREATE_INVITATION, false).as_str(),
-                        web::post().to(invitation::create),
-                    )
-                    .route(
-                        parse_api_v2_url("invitation", API_URL_CONFIRM_EMAIL_INVITATION, true)
-                            .as_str(),
-                        web::get().to(invitation::update),
-                    ),
+                web::scope("/invitation")
+                    .service(resource("/new_invitation").route(post().to(invitation::create)))
+                    .service(resource("/register").route(post().to(create_user)))
+                    .service(resource("/confirm_email_invitation/{id}").route(get().to(invitation::update)))
             ),
         )
         .service(

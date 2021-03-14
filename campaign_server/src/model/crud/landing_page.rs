@@ -1,4 +1,4 @@
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::account::AccountModel;
 use ad_buy_engine::data::backend_models::landing_page::LandingPageModel;
@@ -10,7 +10,7 @@ use diesel::update;
 use uuid::Uuid;
 
 pub fn create_landing_page(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: LandingPageModel,
 ) -> Result<LandingPageModel, ApiError> {
     use crate::schema::landing_page_table::dsl::landing_page_table;
@@ -20,7 +20,7 @@ pub fn create_landing_page(
 }
 
 pub fn update_landing_page(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: LandingPageModel,
 ) -> Result<LandingPageModel, ApiError> {
     use crate::schema::landing_page_table::dsl::{landing_page_id, landing_page_table};

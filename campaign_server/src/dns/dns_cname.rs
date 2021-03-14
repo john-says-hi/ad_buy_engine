@@ -10,7 +10,6 @@ pub async fn request_subdomain(
     client: Data<Client>,
     subdomain: String,
 ) -> Result<String, ApiError> {
-    println!("12");
 
     let curl_executable = if cfg!(target_os = "freebsd") {
         "/usr/local/bin/curl"

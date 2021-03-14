@@ -1,4 +1,4 @@
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::account::AccountModel;
 use ad_buy_engine::data::backend_models::offer_source::OfferSourceModel;
@@ -11,7 +11,7 @@ use diesel::update;
 use uuid::Uuid;
 
 pub fn create_offer_source(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
     use crate::schema::offer_source_table::dsl::offer_source_table;
@@ -61,7 +61,7 @@ pub fn create_offer_source(
 }
 
 pub fn update_offer_source(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
     use crate::schema::offer_source_table::dsl::{offer_source_id, offer_source_table};

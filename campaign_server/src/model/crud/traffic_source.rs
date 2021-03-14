@@ -1,4 +1,4 @@
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::account::AccountModel;
 use ad_buy_engine::data::backend_models::traffic_source::TrafficSourceModel;
@@ -10,7 +10,7 @@ use diesel::update;
 use uuid::Uuid;
 
 pub fn create_traffic_source(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: TrafficSourceModel,
 ) -> Result<TrafficSourceModel, ApiError> {
     use crate::schema::traffic_source_table::dsl::traffic_source_table;
@@ -20,7 +20,7 @@ pub fn create_traffic_source(
 }
 
 pub fn update_traffic_source(
-    pool: &PoolType,
+    pool: &PgPool,
     payload: TrafficSourceModel,
 ) -> Result<TrafficSourceModel, ApiError> {
     use crate::schema::traffic_source_table::dsl::{traffic_source_id, traffic_source_table};

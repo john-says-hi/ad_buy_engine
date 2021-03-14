@@ -14,6 +14,7 @@ pub mod visit_ledger;
 
 #[cfg(feature = "backend")]
 use crate::schema::*;
+use diesel::{PgConnection, QueryResult, RunQueryDsl};
 
 #[cfg_attr(
 feature = "backend",
@@ -24,4 +25,10 @@ primary_key("email")
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EmailModel {
 	pub email: String,
+}
+
+impl EmailModel {
+	pub fn all(conn:&PgConnection)->QueryResult<Vec<Self>> {
+		email_list_table::dsl::email_list_table.load(conn)
+	}
 }
