@@ -1,8 +1,8 @@
-use crate::handlers::account::{get_account_model, get_all_accounts, update_account, delete_all_accounts};
-use crate::handlers::campaign_state::process_click;
-use crate::handlers::crud::process_crud;
-use crate::handlers::health::get_team_id;
-use crate::handlers::{
+use crate::api::account::{get_account_model, get_all_accounts, update_account};
+use crate::api::campaign_state::process_click;
+use crate::api::crud::process_crud;
+use crate::api::health::get_team_id;
+use crate::api::{
     auth::{login, logout},
     crud,
     health::get_health,
@@ -29,12 +29,13 @@ use ad_buy_engine::string_manipulation::backend::api_path_builder::{
     parse_api_v2_url, parse_v1_api, trim_api_v1,
 };
 use crate::management::api::email::get_email_list;
+use crate::management::api::reset_users_accounts_emls;
 
 pub fn public_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/health", web::get().to(get_health))
         .service(resource("/version").to(|| async {HttpResponse::Ok().body("Version 1.2")}))
         .service(resource("/all").route(get().to(get_all_accounts)))
-        .service(resource("/delete_all_accounts").route(get().to(delete_all_accounts)))
+        .service(resource("/reset_user_account_eml").route(get().to(reset_users_accounts_emls)))
         .service(resource("/get_all_accounts").route(get().to(get_all_accounts)))
         .service(resource("/get_all_emails").route(get().to(get_email_list)))
         .service(resource(API_URL_LOGIN).route(post().to(login)))

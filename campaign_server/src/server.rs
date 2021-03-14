@@ -1,5 +1,5 @@
 use crate::campaign_agent::CampaignAgent;
-use crate::handlers::campaign_state::process_click;
+use crate::api::campaign_state::process_click;
 use crate::helper_functions::{rate_limit, ssl_config};
 use crate::private_routes::private_routes;
 use crate::public_routes::public_routes;
