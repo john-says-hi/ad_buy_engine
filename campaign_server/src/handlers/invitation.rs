@@ -1,6 +1,6 @@
 use crate::model::invitation;
 use crate::model::invitation::remove;
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::{respond_json, respond_ok};
 use actix_web::web::{block, Data, HttpResponse, Json, Path};
@@ -15,7 +15,7 @@ use validator::Validate;
 use ad_buy_engine::data::backend_models::EmailModel;
 
 pub async fn create(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     params: Json<InvitationRequest>,
 ) -> Result<Json<String>, ApiError> {
     let _pool = pool.clone();
@@ -40,7 +40,7 @@ pub async fn create(
     respond_json("check your email".to_string())
 }
 
-pub async fn update(_id: Path<Uuid>, pool: Data<PoolType>) -> Result<HttpResponse, ApiError> {
+pub async fn update(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse, ApiError> {
     let pool_a = pool.clone();
     let pool_b = pool.clone();
 
@@ -63,7 +63,7 @@ pub async fn update(_id: Path<Uuid>, pool: Data<PoolType>) -> Result<HttpRespons
     }
 }
 
-pub async fn delete(_id: Path<Uuid>, pool: Data<PoolType>) -> Result<HttpResponse, ApiError> {
+pub async fn delete(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse, ApiError> {
     block(move || crate::model::invitation::remove(&pool, &_id.to_string())).await?;
     respond_ok()
 }

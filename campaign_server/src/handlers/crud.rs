@@ -4,7 +4,7 @@ use crate::model::crud::landing_page::{create_landing_page, update_landing_page}
 use crate::model::crud::offer::{create_offer, update_offer};
 use crate::model::crud::offer_source::{create_offer_source, update_offer_source};
 use crate::model::crud::traffic_source::{create_traffic_source, update_traffic_source};
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::respond_json;
 use crate::utils::state::AppState;
@@ -22,7 +22,7 @@ use ad_buy_engine::data::elements::offer_source::OfferSource;
 use ad_buy_engine::data::elements::traffic_source::TrafficSource;
 
 pub async fn process_crud(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     payload: Json<CRUDElementRequest>,
     state: AppState,
 ) -> Result<Json<CRUDElementResponse>, ApiError> {

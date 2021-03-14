@@ -1,10 +1,18 @@
 use actix_web::web::{Data, block};
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::EmailModel;
 use diesel::prelude::*;
+use actix_web::HttpResponse;
+use crate::management::db;
 
-pub async fn email_is_unique(email_to_cmp: &String, pool: Data<PoolType>) -> Result<bool, ApiError> {
+pub async fn get_email_list(pool: Data<PgPool>) -> Result<HttpResponse, ApiError> {
+	let res =block(move || db::email::get_all_emails(&pool)).await?;
+	Ok(HttpResponse::Ok().json(&res))
+}
+	
+	
+	pub async fn email_is_unique(email_to_cmp: &String, pool: Data<PgPool>) -> Result<bool, ApiError> {
 	use crate::schema::email_list_table::dsl::{email_list_table,email};
 	let conn=pool.get()?;
 	let eml=email_to_cmp.clone();
@@ -19,15 +27,16 @@ pub async fn email_is_unique(email_to_cmp: &String, pool: Data<PoolType>) -> Res
 	}
 }
 
-pub async fn add_email(email_to_cmp: &String, pool: Data<PoolType>) -> Result<(), ApiError> {
+pub async fn add_email(new_eml: &String, pool: Data<PgPool>) -> Result<(), ApiError> {
 	use crate::schema::email_list_table::dsl::{email_list_table,email};
 	let conn=pool.get()?;
-	let eml=EmailModel{email:email_to_cmp.clone()};
+	let eml=EmailModel{email:new_eml.clone()};
 	block(move || diesel::insert_into(email_list_table).values(&eml).execute(&conn)).await?;
+	println!("Eml added");
 	Ok(())
 }
 
-pub async fn delete_email(email_to_cmp: &String, pool: Data<PoolType>) -> Result<(), ApiError> {
+pub async fn delete_email(email_to_cmp: &String, pool: Data<PgPool>) -> Result<(), ApiError> {
 	use crate::schema::email_list_table::dsl::{email_list_table,email};
 	let conn=pool.get()?;
 	let pk=email_to_cmp.clone();

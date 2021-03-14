@@ -1,6 +1,6 @@
 use crate::schema::user_table;
 use crate::utils::authentication::hash;
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use ad_buy_engine::data::backend_models::account::AccountModel;
 use ad_buy_engine::data::backend_models::user::UserModel;
@@ -26,7 +26,7 @@ pub struct AuthUser {
 }
 
 /// Find a user by the user's id or error out
-pub fn find(pool: &PoolType, id: Uuid) -> Result<UserResponse, ApiError> {
+pub fn find(pool: &PgPool, id: Uuid) -> Result<UserResponse, ApiError> {
     use crate::schema::user_table::dsl::{user_id, user_table};
 
     let not_found = format!("User {} not found", id);
@@ -40,7 +40,7 @@ pub fn find(pool: &PoolType, id: Uuid) -> Result<UserResponse, ApiError> {
 }
 
 pub fn find_by_auth(
-    pool: &PoolType,
+    pool: &PgPool,
     user_email: &str,
     user_password: &str,
 ) -> Result<UserResponse, ApiError> {
@@ -56,7 +56,7 @@ pub fn find_by_auth(
 }
 
 pub fn create(
-    pool: &PoolType,
+    pool: &PgPool,
     new_user: UserModel,
     account: AccountModel,
 ) -> Result<UserResponse, ApiError> {
@@ -76,7 +76,7 @@ pub fn create(
     Ok(new_user.clone().into())
 }
 
-// pub fn update(pool: &PoolType, update_user: &UpdateUser) -> Result<UserResponse, ApiError> {
+// pub fn update(pool: &PgPool, update_user: &UpdateUser) -> Result<UserResponse, ApiError> {
 //     use crate::schema::user_table::dsl::{user_id, user_table};
 //
 //     let conn = pool.get()?;
@@ -87,7 +87,7 @@ pub fn create(
 //     find(&pool, Uuid::parse_str(&update_user.id)?)
 // }
 //
-// pub fn delete(pool: &PoolType, user_id: Uuid) -> Result<(), ApiError> {
+// pub fn delete(pool: &PgPool, user_id: Uuid) -> Result<(), ApiError> {
 //     use crate::schema::user_table::dsl::{user_id, user_table};
 //
 //     let conn = pool.get()?;

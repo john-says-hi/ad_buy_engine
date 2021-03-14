@@ -33,14 +33,10 @@ pub fn private_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
             .wrap(AuthMiddleware)
-            .service(web::scope("/auth").route(
-                parse_v1_api("auth", API_URL_LOGOUT, false).as_str(),
-                web::delete().to(logout),
-            ))
-            .service(resource(trim_api_v1(API_CRUD_ELEMENT)).route(post().to(process_crud)))
-            .service(resource(trim_api_v1(API_GET_ACCOUNT)).route(get().to(get_account_model)))
-            .service(resource(trim_api_v1(API_POST_ACCOUNT)).route(post().to(update_account))),
-    )
+                .service(resource("/auth/logout").route(web::delete().to(logout))))
+            .service(resource("/get_account").route(post().to(get_account_model)))
+            .service(resource("/crud_element").route(post().to(process_crud)))
+            .service(resource("/account").route(post().to(update_account)))
     .service(
         web::scope("/secure").wrap(AuthMiddleware).service(
             Files::new("", DIRECTORY_LOCATION_MAIN_SECURE_STATIC)

@@ -67,7 +67,7 @@ pub async fn server() -> std::io::Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
-            // .wrap(RedirectSchemeBuilder::new().enable(true).build())
+            .wrap(RedirectSchemeBuilder::new().enable(true).build())
             .configure(add_cache)
             .wrap(
                 Cors::new()

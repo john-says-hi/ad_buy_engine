@@ -1,4 +1,4 @@
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::respond_json;
 use actix::Addr;
@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use uuid::Uuid;
 
 pub async fn process_click(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     app_state: Data<Mutex<HashMap<Uuid, Campaign>>>,
     redis: Data<Addr<RedisActor>>,
     campaign_id: Path<Uuid>,
@@ -47,7 +47,7 @@ pub async fn process_click(
 fn find_campaign(
     id: Uuid,
     state: Data<Mutex<HashMap<Uuid, Campaign>>>,
-    pool: &PoolType,
+    pool: &PgPool,
 ) -> Option<Campaign> {
     let state = state.into_inner();
 

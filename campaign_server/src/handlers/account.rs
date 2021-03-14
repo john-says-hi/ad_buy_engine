@@ -1,6 +1,6 @@
 use crate::model::account::{query_account, return_all_accounts, update_account_database};
 use crate::utils::authentication::{decode_jwt, PrivateClaim};
-use crate::utils::database::PoolType;
+use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::{respond_json, respond_ok};
 use actix_identity::Identity;
@@ -10,7 +10,7 @@ use actix_web::HttpResponse;
 use diesel::RunQueryDsl;
 
 pub async fn get_account_model(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     id: Identity,
 ) -> Result<Json<Account>, ApiError> {
     let restored_identity: PrivateClaim =
@@ -23,7 +23,7 @@ pub async fn get_account_model(
 }
 
 pub async fn update_account(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
     id: Identity,
     payload: Json<Account>,
 ) -> Result<Json<Account>, ApiError> {
@@ -43,11 +43,8 @@ pub async fn update_account(
 }
 
 pub async fn get_all_accounts(
-    pool: Data<PoolType>,
-    id: Identity,
+    pool: Data<PgPool>,
 ) -> Result<Json<Vec<Account>>, ApiError> {
-    let restored_identity: PrivateClaim =
-        decode_jwt(&id.identity().expect("g3qw")).map_err(|e| e)?;
 
     let mut list = block(move || return_all_accounts(&pool)).await?;
     let resp = list
@@ -59,7 +56,7 @@ pub async fn get_all_accounts(
 }
 
 pub async fn delete_all_accounts(
-    pool: Data<PoolType>,
+    pool: Data<PgPool>,
 ) -> Result<HttpResponse, ApiError> {
     use crate::schema::account_table::dsl::account_table;
     let conn= pool.get()?;
