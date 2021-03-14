@@ -2,7 +2,7 @@ use crate::appstate::app_state::AppState;
 use crate::{alert, notify_primary};
 use ad_buy_engine::constant::apis::private::API_GET_ACCOUNT;
 use ad_buy_engine::data::account::Account;
-use ad_buy_engine::data::sync::sync_update::{SyncElementsResponse, SyncVisitsResponse};
+use ad_buy_engine::data::sync::sync_update::{ SyncVisitsResponse};
 use ad_buy_engine::AError;
 use std::cell::RefCell;
 use std::rc::Rc;

@@ -18,28 +18,28 @@ pub struct SyncVisitsResponse {
     pub visits: Vec<Visit>,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
-pub struct SyncElementsRequest {
-    pub offer_sources: Vec<SyncElementData>,
-    pub offers: Vec<SyncElementData>,
-    pub landing_pages: Vec<SyncElementData>,
-    pub funnels: Vec<SyncElementData>,
-    pub traffic_sources: Vec<SyncElementData>,
-    pub campaigns: Vec<SyncElementData>,
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct SyncElementsResponse {
-    pub offer_sources: Vec<OfferSource>,
-    pub offers: Vec<Offer>,
-    pub landing_pages: Vec<LandingPage>,
-    pub funnels: Vec<Funnel>,
-    pub traffic_sources: Vec<TrafficSource>,
-    pub campaigns: Vec<Campaign>,
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct SyncElementData {
-    pub element_id: Uuid,
-    pub last_updated: DateTime<Utc>,
-}
+// #[derive(Deserialize, Serialize, Clone)]
+// pub struct SyncElementsRequest {
+//     pub offer_sources: Vec<SyncElementData>,
+//     pub offers: Vec<SyncElementData>,
+//     pub landing_pages: Vec<SyncElementData>,
+//     pub funnels: Vec<SyncElementData>,
+//     pub traffic_sources: Vec<SyncElementData>,
+//     pub campaigns: Vec<SyncElementData>,
+// }
+//
+// #[derive(Deserialize, Serialize, Clone)]
+// pub struct SyncElementsResponse {
+//     pub offer_sources: Vec<OfferSource>,
+//     pub offers: Vec<Offer>,
+//     pub landing_pages: Vec<LandingPage>,
+//     pub funnels: Vec<Funnel>,
+//     pub traffic_sources: Vec<TrafficSource>,
+//     pub campaigns: Vec<Campaign>,
+// }
+//
+// #[derive(Deserialize, Serialize, Clone)]
+// pub struct SyncElementData {
+//     pub element_id: Uuid,
+//     pub last_updated: DateTime<Utc>,
+// }

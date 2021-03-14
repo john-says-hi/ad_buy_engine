@@ -16,6 +16,7 @@ pub mod visit_ledger;
 use crate::schema::*;
 #[cfg(feature = "backend")]
 use diesel::{PgConnection, QueryResult, RunQueryDsl};
+use uuid::Uuid;
 
 #[cfg_attr(
 feature = "backend",
@@ -34,7 +35,18 @@ impl EmailModel {
 		email_list_table::dsl::email_list_table.load(conn)
 	}
 	
-		pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
-			diesel::delete(email_list_table::dsl::email_list_table).execute(conn)
-		}
+	pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
+		diesel::delete(email_list_table::dsl::email_list_table).execute(conn)
+	}
+}
+
+#[cfg(feature = "backend")]
+pub trait DatabaseCommunication<T> {
+	fn all(conn:&PgConnection)->QueryResult<Vec<T>>;
+	fn delete_all(conn:&PgConnection)->QueryResult<usize>;
+	fn new(new: T, conn:&PgConnection)->QueryResult<usize>;
+	fn delete(id:Uuid, conn:&PgConnection)->QueryResult<usize>;
+	fn update(new:T, conn:&PgConnection)->QueryResult<usize>;
+	fn get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
+	fn toggle_active(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
 }
