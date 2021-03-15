@@ -14,7 +14,7 @@ use crate::management;
 use crate::management::api;
 use crate::db;
 use crate::db::user::*;
-use crate::schema::account_table::dsl::{account_id, account_table};
+use crate::schema::account_table::dsl::{id as account_id, account_table};
 use crate::schema::invitation_table::dsl::invitation_table;
 use crate::schema::user_table::dsl::{user_id, user_table};
 use crate::utils::authentication::hash;

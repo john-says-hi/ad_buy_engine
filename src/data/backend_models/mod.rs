@@ -49,4 +49,6 @@ pub trait DatabaseCommunication<T> {
 	fn update(new:T, conn:&PgConnection)->QueryResult<usize>;
 	fn get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
 	fn toggle_active(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
+	fn update_and_get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
+	fn len(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
 }

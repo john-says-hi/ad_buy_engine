@@ -19,8 +19,11 @@ extern crate strum_macros;
 #[macro_use]
 extern crate diesel;
 
+#[macro_use]
+pub mod macros;
 pub mod constant;
 pub mod data;
+
 pub mod string_manipulation;
 
 #[cfg(feature = "backend")]
