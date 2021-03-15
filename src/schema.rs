@@ -1,7 +1,28 @@
 table! {
-    account_table (account_id) {
-        account_id -> Varchar,
-        account_data -> Varchar,
+    account_table (id) {
+        id -> Varchar,
+        report_time_zone -> Varchar,
+        billing_currency -> Varchar,
+        sys_language -> Varchar,
+        domains_configuration -> Varchar,
+        work_spaces -> Varchar,
+        fuel -> Varchar,
+        conversion_registration_time_reporting -> Varchar,
+        default_home_screen -> Varchar,
+        default_way_to_open_report -> Varchar,
+        ip_anonymization -> Bool,
+        default_reporting_currency -> Varchar,
+        profile_first_name -> Varchar,
+        profile_last_name -> Varchar,
+        primary_user -> Varchar,
+        additional_users -> Varchar,
+        skype -> Varchar,
+        phone_number -> Varchar,
+        two_factor_authentication -> Varchar,
+        api_access_keys -> Varchar,
+        billing_information -> Varchar,
+        custom_conversions -> Varchar,
+        referrer_handling_list -> Varchar,
         last_updated -> Int8,
     }
 }

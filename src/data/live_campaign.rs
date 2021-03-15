@@ -18,11 +18,11 @@ pub struct User {
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SlimUser {
-    pub user_id: String,
-    pub email: String,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct SlimUser {
+//     pub user_id: String,
+//     pub email: String,
+// }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LiveCampaign {
