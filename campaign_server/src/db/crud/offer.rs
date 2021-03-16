@@ -17,10 +17,10 @@ pub fn create_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, Ap
 }
 
 pub fn update_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, ApiError> {
-    use crate::schema::offer_table::dsl::{offer_id, offer_table};
+    use crate::schema::offer_table::dsl::{id as offer_id, offer_table};
 
     Ok(
-        update(offer_table.filter(offer_id.eq(payload.offer_id.clone())))
+        update(offer_table.filter(offer_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<OfferModel>(&pool.get()?)?,
     )

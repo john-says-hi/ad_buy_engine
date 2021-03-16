@@ -23,10 +23,10 @@ pub fn update_landing_page(
     pool: &PgPool,
     payload: LandingPageModel,
 ) -> Result<LandingPageModel, ApiError> {
-    use crate::schema::landing_page_table::dsl::{landing_page_id, landing_page_table};
+    use crate::schema::landing_page_table::dsl::{id as landing_page_id, landing_page_table};
 
     Ok(
-        update(landing_page_table.filter(landing_page_id.eq(payload.landing_page_id.clone())))
+        update(landing_page_table.filter(landing_page_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<LandingPageModel>(&pool.get()?)?,
     )

@@ -16,7 +16,7 @@ use crate::db;
 use crate::db::user::*;
 use crate::schema::account_table::dsl::{id as account_id, account_table};
 use crate::schema::invitation_table::dsl::invitation_table;
-use crate::schema::user_table::dsl::{user_id, user_table};
+use crate::schema::user_table::dsl::{id as user_id, user_table};
 use crate::utils::authentication::hash;
 use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;

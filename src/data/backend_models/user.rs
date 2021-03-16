@@ -11,11 +11,11 @@ use diesel::{PgConnection, QueryResult, RunQueryDsl};
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
     table_name = "user_table",
-    primary_key("user_id")
+    primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserModel {
-    pub user_id: String,
+    pub id: String,
     pub account_id: String,
     pub email: String,
     pub password: String,
@@ -32,7 +32,7 @@ impl UserModel {
 impl From<User> for UserModel {
     fn from(u: User) -> Self {
         Self {
-            user_id: u.user_id.to_string(),
+            id: u.user_id.to_string(),
             account_id: u.account_id.to_string(),
             email: u.email,
             password: u.password,
@@ -44,7 +44,7 @@ impl From<User> for UserModel {
 impl From<UserModel> for User {
     fn from(u: UserModel) -> Self {
         Self {
-            user_id: Uuid::parse_str(&u.user_id).unwrap(),
+            user_id: Uuid::parse_str(&u.id).unwrap(),
             account_id: Uuid::parse_str(&u.account_id).unwrap(),
             email: u.email,
             password: u.password,
@@ -55,7 +55,7 @@ impl From<UserModel> for User {
 impl From<UserModel> for UserResponse {
     fn from(m: UserModel) -> Self {
         Self {
-            id: Uuid::parse_str(&m.user_id).expect("G%$sef"),
+            id: Uuid::parse_str(&m.id).expect("G%$sef"),
             account_id: Uuid::parse_str(&m.account_id).expect("R3gsaef"),
             email: m.email,
         }

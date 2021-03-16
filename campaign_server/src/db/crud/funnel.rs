@@ -17,10 +17,10 @@ pub fn create_funnel(pool: &PgPool, payload: FunnelModel) -> Result<FunnelModel,
 }
 
 pub fn update_funnel(pool: &PgPool, payload: FunnelModel) -> Result<FunnelModel, ApiError> {
-    use crate::schema::funnel_table::dsl::{funnel_id, funnel_table};
+    use crate::schema::funnel_table::dsl::{id as funnel_id, funnel_table};
 
     Ok(
-        update(funnel_table.filter(funnel_id.eq(payload.funnel_id.clone())))
+        update(funnel_table.filter(funnel_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<FunnelModel>(&pool.get()?)?,
     )

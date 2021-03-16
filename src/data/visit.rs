@@ -32,20 +32,19 @@ pub struct VisitClick {}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Visit {
-    pub click_id: Uuid,
+    pub id: Uuid,
     pub account_id: Uuid,
-    pub campaign: Uuid,
-    pub traffic_source: Uuid,
-    pub funnel: Option<Uuid>,
-
+    pub campaign_id: Uuid,
+    pub traffic_source_id: Uuid,
+    pub funnel_id: Option<Uuid>,
     pub pre_sell_landing_page_id: Option<Uuid>,
     pub landing_page_ids: Vec<Uuid>,
     pub offer_ids: Vec<Uuid>,
     pub impressions_from_traffic_source: u64,
     pub tracking_link_clicks: u32,
     pub pre_landing_page_clicks: Vec<ClickEvent>,
-    pub recorded_landing_page_clicks: Vec<ClickEvent>,
-    pub recorded_offer_clicks: Vec<ClickEvent>,
+    pub landing_page_clicks: Vec<ClickEvent>,
+    pub offer_clicks: Vec<ClickEvent>,
     pub referrer: Url,
     pub traffic_source_parameters: HashMap<String, String>,
     pub redirection_time: Duration,
@@ -55,7 +54,7 @@ pub struct Visit {
     pub conversions: Vec<Conversion>,
     pub custom_conversions: Vec<CustomConversionEvent>,
     pub click_is_suspicious: bool,
-    pub created_on: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
     pub last_updated: DateTime<Utc>,
 }
 

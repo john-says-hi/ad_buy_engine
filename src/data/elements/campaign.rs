@@ -67,31 +67,3 @@ pub struct Campaign {
     pub last_clicked: DateTime<Utc>,
     pub hosts: Vec<Url>,
 }
-
-// impl From<Campaign> for LiveCampaign {
-//     fn from(campaign: Campaign) -> Self {
-//         Self {
-//             campaign_id: campaign.campaign_id,
-//             account_id: campaign.account_id,
-//             live_traffic_source: campaign.traffic_source.into(),
-//             live_offer_sources: campaign
-//                 .linked_offer_sources
-//                 .iter()
-//                 .map(|s| s.clone().into())
-//                 .collect::<Vec<LiveOfferSource>>(),
-//             linked_custom_conversions: campaign.linked_custom_conversions,
-//             cost_model: campaign.cost_model,
-//             cost_value: campaign.cost_value,
-//             redirect_option: campaign.redirect_option,
-//             campaign_destination: match campaign.campaign_core {
-//                 Either::Left(funnel) => LiveCampaignDestination::Funnel(funnel),
-//                 Either::Right(sequence) => LiveCampaignDestination::Sequence(sequence),
-//             },
-//             unique_traffic_source_postback_url: campaign.unique_traffic_source_postback_url,
-//             unique_traffic_source_postback_url_on_custom_event: campaign
-//                 .unique_traffic_source_postback_url_on_custom_event,
-//             unique_pixel_redirect_url: campaign.unique_pixel_redirect_url,
-//             last_visit_on: Local::now().naive_local(),
-//         }
-//     }
-// }
