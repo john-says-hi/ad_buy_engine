@@ -48,7 +48,17 @@ pub trait DatabaseCommunication<T> {
 	fn delete(id:Uuid, conn:&PgConnection)->QueryResult<usize>;
 	fn update(new:T, conn:&PgConnection)->QueryResult<usize>;
 	fn get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
-	fn toggle_active(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
 	fn update_and_get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
 	fn len(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
+}
+
+#[macro_export]
+macro_rules! impl_db_comm {
+	($modal:ty, $table_name:tt) => {
+		#[cfg(feature = "backend")]
+		use crate::schema::$table_name
+		impl DatabaseCommunication<$modal> for $modal {
+		
+		}
+	};
 }
