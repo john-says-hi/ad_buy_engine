@@ -1,6 +1,22 @@
 CREATE TABLE offer_table (
-  offer_id VARCHAR(36) NOT NULL PRIMARY KEY,
-  account_id VARCHAR(36) NOT NULL,
-  offer_data VARCHAR NOT NULL,
-  last_updated BIGINT NOT NULL
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
+    clearance VARCHAR NOT NULL,
+    offer_source VARCHAR NOT NULL,
+    country VARCHAR NOT NULL,
+    name VARCHAR NOT NULL,
+    tags VARCHAR NOT NULL,
+    url VARCHAR NOT NULL,
+    offer_tokens VARCHAR NOT NULL,
+    conversion_tracking_method VARCHAR NOT NULL,
+    payout_type VARCHAR NOT NULL,
+    manual_payout_config VARCHAR NOT NULL,
+    conversion_cap_config VARCHAR NOT NULL,
+    payout_value VARCHAR NOT NULL,
+    currency VARCHAR NOT NULL,
+    language VARCHAR NOT NULL,
+    vertical VARCHAR NOT NULL,
+    notes VARCHAR NOT NULL,
+    archived BOOL NOT NULL,
+    last_updated BIGINT NOT NULL
 );

@@ -23,11 +23,11 @@ pub fn update_traffic_source(
     pool: &PgPool,
     payload: TrafficSourceModel,
 ) -> Result<TrafficSourceModel, ApiError> {
-    use crate::schema::traffic_source_table::dsl::{traffic_source_id, traffic_source_table};
+    use crate::schema::traffic_source_table::dsl::{id as traffic_source_id, traffic_source_table};
 
     Ok(
         update(
-            traffic_source_table.filter(traffic_source_id.eq(payload.traffic_source_id.clone())),
+            traffic_source_table.filter(traffic_source_id.eq(payload.id.clone())),
         )
         .set(payload)
         .get_result::<TrafficSourceModel>(&pool.get()?)?,

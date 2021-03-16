@@ -27,7 +27,7 @@ pub struct AuthUser {
 
 /// Find a user by the user's id or error out
 pub fn find(pool: &PgPool, id: Uuid) -> Result<UserResponse, ApiError> {
-    use crate::schema::user_table::dsl::{user_id, user_table};
+    use crate::schema::user_table::dsl::{id as user_id, user_table};
 
     let not_found = format!("User {} not found", id);
     let conn = pool.get()?;
@@ -100,7 +100,7 @@ pub fn create(
 impl From<NewUser> for UserModel {
     fn from(user: NewUser) -> Self {
         Self {
-            user_id: user.id,
+            id: user.id,
             account_id: user.account_id,
             email: user.email,
             password: hash(&user.password),

@@ -28,11 +28,23 @@ table! {
 }
 
 table! {
-    campaign_table (campaign_id) {
-        campaign_id -> Varchar,
+    campaign_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        campaign_data -> Varchar,
+        clearance -> Varchar,
+        traffic_source -> Varchar,
+        country -> Varchar,
+        name -> Varchar,
+        cost_model -> Varchar,
+        cost_value -> Varchar,
+        redirect_option -> Varchar,
+        campaign_destination -> Varchar,
+        campaign_core -> Varchar,
+        notes -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
+        last_clicked -> Int8,
+        hosts -> Varchar,
     }
 }
 
@@ -43,10 +55,18 @@ table! {
 }
 
 table! {
-    funnel_table (funnel_id) {
-        funnel_id -> Varchar,
+    funnel_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        funnel_data -> Varchar,
+        country -> Varchar,
+        name -> Varchar,
+        clearance -> Varchar,
+        redirect_option -> Varchar,
+        referrer_handling -> Varchar,
+        notes -> Varchar,
+        conditional_sequences -> Varchar,
+        default_sequences -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
     }
 }
@@ -61,44 +81,98 @@ table! {
 }
 
 table! {
-    landing_page_table (landing_page_id) {
-        landing_page_id -> Varchar,
+    landing_page_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        landing_page_data -> Varchar,
+        is_pre_landing_page -> Bool,
+        clearance -> Varchar,
+        country -> Varchar,
+        name -> Varchar,
+        tags -> Varchar,
+        url -> Varchar,
+        url_tokens -> Varchar,
+        number_of_calls_to_action -> Varchar,
+        vertical -> Varchar,
+        language -> Varchar,
+        notes -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
     }
 }
 
 table! {
-    offer_source_table (offer_source_id) {
-        offer_source_id -> Varchar,
+    offer_source_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        offer_source_data -> Varchar,
+        name -> Varchar,
+        clearance -> Varchar,
+        click_id_token -> Varchar,
+        payout_token -> Varchar,
+        conversion_id_token -> Varchar,
+        custom_events -> Varchar,
+        tracking_domain -> Varchar,
+        conversion_tracking_method -> Varchar,
+        include_additional_parameters_in_postback_url -> Bool,
+        payout_currency -> Varchar,
+        append_click_id -> Bool,
+        accept_duplicate_post_backs -> Bool,
+        whitelisted_postback_ips -> Varchar,
+        referrer_handling -> Varchar,
+        notes -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
     }
 }
 
 table! {
-    offer_table (offer_id) {
-        offer_id -> Varchar,
+    offer_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        offer_data -> Varchar,
+        clearance -> Varchar,
+        offer_source -> Varchar,
+        country -> Varchar,
+        name -> Varchar,
+        tags -> Varchar,
+        url -> Varchar,
+        offer_tokens -> Varchar,
+        conversion_tracking_method -> Varchar,
+        payout_type -> Varchar,
+        manual_payout_config -> Varchar,
+        conversion_cap_config -> Varchar,
+        payout_value -> Varchar,
+        currency -> Varchar,
+        language -> Varchar,
+        vertical -> Varchar,
+        notes -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
     }
 }
 
 table! {
-    traffic_source_table (traffic_source_id) {
-        traffic_source_id -> Varchar,
+    traffic_source_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        traffic_source_data -> Varchar,
+        name -> Varchar,
+        clearance -> Varchar,
+        external_id_token_data -> Varchar,
+        cost_token_data -> Varchar,
+        custom_token_data -> Varchar,
+        currency -> Varchar,
+        traffic_source_postback_url -> Varchar,
+        traffic_source_postback_url_on_custom_event -> Varchar,
+        pixel_redirect_url -> Varchar,
+        track_impressions -> Bool,
+        direct_tracking -> Bool,
+        notes -> Varchar,
+        archived -> Bool,
         last_updated -> Int8,
     }
 }
 
 table! {
-    user_table (user_id) {
-        user_id -> Varchar,
+    user_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
         email -> Varchar,
         password -> Varchar,
@@ -114,10 +188,30 @@ table! {
 }
 
 table! {
-    visit_table (click_id) {
-        click_id -> Varchar,
+    visit_table (id) {
+        id -> Varchar,
         account_id -> Varchar,
-        visit_data -> Varchar,
+        campaign_id -> Varchar,
+        traffic_source_id -> Varchar,
+        funnel_id -> Varchar,
+        pre_sell_landing_page_id -> Varchar,
+        landing_page_ids -> Varchar,
+        offer_ids -> Varchar,
+        impressions_from_traffic_source -> Varchar,
+        tracking_link_clicks -> Varchar,
+        pre_landing_page_clicks -> Varchar,
+        landing_page_clicks -> Varchar,
+        offer_clicks -> Varchar,
+        referrer -> Varchar,
+        traffic_source_parameters -> Varchar,
+        redirection_time -> Varchar,
+        click_map -> Varchar,
+        user_agent_data -> Varchar,
+        geo_ip_data -> Varchar,
+        conversions -> Varchar,
+        custom_conversions -> Varchar,
+        click_is_suspicious -> Bool,
+        created_at -> Int8,
         last_updated -> Int8,
     }
 }

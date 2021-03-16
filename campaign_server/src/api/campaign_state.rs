@@ -60,7 +60,7 @@ fn find_campaign(
         return restored;
     } else {
         let mut restored: Campaign = {
-            use crate::schema::campaign_table::dsl::{campaign_id, campaign_table};
+            use crate::schema::campaign_table::dsl::{id as campaign_id, campaign_table};
             use diesel::prelude::*;
             campaign_table
                 .filter(campaign_id.eq(id.to_string()))

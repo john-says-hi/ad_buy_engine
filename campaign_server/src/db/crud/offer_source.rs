@@ -15,45 +15,6 @@ pub fn create_offer_source(
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
     use crate::schema::offer_source_table::dsl::offer_source_table;
-    // let res = insert_into(offer_source_table)
-    //     .values(payload)
-    //     .get_result::<OfferSourceModel>(&pool.get()?);
-    //
-    // match res {
-    //     QueryResult::Ok(a) => Ok(a),
-    //     QueryResult::Err(e) => {
-    //         match e {
-    //             Error::AlreadyInTransaction => {
-    //                 println!("111")
-    //             }
-    //             Error::DatabaseError(a, b) => {
-    //                 println!("222")
-    //             }
-    //             Error::DeserializationError(e) => {
-    //                 println!("333")
-    //             }
-    //             Error::InvalidCString(e) => {
-    //                 println!("444")
-    //             }
-    //             Error::NotFound => {
-    //                 println!("555")
-    //             }
-    //             Error::QueryBuilderError(e) => {
-    //                 println!("666")
-    //             }
-    //             Error::RollbackTransaction => {
-    //                 println!("777")
-    //             }
-    //             Error::SerializationError(e) => {
-    //                 println!("888")
-    //             }
-    //             _ => {
-    //                 println!("999")
-    //             }
-    //         }
-    //         Err(ApiError::NotFound("".to_string()))
-    //     }
-    // }
 
     Ok(insert_into(offer_source_table)
         .values(payload)
@@ -64,11 +25,11 @@ pub fn update_offer_source(
     pool: &PgPool,
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
-    use crate::schema::offer_source_table::dsl::{offer_source_id, offer_source_table};
-    println!("{}", &payload.offer_source_id.as_str());
+    use crate::schema::offer_source_table::dsl::{id as offer_source_id, offer_source_table};
+    println!("{}", &payload.id.as_str());
 
     Ok(
-        update(offer_source_table.filter(offer_source_id.eq(payload.offer_source_id.clone())))
+        update(offer_source_table.filter(offer_source_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<OfferSourceModel>(&pool.get()?)?,
     )
