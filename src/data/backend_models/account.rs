@@ -17,7 +17,7 @@ use crate::data::lists::referrer_handling::ReplaceReferrerList;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "account_table",
+    table_name = "accounts",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -51,7 +51,7 @@ pub struct AccountModel {
 #[cfg(feature = "backend")]
 impl AccountModel {
     pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
-        diesel::delete(account_table::dsl::account_table).execute(conn)
+        diesel::delete(accounts::dsl::accounts).execute(conn)
     }
 }
 

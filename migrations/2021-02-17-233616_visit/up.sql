@@ -1,4 +1,4 @@
-CREATE TABLE visit_table (
+CREATE TABLE visits (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     campaign_id VARCHAR(36) NOT NULL,

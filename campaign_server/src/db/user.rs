@@ -1,4 +1,4 @@
-use crate::schema::user_table;
+use crate::schema::users;
 use crate::utils::authentication::hash;
 use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
@@ -27,11 +27,11 @@ pub struct AuthUser {
 
 /// Find a user by the user's id or error out
 pub fn find(pool: &PgPool, id: Uuid) -> Result<UserResponse, ApiError> {
-    use crate::schema::user_table::dsl::{id as user_id, user_table};
+    use crate::schema::users::dsl::{id as user_id, users};
 
     let not_found = format!("User {} not found", id);
     let conn = pool.get()?;
-    let user = user_table
+    let user = users
         .filter(user_id.eq(user_id))
         .first::<UserModel>(&conn)
         .map_err(|_| ApiError::NotFound(not_found))?;
@@ -44,10 +44,10 @@ pub fn find_by_auth(
     user_email: &str,
     user_password: &str,
 ) -> Result<UserResponse, ApiError> {
-    use crate::schema::user_table::dsl::{email, password, user_table};
+    use crate::schema::users::dsl::{email, password, users};
 
     let conn = pool.get()?;
-    let user = user_table
+    let user = users
         .filter(email.eq(user_email.to_string()))
         .filter(password.eq(user_password.to_string()))
         .first::<UserModel>(&conn)
@@ -60,16 +60,16 @@ pub fn create(
     new_user: UserModel,
     account: AccountModel,
 ) -> Result<UserResponse, ApiError> {
-    use crate::schema::account_table::dsl::account_table;
-    use crate::schema::user_table::dsl::user_table;
+    use crate::schema::accounts::dsl::accounts;
+    use crate::schema::users::dsl::users;
 
     let conn = pool.get()?;
 
-    diesel::insert_into(user_table)
+    diesel::insert_into(users)
         .values(&new_user)
         .execute(&conn)?;
 
-    diesel::insert_into(account_table)
+    diesel::insert_into(accounts)
         .values(&account)
         .execute(&conn)?;
 
@@ -77,7 +77,7 @@ pub fn create(
 }
 
 // pub fn update(pool: &PgPool, update_user: &UpdateUser) -> Result<UserResponse, ApiError> {
-//     use crate::schema::user_table::dsl::{user_id, user_table};
+//     use crate::schema::users::dsl::{user_id, users};
 //
 //     let conn = pool.get()?;
 //     diesel::update(users)
@@ -88,7 +88,7 @@ pub fn create(
 // }
 //
 // pub fn delete(pool: &PgPool, user_id: Uuid) -> Result<(), ApiError> {
-//     use crate::schema::user_table::dsl::{user_id, user_table};
+//     use crate::schema::users::dsl::{user_id, users};
 //
 //     let conn = pool.get()?;
 //     diesel::delete(users)

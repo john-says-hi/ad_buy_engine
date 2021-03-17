@@ -29,7 +29,7 @@ pub async fn create(
         })?;
 
     let new = Invitation {
-        invitation_id: Uuid::new_v4().to_string(),
+        id: Uuid::new_v4().to_string(),
         email: _params,
         email_confirmed: false,
         expires_at: Local::now().naive_local() + chrono::Duration::hours(24),
@@ -58,7 +58,7 @@ pub async fn update(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse,
             .header(actix_web::http::header::LOCATION, "/tertiary/#register")
             .finish())
     } else {
-        block(move || remove(&pool_b, &item.invitation_id)).await?;
+        block(move || remove(&pool_b, &item.id)).await?;
         Err(ApiError::BadRequest("Old Invitation".into()))
     }
 }

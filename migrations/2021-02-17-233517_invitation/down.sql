@@ -1,1 +1,1 @@
-DROP TABLE invitation_table;
+DROP TABLE invitation;

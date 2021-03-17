@@ -12,7 +12,7 @@ use crate::data::custom_events::traffic_source_postback_url::TrafficSourcePostba
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "traffic_source_table",
+    table_name = "traffic_sources",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

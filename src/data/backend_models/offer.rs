@@ -14,7 +14,7 @@ use rust_decimal::Decimal;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "offer_table",
+    table_name = "offers",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

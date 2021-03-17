@@ -69,7 +69,7 @@ pub fn send_invitation(invitation: &Invitation) -> Result<(), ApiError> {
          your Invitation expires on <strong>{}</strong>",
             ROOT_DOMAIN,
             API_URL_CONFIRM_EMAIL_INVITATION,
-            invitation.invitation_id,
+            invitation.id,
             invitation
                 .expires_at
                 .format("%I:%M %p %A, %-d %B, %C%y")

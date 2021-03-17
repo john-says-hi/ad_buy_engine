@@ -16,7 +16,7 @@ use crate::data::custom_events::CustomConversionEvent;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "visit_table",
+    table_name = "visits",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

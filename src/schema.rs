@@ -1,5 +1,5 @@
 table! {
-    account_table (id) {
+    accounts (id) {
         id -> Varchar,
         report_time_zone -> Varchar,
         billing_currency -> Varchar,
@@ -28,7 +28,7 @@ table! {
 }
 
 table! {
-    campaign_table (id) {
+    campaigns (id) {
         id -> Varchar,
         account_id -> Varchar,
         clearance -> Varchar,
@@ -49,13 +49,13 @@ table! {
 }
 
 table! {
-    email_list_table (email) {
+    emails (email) {
         email -> Varchar,
     }
 }
 
 table! {
-    funnel_table (id) {
+    funnels (id) {
         id -> Varchar,
         account_id -> Varchar,
         country -> Varchar,
@@ -72,8 +72,8 @@ table! {
 }
 
 table! {
-    invitation_table (invitation_id) {
-        invitation_id -> Varchar,
+    invitation (id) {
+        id -> Varchar,
         email -> Varchar,
         email_confirmed -> Bool,
         expires_at -> Timestamp,
@@ -81,7 +81,7 @@ table! {
 }
 
 table! {
-    landing_page_table (id) {
+    landing_pages (id) {
         id -> Varchar,
         account_id -> Varchar,
         is_pre_landing_page -> Bool,
@@ -101,7 +101,7 @@ table! {
 }
 
 table! {
-    offer_source_table (id) {
+    offer_sources (id) {
         id -> Varchar,
         account_id -> Varchar,
         name -> Varchar,
@@ -125,7 +125,7 @@ table! {
 }
 
 table! {
-    offer_table (id) {
+    offers (id) {
         id -> Varchar,
         account_id -> Varchar,
         clearance -> Varchar,
@@ -150,7 +150,7 @@ table! {
 }
 
 table! {
-    traffic_source_table (id) {
+    traffic_sources (id) {
         id -> Varchar,
         account_id -> Varchar,
         name -> Varchar,
@@ -171,7 +171,7 @@ table! {
 }
 
 table! {
-    user_table (id) {
+    users (id) {
         id -> Varchar,
         account_id -> Varchar,
         email -> Varchar,
@@ -188,7 +188,7 @@ table! {
 }
 
 table! {
-    visit_table (id) {
+    visits (id) {
         id -> Varchar,
         account_id -> Varchar,
         campaign_id -> Varchar,
@@ -217,16 +217,16 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
-    account_table,
-    campaign_table,
-    email_list_table,
-    funnel_table,
-    invitation_table,
-    landing_page_table,
-    offer_source_table,
-    offer_table,
-    traffic_source_table,
-    user_table,
+    accounts,
+    campaigns,
+    emails,
+    funnels,
+    invitation,
+    landing_pages,
+    offer_sources,
+    offers,
+    traffic_sources,
+    users,
     visit_ledger_table,
-    visit_table,
+    visits,
 );

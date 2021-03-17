@@ -1,3 +1,83 @@
+#[cfg(feature = "backend")]
+#[macro_export]
+macro_rules! impl_database_communication {
+	($($modal:ty, $table:ident)*) => {
+		$(
+		impl DatabaseCommunication<$modal> for $modal {
+			fn new(new: $modal, conn:&PgConnection)->QueryResult<usize> {
+				diesel::insert_into(crate::schema::$table::dsl::$table)
+					.values(&new)
+					.execute(conn)
+			}
+			
+			fn delete(model_id: String, conn:&PgConnection)->QueryResult<usize> {
+				diesel::delete(crate::schema::$table::dsl::$table.find(model_id))
+					.execute(conn)
+			}
+			
+			fn update(model_id: String, new: $modal, conn:&PgConnection)->QueryResult<usize> {
+			diesel::update(crate::schema::$table::dsl::$table.find(model_id))
+				.set(new)
+				.execute(conn)
+			}
+			
+			fn get(model_id: String, conn:&PgConnection)->QueryResult<$modal> {
+				crate::schema::$table::dsl::$table.find(model_id)
+					.get_result(conn)
+			}
+			
+			fn update_and_get(model_id: String, new: $modal, conn:&PgConnection)->QueryResult<$modal> {
+				diesel::update(crate::schema::$table::dsl::$table.find(model_id))
+					.set(&new)
+					.get_result(conn)
+			}
+			
+			fn delete_all(conn:&PgConnection)->QueryResult<usize> {
+				diesel::delete(crate::schema::$table::dsl::$table)
+					.execute(conn)
+			}
+			
+			fn all(conn:&PgConnection)->QueryResult<Vec<$modal>> {
+				crate::schema::$table::dsl::$table.load::<$modal>(conn)
+			}
+		}
+		)*
+	};
+}
+
+#[cfg(feature = "backend")]
+#[macro_export]
+macro_rules! impl_accountable_database_communication {
+	($($modal:ty, $table:ident)*) => {
+		$(
+		impl AccountableDBComm<$modal> for $modal {
+			fn all_by_last_updated(acc_id: String, conn:&PgConnection)->QueryResult<Vec<$modal>> {
+				crate::schema::$table::dsl::$table.filter(crate::schema::$table::dsl::account_id.eq(acc_id))
+					.order(crate::schema::$table::dsl::last_updated.desc())
+					.load::<$modal>(conn)
+			}
+
+			fn all_for_account(acc_id: String, conn:&PgConnection)->QueryResult<Vec<$modal>> {
+				crate::schema::$table::dsl::$table.filter(crate::schema::$table::dsl::account_id.eq(acc_id))
+					.load::<$modal>(conn)
+			}
+			
+			fn delete_all_for_account(acc_id: String, conn:&PgConnection)->QueryResult<usize> {
+				diesel::delete(crate::schema::$table::dsl::$table.filter(crate::schema::$table::dsl::account_id.eq(acc_id)))
+					.execute(conn)
+			}
+		}
+		)*
+	};
+}
+
+#[macro_export]
+macro_rules! impl_accountable {
+	($($modal:ty)*) => {
+		$(impl Accountable for $modal {})*
+	};
+}
+
 #[macro_export]
 macro_rules! pr {
 	($str:expr) => {println!("{}", $str)};

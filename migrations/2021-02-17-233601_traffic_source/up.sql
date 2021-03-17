@@ -1,4 +1,4 @@
-CREATE TABLE traffic_source_table (
+CREATE TABLE traffic_sources (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     name VARCHAR NOT NULL,

@@ -8,13 +8,13 @@ use uuid::Uuid;
 
 // Get
 pub fn find(pool: &PgPool, _id: Uuid) -> Result<Invitation, ApiError> {
-    use crate::schema::invitation_table::dsl::{invitation_id, invitation_table};
+    use crate::schema::invitation::dsl::{id, invitation};
 
     let not_found = format!("User {} not found", _id);
     let conn = pool.get()?;
 
-    let item = invitation_table
-        .filter(invitation_id.eq(_id.to_string()))
+    let item = invitation
+        .filter(id.eq(_id.to_string()))
         .first::<Invitation>(&conn)
         .map_err(|_| ApiError::NotFound(not_found))?;
 
@@ -22,11 +22,11 @@ pub fn find(pool: &PgPool, _id: Uuid) -> Result<Invitation, ApiError> {
 }
 
 pub fn find_by_email(pool: &PgPool, _id: String) -> Result<Invitation, ApiError> {
-    use crate::schema::invitation_table::dsl::{email, invitation_table};
+    use crate::schema::invitation::dsl::{email, invitation};
 
     let not_found = format!("User {} not found", _id);
     let conn = pool.get().expect("Gw4esx");
-    let item = invitation_table
+    let item = invitation
         .filter(email.eq(_id.to_string()))
         .first::<Invitation>(&conn)
         .map_err(|_| ApiError::NotFound(not_found))?;
@@ -34,16 +34,16 @@ pub fn find_by_email(pool: &PgPool, _id: String) -> Result<Invitation, ApiError>
 }
 
 pub fn new(pool: &PgPool, new: &Invitation) -> Result<Invitation, ApiError> {
-    use crate::schema::invitation_table::dsl::{email, invitation_table};
+    use crate::schema::invitation::dsl::{email, invitation};
 
     let conn = pool.get()?;
 
-    /// todo check if account already exists and handle
-    diesel::delete(invitation_table)
+    // todo check if account already exists and handle
+    diesel::delete(invitation)
         .filter(email.eq(&new.email))
         .execute(&conn)?;
 
-    diesel::insert_into(invitation_table)
+    diesel::insert_into(invitation)
         .values(new)
         .execute(&conn)?;
 
@@ -52,31 +52,31 @@ pub fn new(pool: &PgPool, new: &Invitation) -> Result<Invitation, ApiError> {
 }
 
 pub fn update(pool: &PgPool, item: &Invitation) -> Result<(), ApiError> {
-    use crate::schema::invitation_table::dsl::{invitation_id, invitation_table};
+    use crate::schema::invitation::dsl::{id, invitation};
 
     let conn = pool.get()?;
-    diesel::update(invitation_table)
-        .filter(invitation_id.eq(item.invitation_id.clone()))
+    diesel::update(invitation)
+        .filter(id.eq(item.id.clone()))
         .set(item)
         .execute(&conn)?;
     Ok(())
 }
 
 pub fn remove(pool: &PgPool, _id: &String) -> Result<(), ApiError> {
-    use crate::schema::invitation_table::dsl::{invitation_id, invitation_table};
+    use crate::schema::invitation::dsl::{id, invitation};
 
     let conn = pool.get()?;
-    diesel::delete(invitation_table)
-        .filter(invitation_id.eq(_id))
+    diesel::delete(invitation)
+        .filter(id.eq(_id))
         .execute(&conn)?;
     Ok(())
 }
 
 pub fn dedup(pool: &PgPool, _email: String) -> Result<(), ApiError> {
-    use crate::schema::invitation_table::dsl::{email, invitation_table};
+    use crate::schema::invitation::dsl::{email, invitation};
 
     let conn = pool.get()?;
-    diesel::delete(invitation_table)
+    diesel::delete(invitation)
         .filter(email.eq(_email))
         .execute(&conn)?;
     Ok(())

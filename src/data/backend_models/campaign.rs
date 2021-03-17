@@ -16,7 +16,7 @@ use url::Url;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "campaign_table",
+    table_name = "campaigns",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

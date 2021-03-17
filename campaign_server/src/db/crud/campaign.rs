@@ -10,17 +10,17 @@ use diesel::update;
 use uuid::Uuid;
 
 pub fn create_campaign(pool: &PgPool, payload: CampaignModel) -> Result<CampaignModel, ApiError> {
-    use crate::schema::campaign_table::dsl::campaign_table;
-    Ok(insert_into(campaign_table)
+    use crate::schema::campaigns::dsl::campaigns;
+    Ok(insert_into(campaigns)
         .values(payload)
         .get_result::<CampaignModel>(&pool.get()?)?)
 }
 
 pub fn update_campaign(pool: &PgPool, payload: CampaignModel) -> Result<CampaignModel, ApiError> {
-    use crate::schema::campaign_table::dsl::{id as campaign_id, campaign_table};
+    use crate::schema::campaigns::dsl::{id as campaign_id, campaigns};
 
     Ok(
-        update(campaign_table.filter(campaign_id.eq(payload.id.clone())))
+        update(campaigns.filter(campaign_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<CampaignModel>(&pool.get()?)?,
     )
