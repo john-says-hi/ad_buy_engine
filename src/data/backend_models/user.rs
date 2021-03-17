@@ -10,7 +10,7 @@ use diesel::{PgConnection, QueryResult, RunQueryDsl};
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "user_table",
+    table_name = "users",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -25,7 +25,7 @@ pub struct UserModel {
 #[cfg(feature = "backend")]
 impl UserModel {
     pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
-        diesel::delete(user_table::dsl::user_table).execute(conn)
+        diesel::delete(users::dsl::users).execute(conn)
     }
 }
 

@@ -1,4 +1,4 @@
-CREATE TABLE landing_page_table (
+CREATE TABLE landing_pages (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     is_pre_landing_page BOOL NOT NULL,

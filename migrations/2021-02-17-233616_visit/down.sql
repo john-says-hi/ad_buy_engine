@@ -1,2 +1,2 @@
 
-DROP TABLE visit_table;
+DROP TABLE visits;

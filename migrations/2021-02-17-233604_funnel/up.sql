@@ -1,4 +1,4 @@
-CREATE TABLE funnel_table (
+CREATE TABLE funnels (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     country VARCHAR NOT NULL,

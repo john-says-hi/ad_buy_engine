@@ -1,1 +1,1 @@
-DROP TABLE offer_source_table;
+DROP TABLE offer_sources;

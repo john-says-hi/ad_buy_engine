@@ -1,4 +1,4 @@
-CREATE TABLE campaign_table (
+CREATE TABLE campaigns (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     clearance VARCHAR NOT NULL,

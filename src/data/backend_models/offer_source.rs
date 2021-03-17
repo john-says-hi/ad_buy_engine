@@ -13,7 +13,7 @@ use crate::data::lists::referrer_handling::ReferrerHandling;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "offer_source_table",
+    table_name = "offer_sources",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

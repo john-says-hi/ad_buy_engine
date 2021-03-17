@@ -1,1 +1,1 @@
-DROP TABLE campaign_table;
+DROP TABLE campaigns;

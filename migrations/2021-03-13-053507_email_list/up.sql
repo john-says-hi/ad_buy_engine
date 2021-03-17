@@ -1,3 +1,3 @@
-CREATE TABLE email_list_table (
+CREATE TABLE emails (
   email VARCHAR NOT NULL PRIMARY KEY
 );

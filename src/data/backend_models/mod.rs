@@ -11,17 +11,29 @@ pub mod user;
 pub mod visit;
 pub mod visit_identity;
 pub mod visit_ledger;
+use super::backend_models::{
+		account::AccountModel,
+		user::UserModel,
+		campaign::CampaignModel,
+		funnel::FunnelModel,
+	landing_page::LandingPageModel,
+	traffic_source::TrafficSourceModel,
+	offer_source::OfferSourceModel,
+	offer::OfferModel,
+	visit::VisitModel,
+	invitation::Invitation
+	};
 
 #[cfg(feature = "backend")]
-use crate::schema::*;
+use crate::schema::emails;
 #[cfg(feature = "backend")]
-use diesel::{PgConnection, QueryResult, RunQueryDsl};
+use diesel::{PgConnection, QueryResult, RunQueryDsl, prelude::*};
 use uuid::Uuid;
 
 #[cfg_attr(
 feature = "backend",
 derive(Queryable, Insertable, AsChangeset, Identifiable),
-table_name = "email_list_table",
+table_name = "emails",
 primary_key("email")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -32,33 +44,63 @@ pub struct EmailModel {
 #[cfg(feature = "backend")]
 impl EmailModel {
 	pub fn all(conn:&PgConnection)->QueryResult<Vec<Self>> {
-		email_list_table::dsl::email_list_table.load(conn)
+		emails::dsl::emails.load(conn)
 	}
 	
 	pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
-		diesel::delete(email_list_table::dsl::email_list_table).execute(conn)
+		diesel::delete(emails::dsl::emails).execute(conn)
 	}
+}
+
+pub trait Accountable {}
+
+#[cfg(feature = "backend")]
+pub trait AccountableDBComm<T> {
+	fn all_by_last_updated(acc_id: String, conn:&PgConnection)->QueryResult<Vec<T>>;
+	fn all_for_account(acc_id: String, conn:&PgConnection)->QueryResult<Vec<T>>;
+	fn delete_all_for_account(acc_id: String, conn:&PgConnection)->QueryResult<usize>;
 }
 
 #[cfg(feature = "backend")]
 pub trait DatabaseCommunication<T> {
-	fn all(conn:&PgConnection)->QueryResult<Vec<T>>;
-	fn delete_all(conn:&PgConnection)->QueryResult<usize>;
 	fn new(new: T, conn:&PgConnection)->QueryResult<usize>;
-	fn delete(id:Uuid, conn:&PgConnection)->QueryResult<usize>;
-	fn update(new:T, conn:&PgConnection)->QueryResult<usize>;
-	fn get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
-	fn update_and_get(id: Uuid, conn:&PgConnection)->QueryResult<T>;
-	fn len(id: Uuid, conn:&PgConnection)->QueryResult<usize>;
+	fn delete(model_id: String, conn:&PgConnection)->QueryResult<usize>;
+	fn update(model_id: String, new:T, conn:&PgConnection)->QueryResult<usize>;
+	fn get(model_id: String, conn:&PgConnection)->QueryResult<T>;
+	fn update_and_get(model_id: String, new: T, conn:&PgConnection)->QueryResult<T>;
+	fn delete_all(conn:&PgConnection)->QueryResult<usize>;
+	fn all(conn:&PgConnection)->QueryResult<Vec<T>>;
 }
 
-#[macro_export]
-macro_rules! impl_db_comm {
-	($modal:ty, $table_name:tt) => {
-		#[cfg(feature = "backend")]
-		use crate::schema::$table_name
-		impl DatabaseCommunication<$modal> for $modal {
-		
-		}
-	};
-}
+#[cfg(feature = "backend")]
+impl_database_communication!(
+	AccountModel, accounts
+	UserModel, users
+	CampaignModel, campaigns
+	FunnelModel, funnels
+	TrafficSourceModel, traffic_sources
+	LandingPageModel, landing_pages
+	OfferModel, offers
+	OfferSourceModel, offer_sources
+);
+
+#[cfg(feature = "backend")]
+impl_accountable_database_communication!(
+	UserModel, users
+	CampaignModel, campaigns
+	FunnelModel, funnels
+	TrafficSourceModel, traffic_sources
+	LandingPageModel, landing_pages
+	OfferModel, offers
+	OfferSourceModel, offer_sources
+);
+
+impl_accountable!(
+	UserModel
+	CampaignModel
+	FunnelModel
+	TrafficSourceModel
+	LandingPageModel
+	OfferModel
+	OfferSourceModel
+);

@@ -5,7 +5,7 @@
 // use uuid::Uuid;
 //
 // #[cfg_attr(feature = "backend", derive(Queryable, Insertable, AsChangeset))]
-// #[cfg_attr(feature = "backend", table_name = "landing_page_table")]
+// #[cfg_attr(feature = "backend", table_name = "landing_pages")]
 // #[derive(Serialize, Deserialize, Clone,Debug)]
 // pub struct LandingPageModel {
 //     pub landing_page_id: String,

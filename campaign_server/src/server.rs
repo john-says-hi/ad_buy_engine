@@ -47,8 +47,8 @@ pub async fn server() -> std::io::Result<()> {
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     
     let mut filtered_restored: Vec<Campaign> = {
-        use crate::schema::campaign_table::dsl::campaign_table;
-        campaign_table
+        use crate::schema::campaigns::dsl::campaigns;
+        campaigns
             .load::<CampaignModel>(&pool.clone().get().expect("4rgfsadf"))
             .unwrap()
             .iter()

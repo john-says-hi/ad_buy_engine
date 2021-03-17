@@ -14,9 +14,9 @@ use crate::management;
 use crate::management::api;
 use crate::db;
 use crate::db::user::*;
-use crate::schema::account_table::dsl::{id as account_id, account_table};
-use crate::schema::invitation_table::dsl::invitation_table;
-use crate::schema::user_table::dsl::{id as user_id, user_table};
+use crate::schema::accounts::dsl::{id as account_id, accounts};
+use crate::schema::invitation::dsl::invitation;
+use crate::schema::users::dsl::{id as user_id, users};
 use crate::utils::authentication::hash;
 use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
@@ -63,7 +63,7 @@ pub async fn create_user(
                 .to_string()).await?);
     
             let user = block(move || create(&pool, new_user.into(), new_account.into())).await?;
-            block(move || db::invitation::remove(&pool_b, &inv.invitation_id)).await?;
+            block(move || db::invitation::remove(&pool_b, &inv.id)).await?;
             respond_json(user.into())
         } else {
             Err(ApiError::BadRequest("Account email already claimed. Restoration not yet build".to_string()))
@@ -78,11 +78,11 @@ pub async fn create_user(
 // pub async fn delete_all_users(
 //     pool: Data<PgPool>,
 // ) -> Result<HttpResponse, ApiError> {
-//     use crate::schema::user_table::dsl::user_table;
-//     use crate::schema::email_list_table::dsl::email_list_table;
+//     use crate::schema::users::dsl::users;
+//     use crate::schema::emails::dsl::emails;
 //     let conn= pool.get()?;
-//     block(move || crate::diesel::delete(user_table).execute(&conn)).await?;
-//     block(move || crate::diesel::delete(email_list_table).execute(&conn)).await?;
+//     block(move || crate::diesel::delete(users).execute(&conn)).await?;
+//     block(move || crate::diesel::delete(emails).execute(&conn)).await?;
 //     respond_ok()
 // }
 

@@ -10,17 +10,17 @@ use diesel::update;
 use uuid::Uuid;
 
 pub fn create_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, ApiError> {
-    use crate::schema::offer_table::dsl::offer_table;
-    Ok(insert_into(offer_table)
+    use crate::schema::offers::dsl::offers;
+    Ok(insert_into(offers)
         .values(payload)
         .get_result::<OfferModel>(&pool.get()?)?)
 }
 
 pub fn update_offer(pool: &PgPool, payload: OfferModel) -> Result<OfferModel, ApiError> {
-    use crate::schema::offer_table::dsl::{id as offer_id, offer_table};
+    use crate::schema::offers::dsl::{id as offer_id, offers};
 
     Ok(
-        update(offer_table.filter(offer_id.eq(payload.id.clone())))
+        update(offers.filter(offer_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<OfferModel>(&pool.get()?)?,
     )

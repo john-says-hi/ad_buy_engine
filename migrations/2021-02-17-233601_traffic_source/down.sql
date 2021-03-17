@@ -1,1 +1,1 @@
-DROP TABLE traffic_source_table;
+DROP TABLE traffic_sources;

@@ -1,4 +1,4 @@
-CREATE TABLE account_table (
+CREATE TABLE accounts (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     report_time_zone VARCHAR NOT NULL,
     billing_currency VARCHAR NOT NULL,

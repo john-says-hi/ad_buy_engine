@@ -17,6 +17,9 @@ extern crate redis_async;
 extern crate serde_derive;
 #[macro_use]
 extern crate validator_derive;
+#[macro_use]
+extern crate ad_buy_engine;
+
 pub mod dns;
 pub use ad_buy_engine::schema;
 

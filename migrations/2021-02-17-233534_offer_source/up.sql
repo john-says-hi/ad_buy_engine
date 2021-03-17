@@ -1,4 +1,4 @@
-CREATE TABLE offer_source_table (
+CREATE TABLE offer_sources (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
     name VARCHAR NOT NULL,

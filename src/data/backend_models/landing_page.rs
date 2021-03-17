@@ -11,7 +11,7 @@ use crate::data::lists::{DataURLToken, Vertical, Language};
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "landing_page_table",
+    table_name = "landing_pages",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]

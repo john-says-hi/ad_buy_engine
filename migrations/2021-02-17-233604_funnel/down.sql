@@ -1,1 +1,1 @@
-DROP TABLE funnel_table;
+DROP TABLE funnels;

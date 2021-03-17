@@ -8,16 +8,16 @@ use uuid::Uuid;
 use std::ops::Deref;
 
 pub fn query_account(pool: &PgPool, _account_id: Uuid) -> Result<AccountModel, ApiError> {
-    use crate::schema::account_table::dsl::{id as account_id, account_table};
-    Ok(account_table
+    use crate::schema::accounts::dsl::{id as account_id, accounts};
+    Ok(accounts
         .filter(account_id.eq(_account_id.to_string()))
         .first::<AccountModel>(get_conn(pool)?.deref())
         .map_err(|_| ApiError::NotFound("No Account Found".to_string()))?)
 }
 
 pub fn return_all_accounts(pool: &PgPool) -> Result<Vec<AccountModel>, ApiError> {
-    use crate::schema::account_table::dsl::{id as account_id, account_table};
-    Ok(account_table
+    use crate::schema::accounts::dsl::{id as account_id, accounts};
+    Ok(accounts
         .load::<AccountModel>(&pool.get()?)
         .map_err(|_| ApiError::NotFound("No Account Found".to_string()))?)
 }
@@ -27,9 +27,9 @@ pub fn update_account_database(
     _account_id: Uuid,
     payload: AccountModel,
 ) -> Result<AccountModel, ApiError> {
-    use crate::schema::account_table::dsl::{id as account_id, account_table};
+    use crate::schema::accounts::dsl::{id as account_id, accounts};
     Ok(
-        update(account_table.filter(account_id.eq(_account_id.to_string())))
+        update(accounts.filter(account_id.eq(_account_id.to_string())))
             .set(payload)
             .get_result::<AccountModel>(&pool.get()?)?,
     )

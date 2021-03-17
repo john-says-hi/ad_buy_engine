@@ -13,8 +13,8 @@ pub fn create_landing_page(
     pool: &PgPool,
     payload: LandingPageModel,
 ) -> Result<LandingPageModel, ApiError> {
-    use crate::schema::landing_page_table::dsl::landing_page_table;
-    Ok(insert_into(landing_page_table)
+    use crate::schema::landing_pages::dsl::landing_pages;
+    Ok(insert_into(landing_pages)
         .values(payload)
         .get_result::<LandingPageModel>(&pool.get()?)?)
 }
@@ -23,10 +23,10 @@ pub fn update_landing_page(
     pool: &PgPool,
     payload: LandingPageModel,
 ) -> Result<LandingPageModel, ApiError> {
-    use crate::schema::landing_page_table::dsl::{id as landing_page_id, landing_page_table};
+    use crate::schema::landing_pages::dsl::{id as landing_page_id, landing_pages};
 
     Ok(
-        update(landing_page_table.filter(landing_page_id.eq(payload.id.clone())))
+        update(landing_pages.filter(landing_page_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<LandingPageModel>(&pool.get()?)?,
     )

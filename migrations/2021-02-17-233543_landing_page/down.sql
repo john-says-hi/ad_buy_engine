@@ -1,1 +1,1 @@
-DROP TABLE landing_page_table;
+DROP TABLE landing_pages;

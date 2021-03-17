@@ -14,9 +14,9 @@ pub fn create_offer_source(
     pool: &PgPool,
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
-    use crate::schema::offer_source_table::dsl::offer_source_table;
+    use crate::schema::offer_sources::dsl::offer_sources;
 
-    Ok(insert_into(offer_source_table)
+    Ok(insert_into(offer_sources)
         .values(payload)
         .get_result::<OfferSourceModel>(&pool.get()?)?)
 }
@@ -25,11 +25,11 @@ pub fn update_offer_source(
     pool: &PgPool,
     payload: OfferSourceModel,
 ) -> Result<OfferSourceModel, ApiError> {
-    use crate::schema::offer_source_table::dsl::{id as offer_source_id, offer_source_table};
+    use crate::schema::offer_sources::dsl::{id as offer_source_id, offer_sources};
     println!("{}", &payload.id.as_str());
 
     Ok(
-        update(offer_source_table.filter(offer_source_id.eq(payload.id.clone())))
+        update(offer_sources.filter(offer_source_id.eq(payload.id.clone())))
             .set(payload)
             .get_result::<OfferSourceModel>(&pool.get()?)?,
     )

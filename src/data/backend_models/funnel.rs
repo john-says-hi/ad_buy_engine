@@ -11,7 +11,7 @@ use crate::data::lists::referrer_handling::ReferrerHandling;
 #[cfg_attr(
     feature = "backend",
     derive(Queryable, Insertable, AsChangeset, Identifiable),
-    table_name = "funnel_table",
+    table_name = "funnels",
     primary_key("id")
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
