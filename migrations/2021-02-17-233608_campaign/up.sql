@@ -1,6 +1,6 @@
 CREATE TABLE campaigns (
-    id VARCHAR(48) NOT NULL PRIMARY KEY,
-    account_id VARCHAR(48) NOT NULL,
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
     clearance VARCHAR NOT NULL,
     traffic_source VARCHAR NOT NULL,
     country VARCHAR NOT NULL,

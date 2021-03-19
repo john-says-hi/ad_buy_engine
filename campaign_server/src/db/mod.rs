@@ -1,7 +1,7 @@
-pub mod account_depricated;
+pub mod account_depricating;
 pub mod crud;
-pub mod invitation_depricated;
-pub mod user_depricated;
+pub mod invitation_depricating;
+pub mod user_depricating;
 
 
 use crate::utils::database::{get_conn,PgPool};

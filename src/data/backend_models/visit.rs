@@ -48,51 +48,29 @@ pub struct VisitModel {
 
 impl From<Visit> for VisitModel {
     fn from(visit: Visit) -> Self {
-        to_json_string!(
-            account_id; visit.account_id
-            campaign_id; visit.campaign_id
-            traffic_source_id; visit.traffic_source_id
-            funnel_id; visit.funnel_id
-            pre_sell_landing_page_id; visit.pre_sell_landing_page_id
-            landing_page_ids; visit.landing_page_ids
-            offer_ids; visit.offer_ids
-            impressions_from_traffic_source; visit.impressions_from_traffic_source
-            tracking_link_clicks; visit.tracking_link_clicks
-            pre_landing_page_clicks; visit.pre_landing_page_clicks
-            landing_page_clicks; visit.landing_page_clicks
-            offer_clicks; visit.offer_clicks
-            referrer; visit.referrer
-            traffic_source_parameters; visit.traffic_source_parameters
-            redirection_time; visit.redirection_time
-            click_map; visit.click_map
-            user_agent_data; visit.user_agent_data
-            geo_ip_data; visit.geo_ip_data
-            conversions; visit.conversions
-            custom_conversions; visit.custom_conversions
-        );
         
         Self {
             id:visit.id,
-            account_id,
-            campaign_id,
-            traffic_source_id,
-            funnel_id,
-            pre_sell_landing_page_id,
-            landing_page_ids,
-            offer_ids,
-            impressions_from_traffic_source,
-            tracking_link_clicks,
-            pre_landing_page_clicks,
-            landing_page_clicks,
-            offer_clicks,
-            referrer,
-            traffic_source_parameters,
-            redirection_time,
-            click_map,
-            user_agent_data,
-            geo_ip_data,
-            conversions,
-            custom_conversions,
+            account_id:visit.account_id.to_string(),
+            campaign_id:visit.campaign_id.to_string(),
+            traffic_source_id:visit.traffic_source_id.to_string(),
+            funnel_id: serde_json::to_string(&visit.funnel_id).expect("G%sdfg"),
+            pre_sell_landing_page_id: serde_json::to_string(&visit.pre_sell_landing_page_id).expect("HGTsdfg"),
+            landing_page_ids: serde_json::to_string(&visit.landing_page_ids).expect("GH%Tsfd"),
+            offer_ids: serde_json::to_string(&visit.offer_ids).expect("GHTsdf"),
+            impressions_from_traffic_source: serde_json::to_string(&visit.impressions_from_traffic_source).expect("Gfsdffg"),
+            tracking_link_clicks: serde_json::to_string(&visit.tracking_link_clicks).expect("a^sdf"),
+            pre_landing_page_clicks: serde_json::to_string(&visit.pre_landing_page_clicks).expect("gtsfd"),
+            landing_page_clicks: serde_json::to_string(&visit.landing_page_clicks).expect("YHtdcfgh"),
+            offer_clicks: serde_json::to_string(&visit.offer_clicks).expect("fdasdf4"),
+            referrer: serde_json::to_string(&visit.referrer).expect("hgfsffd"),
+            traffic_source_parameters: serde_json::to_string(&visit.traffic_source_parameters).expect("Gfsdg5r"),
+            redirection_time: serde_json::to_string(&visit.redirection_time).expect("h65dfg"),
+            click_map: serde_json::to_string(&visit.click_map).expect("G%"),
+            user_agent_data: serde_json::to_string(&visit.user_agent_data).expect("h765gh"),
+            geo_ip_data:serde_json::to_string(&visit.geo_ip_data).expect("GH^%dsf"),
+            conversions:serde_json::to_string(&visit.conversions).expect("t5sdfd"),
+            custom_conversions:serde_json::to_string(&visit.custom_conversions).expect("G%^gsdf"),
             click_is_suspicious: visit.click_is_suspicious,
             last_updated: visit.last_updated.timestamp(),
         }
@@ -101,51 +79,28 @@ impl From<Visit> for VisitModel {
 
 impl From<VisitModel> for Visit {
     fn from(visit_model: VisitModel) -> Self {
-        from_json_string!(
-            account_id; visit_model.account_id => Uuid
-            campaign_id; visit_model.campaign_id => Uuid
-            traffic_source_id; visit_model.traffic_source_id => Uuid
-            funnel_id; visit_model.funnel_id => Option<Uuid>
-            pre_sell_landing_page_id; visit_model.pre_sell_landing_page_id => Option<Uuid>
-            landing_page_ids; visit_model.landing_page_ids => Vec<Uuid>
-            offer_ids; visit_model.offer_ids => Vec<Uuid>
-            impressions_from_traffic_source; visit_model.impressions_from_traffic_source => u64
-            tracking_link_clicks; visit_model.tracking_link_clicks => u32
-            pre_landing_page_clicks; visit_model.pre_landing_page_clicks =>Vec<ClickEvent>
-            landing_page_clicks; visit_model.landing_page_clicks => Vec<ClickEvent>
-            offer_clicks; visit_model.offer_clicks => Vec<ClickEvent>
-            referrer; visit_model.referrer => Url
-            traffic_source_parameters; visit_model.traffic_source_parameters => HashMap<String, String>
-            redirection_time; visit_model.redirection_time => Duration
-            click_map; visit_model.click_map => ClickMap
-            user_agent_data; visit_model.user_agent_data => UserAgentData
-            geo_ip_data; visit_model.geo_ip_data => GeoIPData
-            conversions; visit_model.conversions => Vec<Conversion>
-            custom_conversions; visit_model.custom_conversions => Vec<CustomConversionEvent>
-        );
-    
         Self {
             id:visit_model.id,
-            account_id,
-            campaign_id,
-            traffic_source_id,
-            funnel_id,
-            pre_sell_landing_page_id,
-            landing_page_ids,
-            offer_ids,
-            impressions_from_traffic_source,
-            tracking_link_clicks,
-            pre_landing_page_clicks,
-            landing_page_clicks,
-            offer_clicks,
-            referrer,
-            traffic_source_parameters,
-            redirection_time,
-            click_map,
-            user_agent_data,
-            geo_ip_data,
-            conversions,
-            custom_conversions,
+            account_id:Uuid::parse_str(&visit_model.account_id).expect("G%sdgf"),
+            campaign_id:Uuid::parse_str(&visit_model.campaign_id).expect("G%sdgff"),
+            traffic_source_id:Uuid::parse_str(&visit_model.traffic_source_id).expect("G%45sdf"),
+            funnel_id: serde_json::from_str(&visit_model.funnel_id).expect("F43sdaf"),
+            pre_sell_landing_page_id:serde_json::from_str(&visit_model.pre_sell_landing_page_id).expect("G%$sdf"),
+            landing_page_ids: serde_json::from_str(&visit_model.landing_page_ids).expect("GT%fd"),
+            offer_ids: serde_json::from_str(&visit_model.offer_ids).expect("H^gdsf"),
+            impressions_from_traffic_source: serde_json::from_str(&visit_model.impressions_from_traffic_source).expect("Gf45sf"),
+            tracking_link_clicks: serde_json::from_str(&visit_model.tracking_link_clicks).expect("G%sf"),
+            pre_landing_page_clicks: serde_json::from_str(&visit_model.pre_landing_page_clicks).expect("GH%tsf"),
+            landing_page_clicks: serde_json::from_str(&visit_model.landing_page_clicks).expect("g54sdf"),
+            offer_clicks: serde_json::from_str(&visit_model.offer_clicks).expect("G%sdf"),
+            referrer: serde_json::from_str(&visit_model.referrer).expect("G%sdf"),
+            traffic_source_parameters: serde_json::from_str(&visit_model.traffic_source_parameters).expect("GT%sf"),
+            redirection_time: serde_json::from_str(&visit_model.redirection_time).expect("GTsf"),
+            click_map: serde_json::from_str(&visit_model.click_map).expect("GTfx"),
+            user_agent_data: serde_json::from_str(&visit_model.user_agent_data).expect("h76gfe"),
+            geo_ip_data: serde_json::from_str(&visit_model.geo_ip_data).expect("uyhgfd"),
+            conversions: serde_json::from_str(&visit_model.conversions).expect("GH%^sf"),
+            custom_conversions: serde_json::from_str(&visit_model.custom_conversions).expect("gfdssf"),
             click_is_suspicious:visit_model.click_is_suspicious,
             last_updated:DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(visit_model.last_updated, 0), Utc),
         }

@@ -43,43 +43,25 @@ pub struct OfferModel {
 
 impl From<Offer> for OfferModel {
     fn from(offer: Offer) -> Self {
-        to_json_string!(
-            id; offer.offer_id
-            account_id; offer.account_id
-            clearance; offer.clearance
-            offer_source; offer.offer_source
-            country; offer.country
-            tags; offer.tags
-            url; offer.url
-            offer_tokens; offer.offer_tokens
-            conversion_tracking_method; offer.conversion_tracking_method
-            payout_type; offer.payout_type
-            manual_payout_config; offer.manual_payout_config
-            conversion_cap_config; offer.conversion_cap_config
-            payout_value; offer.payout_type
-            currency; offer.currency
-            language; offer.language
-            vertical; offer.vertical
-        );
-        
+
         Self {
-            id,
-            account_id,
-            clearance,
-            offer_source,
-            country,
+            id:offer.offer_id.to_string(),
+            account_id:offer.account_id.to_string(),
+            clearance: serde_json::to_string(&offer.clearance).expect("H^tdfg"),
+            offer_source: serde_json::to_string(&offer.offer_source).expect("H^gfds"),
+            country: serde_json::to_string(&offer.country).expect("GTfsd"),
             name:offer.name,
-            tags,
-            url,
-            offer_tokens,
-            conversion_tracking_method,
-            payout_type,
-            manual_payout_config,
-            conversion_cap_config,
-            payout_value,
-            currency,
-            language,
-            vertical,
+            tags: serde_json::to_string(&offer.tags).expect("gtrsdf45"),
+            url: serde_json::to_string(&offer.url).expect("Gt5fdst5"),
+            offer_tokens: serde_json::to_string(&offer.offer_tokens).expect("H^drtf"),
+            conversion_tracking_method: serde_json::to_string(&offer.conversion_tracking_method).expect("G^tsfd"),
+            payout_type: serde_json::to_string(&offer.payout_type).expect("YH6rdtf"),
+            manual_payout_config: serde_json::to_string(&offer.manual_payout_config).expect("Hgdfsgh"),
+            conversion_cap_config: serde_json::to_string(&offer.conversion_cap_config).expect("G5tsdf"),
+            payout_value: serde_json::to_string(&offer.payout_value).expect("G6tsfdgf"),
+            currency: serde_json::to_string(&offer.currency).expect("GH^tdsfg"),
+            language: serde_json::to_string(&offer.language).expect("gfsg5dfsfg"),
+            vertical: serde_json::to_string(&offer.vertical).expect("GH^tsrdfrg"),
             notes:offer.notes,
             archived: offer.archived,
             last_updated: offer.last_updated.timestamp(),
@@ -89,43 +71,25 @@ impl From<Offer> for OfferModel {
 
 impl From<OfferModel> for Offer {
     fn from(offer_model: OfferModel) -> Self {
-        from_json_string!(
-            offer_id; offer_model.id => Uuid
-            account_id; offer_model.account_id => Uuid
-            clearance; offer_model.clearance => Clearance
-            offer_source; offer_model.offer_source => OfferSource
-            country; offer_model.country => Country
-            tags; offer_model.tags => Vec<String>
-            url; offer_model.url => Url
-            offer_tokens; offer_model.offer_tokens => Vec<DataURLToken>
-            conversion_tracking_method; offer_model.conversion_tracking_method => ConversionTrackingMethod
-            payout_type; offer_model.payout_type => PayoutType
-            manual_payout_config; offer_model.manual_payout_config => Option<ManualPayoutConfig>
-            conversion_cap_config; offer_model.conversion_cap_config => Option<ConversionCapConfig>
-            payout_value; offer_model.payout_value => Decimal
-            currency; offer_model.currency => Currency
-            language; offer_model.language => Language
-            vertical; offer_model.vertical => Vertical
-        );
         
         Self {
-            offer_id,
-            account_id,
-            clearance,
-            offer_source,
-            country,
+            offer_id:Uuid::parse_str(&offer_model.id).expect("HG^tdfh"),
+            account_id:Uuid::parse_str(&offer_model.account_id).expect("G%^tsdf"),
+            clearance: serde_json::from_str(&offer_model.clearance).expect("Y%^gsdf"),
+            offer_source: serde_json::from_str(&offer_model.offer_source).expect("G5t6sdfg"),
+            country: serde_json::from_str(&offer_model.country).expect("G%Tsdgfg"),
             name:offer_model.name,
-            tags,
-            url,
-            offer_tokens,
-            conversion_tracking_method,
-            payout_type,
-            manual_payout_config,
-            conversion_cap_config,
-            payout_value,
-            currency,
-            language,
-            vertical,
+            tags: serde_json::from_str(&offer_model.tags).expect("HG^Tdsftg"),
+            url: serde_json::from_str(&offer_model.url).expect("GT%sdfg"),
+            offer_tokens: serde_json::from_str(&offer_model.offer_tokens).expect("GTsdfg"),
+            conversion_tracking_method: serde_json::from_str(&offer_model.conversion_tracking_method).expect("G%Tsdfg"),
+            payout_type: serde_json::from_str(&offer_model.payout_type).expect("GTrsdfg"),
+            manual_payout_config: serde_json::from_str(&offer_model.manual_payout_config).expect("Gt4sdfgfd"),
+            conversion_cap_config: serde_json::from_str(&offer_model.conversion_cap_config).expect("t5g4sfdg"),
+            payout_value: serde_json::from_str(&offer_model.payout_value).expect("G%Tsdftg"),
+            currency: serde_json::from_str(&offer_model.currency).expect("GTrsdfg4"),
+            language: serde_json::from_str(&offer_model.language).expect("G^%sdfg"),
+            vertical: serde_json::from_str(&offer_model.vertical).expect("Y^%hgwertfg"),
             notes:offer_model.notes,
             archived:offer_model.archived,
             last_updated: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(offer_model.last_updated, 0), Utc),

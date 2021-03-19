@@ -1,4 +1,4 @@
-use crate::db::user_depricated::AuthUser;
+use crate::db::user_depricating::AuthUser;
 use crate::utils::authentication::{decode_jwt, PrivateClaim};
 use actix_identity::RequestIdentity;
 use actix_web::{

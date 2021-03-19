@@ -25,6 +25,7 @@ pub async fn sync(
     pool: Data<PgPool>,
     payload: Json<SyncElementRequest>,
 ) -> Result<Json<SyncElementResponse>, ApiError> {
+    println!("{:?}",&payload);
     let mut response = SyncElementResponse{
         offer_sources: vec![],
         offers: vec![],

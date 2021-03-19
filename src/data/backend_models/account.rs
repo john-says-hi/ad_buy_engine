@@ -1,4 +1,4 @@
-use crate::data::account::{Account, ConversionRegistrationTimeReporting, DefaultHomeScreen, TwoFactorAuthentication};
+use crate::data::account::{Account, ConversionRegistrationTimeReporting, DefaultHomeScreen, TwoFactorAuthentication, DefaultWayToOpenReport};
 #[cfg(feature = "backend")]
 use crate::schema::*;
 use chrono::{NaiveDateTime, DateTime, Utc};
@@ -57,110 +57,65 @@ impl AccountModel {
 
 impl From<Account> for AccountModel {
     fn from(account: Account) -> Self {
-        to_json_string!(
-            id; account.account_id
-            report_time_zone; account.report_time_zone
-            billing_currency; account.billing_currency
-            sys_language; account.sys_language
-            // domains_configuration; account.domains_configuration
-            work_spaces; account.work_spaces
-            conversion_registration_time_reporting; account.conversion_registration_time_reporting
-            default_home_screen; account.default_home_screen
-            default_way_to_open_report; account.default_way_to_open_report
-            default_reporting_currency; account.default_reporting_currency
-            profile_first_name; account.profile_first_name
-            profile_last_name; account.profile_last_name
-            primary_user; account.primary_user
-            additional_users; account.additional_users
-            skype; account.skype
-            phone_number; account.phone_number
-            two_factor_authentication; account.two_factor_authentication
-            api_access_keys; account.api_access_keys
-            billing_information; account.billing_information
-            custom_conversions; account.custom_conversions
-            referrer_handling_list; account.referrer_handling_list
-            fuel; account.fuel
-        );
-        
+    
         Self {
-            id,
-            report_time_zone,
-            billing_currency,
-            sys_language,
-            domains_configuration:serde_json::to_string(&account.domains_configuration).expect("V54sfg"),
-            work_spaces,
-            fuel,
-            conversion_registration_time_reporting,
-            default_home_screen,
-            default_way_to_open_report,
+            id : account.account_id.to_string(),
+            report_time_zone:serde_json::to_string(&account.report_time_zone).expect("rerRg"),
+            billing_currency:serde_json::to_string(&account.default_reporting_currency).expect("rerRg"),
+            sys_language:serde_json::to_string(&account.sys_language).expect("rerRg"),
+            domains_configuration:serde_json::to_string(&account.domains_configuration).expect("rerRg"),
+            work_spaces:serde_json::to_string(&account.work_spaces).expect("rerRg"),
+            fuel:serde_json::to_string(&account.fuel).expect("rerRg"),
+            conversion_registration_time_reporting:serde_json::to_string(&account.conversion_registration_time_reporting).expect("rerRg"),
+            default_home_screen:serde_json::to_string(&account.default_home_screen).expect("rerRg"),
+            default_way_to_open_report:serde_json::to_string(&account.default_way_to_open_report).expect("rerRg"),
             ip_anonymization: account.ip_anonymization,
-            default_reporting_currency,
-            profile_first_name,
-            profile_last_name,
-            primary_user,
-            additional_users,
-            skype,
-            phone_number,
-            two_factor_authentication,
-            api_access_keys,
-            billing_information,
-            custom_conversions,
-            referrer_handling_list,
+            default_reporting_currency:serde_json::to_string(&account.default_reporting_currency).expect("rerRg"),
+            profile_first_name:account.profile_first_name,
+            profile_last_name:account.profile_last_name,
+            primary_user:serde_json::to_string(&account.primary_user).expect("rerRg"),
+            additional_users:serde_json::to_string(&account.additional_users).expect("rerRg"),
+            skype:account.skype,
+            phone_number:account.phone_number,
+            two_factor_authentication:serde_json::to_string(&account.two_factor_authentication).expect("rerRg"),
+            api_access_keys:serde_json::to_string(&account.api_access_keys).expect("rerRg"),
+            billing_information:serde_json::to_string(&account.billing_information).expect("rerRg"),
+            custom_conversions:serde_json::to_string(&account.custom_conversions).expect("rerRg"),
+            referrer_handling_list:serde_json::to_string(&account.referrer_handling_list).expect("rerRg"),
             last_updated: account.last_updated.timestamp(),
         }
+
     }
 }
 
 impl From<AccountModel> for Account {
     fn from(account_model: AccountModel) -> Self {
-        from_json_string!(
-           account_id; account_model.id => Uuid
-           report_time_zone; account_model.report_time_zone => TimeZone
-           billing_currency; account_model.billing_currency => Currency
-           sys_language; account_model.sys_language => Language
-           // domains_configuration; account_model.domains_configuration => DomainsConfiguration
-           work_spaces; account_model.domains_configuration => Vec<WorkSpace>
-           conversion_registration_time_reporting; account_model.conversion_registration_time_reporting => ConversionRegistrationTimeReporting
-           default_home_screen; account_model.default_home_screen => DefaultHomeScreen
-           default_way_to_open_report; account_model.default_way_to_open_report => DefaultHomeScreen
-           default_reporting_currency; account_model.default_reporting_currency => Currency
-           default_home_screen; account_model.default_home_screen => DefaultHomeScreen
-           primary_user; account_model.primary_user => SlimUser
-           additional_users; account_model.additional_users => Vec<AdditionalUser>
-           two_factor_authentication; account_model.two_factor_authentication => Option<TwoFactorAuthentication>
-           api_access_keys; account_model.api_access_keys => Vec<String>
-           billing_information; account_model.billing_information => Option<BillingInformation>
-           custom_conversions; account_model.custom_conversions => Vec<CustomConversionEvent>
-           referrer_handling_list; account_model.referrer_handling_list => Vec<ReplaceReferrerList>
-           fuel; account_model.fuel => u64
-        );
-        
+    
         Self {
-            account_id,
-            report_time_zone,
-            billing_currency,
-            sys_language,
-            domains_configuration:serde_json::from_str(&account_model.domains_configuration).expect("G%^$xs"),
-            work_spaces,
-            fuel,
-            conversion_registration_time_reporting,
-            default_home_screen,
-            default_way_to_open_report,
+            account_id: Uuid::parse_str(&account_model.id).expect("g534rsd"),
+            report_time_zone:serde_json::from_str(&account_model.report_time_zone).expect("GV545r3"),
+            billing_currency:serde_json::from_str(&account_model.billing_currency).expect("GV54fg3"),
+            sys_language:serde_json::from_str(&account_model.sys_language).expect("G4V54fg3"),
+            domains_configuration:serde_json::from_str(&account_model.domains_configuration).expect("GV54fg4re3"),
+            work_spaces:serde_json::from_str(&account_model.work_spaces).expect("GV54fg344"),
+            fuel:serde_json::from_str(&account_model.fuel).expect("G545V54fg3"),
+            conversion_registration_time_reporting:serde_json::from_str(&account_model.conversion_registration_time_reporting).expect("G4V54fg35"),
+            default_home_screen:serde_json::from_str(&account_model.default_home_screen).expect("GV54fgfd3"),
+            default_way_to_open_report:serde_json::from_str(&account_model.default_way_to_open_report).expect("GV5455fg3"),
             ip_anonymization: account_model.ip_anonymization,
-            default_reporting_currency,
+            default_reporting_currency:serde_json::from_str(&account_model.default_reporting_currency).expect("GV54fggfg3"),
             profile_first_name:account_model.profile_first_name,
             profile_last_name:account_model.profile_last_name,
-            primary_user,
-            additional_users,
+            primary_user:serde_json::from_str(&account_model.primary_user).expect("GV54ff4fg3"),
+            additional_users:serde_json::from_str(&account_model.additional_users).expect("GV54f4efg3"),
             skype:account_model.skype,
             phone_number:account_model.phone_number,
-            two_factor_authentication,
-            api_access_keys,
-            billing_information,
-            custom_conversions,
-            referrer_handling_list,
+            two_factor_authentication:serde_json::from_str(&account_model.two_factor_authentication).expect("GV54fdfdfg3"),
+            api_access_keys:serde_json::from_str(&account_model.api_access_keys).expect("df4GV54fg3"),
+            billing_information:serde_json::from_str(&account_model.billing_information).expect("GV54fggf45g53"),
+            custom_conversions:serde_json::from_str(&account_model.custom_conversions).expect("GV54fgvf3"),
+            referrer_handling_list:serde_json::from_str(&account_model.referrer_handling_list).expect("GV54fgfgfg3"),
             last_updated: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(account_model.last_updated, 0),Utc),
         }
-        
     }
 }

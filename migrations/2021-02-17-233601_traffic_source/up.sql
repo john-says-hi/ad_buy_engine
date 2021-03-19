@@ -1,6 +1,6 @@
 CREATE TABLE traffic_sources (
-    id VARCHAR(48) NOT NULL PRIMARY KEY,
-    account_id VARCHAR(48) NOT NULL,
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
     name VARCHAR NOT NULL,
     clearance VARCHAR NOT NULL,
     external_id_token_data VARCHAR NOT NULL,

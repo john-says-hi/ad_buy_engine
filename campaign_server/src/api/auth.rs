@@ -1,4 +1,4 @@
-use crate::db::user_depricated::find_by_auth;
+use crate::db::user_depricating::find_by_auth;
 use crate::utils::authentication::{create_jwt, hash, PrivateClaim};
 use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
