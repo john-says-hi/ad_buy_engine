@@ -42,7 +42,7 @@ impl From<User> for Account {
             conversion_registration_time_reporting:
                 ConversionRegistrationTimeReporting::VisitTimestamp,
             default_home_screen: DefaultHomeScreen::Dashboard,
-            default_way_to_open_report: DefaultHomeScreen::Dashboard,
+            default_way_to_open_report: DefaultWayToOpenReport::GoToReport,
             ip_anonymization: false,
             default_reporting_currency: Currency::USD,
             profile_first_name: "".to_string(),
@@ -92,7 +92,7 @@ pub struct Account {
     pub fuel: u64,
     pub conversion_registration_time_reporting: ConversionRegistrationTimeReporting,
     pub default_home_screen: DefaultHomeScreen,
-    pub default_way_to_open_report: DefaultHomeScreen,
+    pub default_way_to_open_report: DefaultWayToOpenReport,
     pub ip_anonymization: bool,
     pub default_reporting_currency: Currency,
     pub profile_first_name: String,
@@ -128,7 +128,7 @@ impl Default for Account {
             conversion_registration_time_reporting:
                 ConversionRegistrationTimeReporting::VisitTimestamp,
             default_home_screen: DefaultHomeScreen::Dashboard,
-            default_way_to_open_report: DefaultHomeScreen::Dashboard,
+            default_way_to_open_report: DefaultWayToOpenReport::GoToReport,
             ip_anonymization: false,
             default_reporting_currency: Currency::USD,
             profile_first_name: "".to_string(),

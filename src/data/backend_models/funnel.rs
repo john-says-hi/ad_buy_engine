@@ -32,28 +32,18 @@ pub struct FunnelModel {
 
 impl From<Funnel> for FunnelModel {
     fn from(funnel: Funnel) -> Self {
-        to_json_string!(
-            id; funnel.funnel_id
-            account_id; funnel.account_id
-            country; funnel.country
-            clearance; funnel.clearance
-            redirect_option; funnel.redirect_option
-            referrer_handling; funnel.referrer_handling
-            conditional_sequences; funnel.conditional_sequences
-            default_sequences; funnel.default_sequences
-        );
         
         Self {
-            id,
-            account_id,
-            country,
+            id: funnel.funnel_id.to_string(),
+            account_id: funnel.account_id.to_string(),
+            country: serde_json::to_string(&funnel.country).expect("G%$rsdf"),
             name:funnel.name,
-            clearance,
-            redirect_option,
-            referrer_handling,
+            clearance: serde_json::to_string(&funnel.clearance).expect("G%Tsdf"),
+            redirect_option: serde_json::to_string(&funnel.redirect_option).expect("G%$#sdf"),
+            referrer_handling: serde_json::to_string(&funnel.referrer_handling).expect("G54sdff"),
             notes:funnel.notes,
-            conditional_sequences,
-            default_sequences,
+            conditional_sequences: serde_json::to_string(&funnel.conditional_sequences).expect("G%sdf"),
+            default_sequences: serde_json::to_string(&funnel.default_sequences).expect("gyt5643f"),
             archived: funnel.archived,
             last_updated: funnel.last_updated.timestamp(),
         }
@@ -62,28 +52,18 @@ impl From<Funnel> for FunnelModel {
 
 impl From<FunnelModel> for Funnel {
     fn from(funnel_model: FunnelModel) -> Self {
-        from_json_string!(
-            funnel_id; funnel_model.id => Uuid
-            account_id; funnel_model.account_id => Uuid
-            country; funnel_model.country => Country
-            clearance; funnel_model.clearance => Clearance
-            redirect_option; funnel_model.redirect_option => RedirectOption
-            referrer_handling; funnel_model.referrer_handling => ReferrerHandling
-            conditional_sequences; funnel_model.conditional_sequences => Vec<ConditionalSequence>
-            default_sequences; funnel_model.default_sequences => Vec<Sequence>
-        );
         
         Self {
-            funnel_id,
-            account_id,
-            country,
+            funnel_id:Uuid::parse_str(&funnel_model.id).expect("g534d"),
+            account_id:Uuid::parse_str(&funnel_model.account_id).expect("G%sxdsf"),
+            country: serde_json::from_str(&funnel_model.country).expect("f4g"),
             name:funnel_model.name,
-            clearance,
-            redirect_option,
-            referrer_handling,
+            clearance:serde_json::from_str(&funnel_model.clearance).expect("G%Rsdf"),
+            redirect_option:serde_json::from_str(&funnel_model.redirect_option).expect("G54sdf"),
+            referrer_handling:serde_json::from_str(&funnel_model.referrer_handling).expect("GH56sd"),
             notes:funnel_model.notes,
-            conditional_sequences,
-            default_sequences,
+            conditional_sequences:serde_json::from_str(&funnel_model.conditional_sequences).expect("%G$s"),
+            default_sequences:serde_json::from_str(&funnel_model.default_sequences).expect("G%sdf"),
             archived:funnel_model.archived,
             last_updated:DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(funnel_model.last_updated, 0), Utc),
         }

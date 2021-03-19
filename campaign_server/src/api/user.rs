@@ -13,7 +13,7 @@ use crate::dns::dns_cname::request_subdomain;
 use crate::management;
 use crate::management::api;
 use crate::db;
-use crate::db::user_depricated::*;
+use crate::db::user_depricating::*;
 use crate::schema::accounts::dsl::{id as account_id, accounts};
 use crate::schema::invitation::dsl::invitation;
 use crate::schema::users::dsl::{id as user_id, users};
@@ -42,7 +42,7 @@ pub async fn create_user(
     let params_b = params.clone();
 
     let inv =
-        block(move || crate::db::invitation_depricated::find_by_email(&pool_a, params_a.email)).await?;
+        block(move || crate::db::invitation_depricating::find_by_email(&pool_a, params_a.email)).await?;
 
     if inv.email_confirmed {
         let new_user = User {
@@ -67,7 +67,7 @@ pub async fn create_user(
                 .to_string()).await?);
     
             let user = block(move || create(&pool, new_user.into(), new_account.into())).await?;
-            block(move || db::invitation_depricated::remove(&pool_b, &inv.id)).await?;
+            block(move || db::invitation_depricating::remove(&pool_b, &inv.id)).await?;
             respond_json(user.into())
         } else {
             Err(ApiError::BadRequest("Account email already claimed. Restoration not yet build".to_string()))

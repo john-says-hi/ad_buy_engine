@@ -1,4 +1,4 @@
-use crate::db::account_depricated::{query_account, return_all_accounts, update_account_database};
+use crate::db::account_depricating::{query_account, return_all_accounts, update_account_database};
 use crate::utils::authentication::{decode_jwt, PrivateClaim};
 use crate::utils::database::{PgPool, get_conn};
 use crate::utils::errors::ApiError;

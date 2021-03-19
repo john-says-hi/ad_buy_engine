@@ -1,9 +1,9 @@
 CREATE TABLE visits (
 -- time with  nanos
     id BIGINT NOT NULL PRIMARY KEY,
-    account_id VARCHAR(48) NOT NULL,
-    campaign_id VARCHAR(48) NOT NULL,
-    traffic_source_id VARCHAR(48) NOT NULL,
+    account_id VARCHAR(36) NOT NULL,
+    campaign_id VARCHAR(36) NOT NULL,
+    traffic_source_id VARCHAR(36) NOT NULL,
     funnel_id VARCHAR NOT NULL,
     pre_sell_landing_page_id VARCHAR NOT NULL,
     landing_page_ids VARCHAR NOT NULL,

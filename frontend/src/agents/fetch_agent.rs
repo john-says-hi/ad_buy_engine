@@ -88,6 +88,7 @@ impl Agent for FetchAgent {
         match msg {
             FetchRequest::SyncElements(req) => {
                 let request = Request::post(API_POST_SYNC_ELEMENTS)
+                    .header("Content-Type", "application/json")
                     .body(Json(&req))
                     .expect("F34segr");
     

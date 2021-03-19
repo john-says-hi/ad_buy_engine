@@ -37,31 +37,19 @@ pub struct TrafficSourceModel {
 
 impl From<TrafficSource> for TrafficSourceModel {
     fn from(traffic_source: TrafficSource) -> Self {
-        to_json_string!(
-            id; traffic_source.traffic_source_id
-            account_id; traffic_source.account_id
-            clearance; traffic_source.clearance
-            external_id_token_data; traffic_source.external_id_token_data
-            cost_token_data; traffic_source.cost_token_data
-            custom_token_data; traffic_source.custom_token_data
-            currency; traffic_source.currency
-            traffic_source_postback_url; traffic_source.traffic_source_postback_url
-            traffic_source_postback_url_on_custom_event; traffic_source.traffic_source_postback_url_on_custom_event
-            pixel_redirect_url; traffic_source.pixel_redirect_url
-        );
         
         Self {
-            id,
-            account_id,
+            id: traffic_source.traffic_source_id.to_string(),
+            account_id:traffic_source.account_id.to_string(),
             name:traffic_source.name,
-            clearance,
-            external_id_token_data,
-            cost_token_data,
-            custom_token_data,
-            currency,
-            traffic_source_postback_url,
-            traffic_source_postback_url_on_custom_event,
-            pixel_redirect_url,
+            clearance: serde_json::to_string(&traffic_source.clearance).expect("G%Tsf"),
+            external_id_token_data: serde_json::to_string(&traffic_source.external_id_token_data).expect("G%f8"),
+            cost_token_data: serde_json::to_string(&traffic_source.cost_token_data).expect("G654trdseg"),
+            custom_token_data: serde_json::to_string(&traffic_source.custom_token_data).expect("G%Rtsdfg"),
+            currency: serde_json::to_string(&traffic_source.currency).expect("H^%gsdf"),
+            traffic_source_postback_url: serde_json::to_string(&traffic_source.traffic_source_postback_url).expect("GH^T%sddfg"),
+            traffic_source_postback_url_on_custom_event: serde_json::to_string(&traffic_source.traffic_source_postback_url_on_custom_event).expect("fdgfsdgfsd"),
+            pixel_redirect_url: serde_json::to_string(&traffic_source.pixel_redirect_url).expect("pofdsa"),
             track_impressions: traffic_source.track_impressions,
             direct_tracking: traffic_source.direct_tracking,
             notes:traffic_source.notes,
@@ -73,31 +61,19 @@ impl From<TrafficSource> for TrafficSourceModel {
 
 impl From<TrafficSourceModel> for TrafficSource {
     fn from(traffic_source_model: TrafficSourceModel) -> Self {
-        from_json_string!(
-            traffic_source_id; traffic_source_model.id => Uuid
-            account_id; traffic_source_model.account_id => Uuid
-            clearance; traffic_source_model.clearance => Clearance
-            external_id_token_data; traffic_source_model.external_id_token_data => ExternalIDParameter
-            cost_token_data; traffic_source_model.cost_token_data => CostParameter
-            custom_token_data; traffic_source_model.custom_token_data => Vec<CustomParameter>
-            currency; traffic_source_model.currency => Currency
-            traffic_source_postback_url; traffic_source_model.traffic_source_postback_url => Option<Url>
-            traffic_source_postback_url_on_custom_event; traffic_source_model.traffic_source_postback_url_on_custom_event => Vec<TrafficSourcePostbackURLForEvent>
-            pixel_redirect_url; traffic_source_model.pixel_redirect_url => Option<Url>
-        );
-        
+
       Self {
-          traffic_source_id,
-          account_id,
+          traffic_source_id:Uuid::parse_str(&traffic_source_model.id).expect("GFsdfg"),
+          account_id:Uuid::parse_str(&traffic_source_model.account_id).expect("Gfsdfg5"),
           name:traffic_source_model.name,
-          clearance,
-          external_id_token_data,
-          cost_token_data,
-          custom_token_data,
-          currency,
-          traffic_source_postback_url,
-          traffic_source_postback_url_on_custom_event,
-          pixel_redirect_url,
+          clearance:serde_json::from_str(&traffic_source_model.clearance).expect("Gfsdfg54"),
+          external_id_token_data:serde_json::from_str(&traffic_source_model.external_id_token_data).expect("gh65tdfsg"),
+          cost_token_data:serde_json::from_str(&traffic_source_model.cost_token_data).expect("G5sdrfg"),
+          custom_token_data:serde_json::from_str(&traffic_source_model.custom_token_data).expect("yt564srf"),
+          currency:serde_json::from_str(&traffic_source_model.currency).expect("HG^gfsdh"),
+          traffic_source_postback_url:serde_json::from_str(&traffic_source_model.traffic_source_postback_url).expect("Gh6dfsg"),
+          traffic_source_postback_url_on_custom_event:serde_json::from_str(&traffic_source_model.traffic_source_postback_url_on_custom_event).expect("FG54sdf"),
+          pixel_redirect_url:serde_json::from_str(&traffic_source_model.pixel_redirect_url).expect("g56rfst"),
           track_impressions:traffic_source_model.track_impressions,
           direct_tracking:traffic_source_model.direct_tracking,
           notes:traffic_source_model.notes,

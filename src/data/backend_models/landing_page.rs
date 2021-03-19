@@ -35,32 +35,21 @@ pub struct LandingPageModel {
 
 impl From<LandingPage> for LandingPageModel {
     fn from(landing_page: LandingPage) -> Self {
-        to_json_string!(
-            id; landing_page.landing_page_id
-            account_id; landing_page.account_id
-            clearance; landing_page.clearance
-            country; landing_page.clearance
-            tags; landing_page.tags
-            url; landing_page.url
-            url_tokens; landing_page.url_tokens
-            number_of_calls_to_action; landing_page.number_of_calls_to_action
-            vertical; landing_page.vertical
-            language; landing_page.language
-        );
+
         
         Self {
-            id,
-            account_id,
+            id:landing_page.landing_page_id.to_string(),
+            account_id:landing_page.account_id.to_string(),
             is_pre_landing_page: landing_page.is_pre_landing_page,
-            clearance,
-            country,
+            clearance: serde_json::to_string(&landing_page.clearance).expect("GFsdfg"),
+            country: serde_json::to_string(&landing_page.country).expect("Gtrfxg"),
             name:landing_page.name,
-            tags,
-            url,
-            url_tokens,
-            number_of_calls_to_action,
-            vertical,
-            language,
+            tags: serde_json::to_string(&landing_page.tags).expect("fsdgsdfg4"),
+            url: serde_json::to_string(&landing_page.url).expect("GHsdfg4"),
+            url_tokens: serde_json::to_string(&landing_page.url_tokens).expect("Gt54f"),
+            number_of_calls_to_action: serde_json::to_string(&landing_page.number_of_calls_to_action).expect("g54gfdfd"),
+            vertical: serde_json::to_string(&landing_page.vertical).expect("GHT%sdf"),
+            language: serde_json::to_string(&landing_page.language).expect("G%Tdf"),
             notes:landing_page.notes,
             archived: landing_page.archived,
             last_updated: landing_page.last_updated.timestamp(),
@@ -70,32 +59,21 @@ impl From<LandingPage> for LandingPageModel {
 
 impl From<LandingPageModel> for LandingPage {
     fn from(landing_page_model: LandingPageModel) -> Self {
-        from_json_string!(
-            landing_page_id; landing_page_model.id => Uuid
-            account_id; landing_page_model.account_id => Uuid
-            clearance; landing_page_model.clearance => Clearance
-            country; landing_page_model.country => Country
-            tags; landing_page_model.tags => Vec<String>
-            url; landing_page_model.url => Url
-            url_tokens; landing_page_model.url_tokens => Vec<DataURLToken>
-            number_of_calls_to_action; landing_page_model.number_of_calls_to_action => u8
-            vertical; landing_page_model.vertical => Vertical
-            language; landing_page_model.language => Language
-        );
+
         
         Self {
-            landing_page_id,
-            account_id,
+            landing_page_id:Uuid::parse_str(&landing_page_model.id).expect("YT%gdsf"),
+            account_id:Uuid::parse_str(&landing_page_model.account_id).expect("G%^srdfg"),
             is_pre_landing_page:landing_page_model.is_pre_landing_page,
-            clearance,
-            country,
+            clearance: serde_json::from_str(&landing_page_model.clearance).expect("YH^%gdfg"),
+            country: serde_json::from_str(&landing_page_model.country).expect("G%xfgg"),
             name:landing_page_model.name,
-            tags,
-            url,
-            url_tokens,
-            number_of_calls_to_action,
-            vertical,
-            language,
+            tags: serde_json::from_str(&landing_page_model.tags).expect("^HYdfsgfd"),
+            url: serde_json::from_str(&landing_page_model.url).expect("H^Tdfg"),
+            url_tokens: serde_json::from_str(&landing_page_model.url_tokens).expect("H^Ydfgh"),
+            number_of_calls_to_action: serde_json::from_str(&landing_page_model.number_of_calls_to_action).expect("HG%^sdf"),
+            vertical: serde_json::from_str(&landing_page_model.vertical).expect("GHTsdf"),
+            language: serde_json::from_str(&landing_page_model.language).expect("Hgfdshgf"),
             notes:landing_page_model.notes,
             archived:landing_page_model.archived,
             last_updated: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(landing_page_model.last_updated, 0), Utc),
