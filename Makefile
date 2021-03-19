@@ -1,3 +1,8 @@
+build-and-upload-campaign-server:
+	make build-campaign-server && make upload-campaign-server
+
+docker-volume-reset:
+	ssh ad_buy_engine@72.14.190.165 'docker-compose down && docker volume rm campaign_server_storage && docker volume create --name=campaign_server_storage'
 
 update-frontend:
 	make build-secure-frontend && make docker-down && make upload-frontend && make docker-up

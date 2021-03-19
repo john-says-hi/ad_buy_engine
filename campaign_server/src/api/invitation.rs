@@ -1,5 +1,5 @@
-use crate::db::invitation;
-use crate::db::invitation::remove;
+use crate::db::invitation_depricated;
+use crate::db::invitation_depricated::remove;
 use crate::utils::database::PgPool;
 use crate::utils::errors::ApiError;
 use crate::utils::helpers::{respond_json, respond_ok};
@@ -21,7 +21,7 @@ pub async fn create(
     let _pool = pool.clone();
     let _params = params.0.email.clone();
 
-    block(move || crate::db::invitation::dedup(&_pool, params.email.clone()))
+    block(move || crate::db::invitation_depricated::dedup(&_pool, params.email.clone()))
         .await
         .map_err(|e| {
             println!("Error: {}", "543g34");
@@ -35,7 +35,7 @@ pub async fn create(
         expires_at: Local::now().naive_local() + chrono::Duration::hours(24),
     };
 
-    block(move || crate::db::invitation::new(&pool, &new)).await?;
+    block(move || crate::db::invitation_depricated::new(&pool, &new)).await?;
 
     respond_json("check your email".to_string())
 }
@@ -44,7 +44,7 @@ pub async fn update(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse,
     let pool_a = pool.clone();
     let pool_b = pool.clone();
 
-    let mut item = block(move || invitation::find(&pool, *_id)).await?;
+    let mut item = block(move || invitation_depricated::find(&pool, *_id)).await?;
     println!("1");
 
     if item.expires_at > chrono::Local::now().naive_local() {
@@ -53,7 +53,7 @@ pub async fn update(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse,
         item.email_confirmed = true;
         assert_eq!(true, item.email_confirmed);
 
-        block(move || invitation::update(&pool_a, &item)).await?;
+        block(move || invitation_depricated::update(&pool_a, &item)).await?;
         Ok(HttpResponse::Found()
             .header(actix_web::http::header::LOCATION, "/tertiary/#register")
             .finish())
@@ -64,7 +64,7 @@ pub async fn update(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse,
 }
 
 pub async fn delete(_id: Path<Uuid>, pool: Data<PgPool>) -> Result<HttpResponse, ApiError> {
-    block(move || crate::db::invitation::remove(&pool, &_id.to_string())).await?;
+    block(move || crate::db::invitation_depricated::remove(&pool, &_id.to_string())).await?;
     respond_ok()
 }
 

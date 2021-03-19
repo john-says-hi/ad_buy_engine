@@ -88,10 +88,16 @@ macro_rules! pr {
 
 #[macro_export]
 macro_rules! from_json_string {
-    ($string:expr => $type:ty) => {	serde_json::from_str::<$type>(&$string).expect("mac_f543rs")};
+    ($string:expr => $type:ty) => {
+    let err_fmt = format!("expr: {}; 4dfg", &$string);
+    serde_json::from_str::<$type>(&$string).expect(err_fmt.as_str());
+    };
     
     ( $($name:ident; $string:expr => $type:ty)+ ) => {
-	        $(let $name = serde_json::from_str::<$type>(&$string).expect("mac_f543rs");)+
+	        $(
+	        let err_fmt = format!("expr: {}; 453g", &$string);
+	        let $name = serde_json::from_str::<$type>(&$string).expect(err_fmt.as_str());
+	        )+
     };
 }
 

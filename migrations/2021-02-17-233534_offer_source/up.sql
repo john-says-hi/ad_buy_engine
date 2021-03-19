@@ -1,6 +1,6 @@
 CREATE TABLE offer_sources (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
-    account_id VARCHAR(36) NOT NULL,
+    id VARCHAR(48) NOT NULL PRIMARY KEY,
+    account_id VARCHAR(48) NOT NULL,
     name VARCHAR NOT NULL,
     clearance VARCHAR NOT NULL,
     click_id_token VARCHAR NOT NULL,

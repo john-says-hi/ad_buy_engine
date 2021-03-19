@@ -1,6 +1,6 @@
 CREATE TABLE funnels (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
-    account_id VARCHAR(36) NOT NULL,
+    id VARCHAR(48) NOT NULL PRIMARY KEY,
+    account_id VARCHAR(48) NOT NULL,
     country VARCHAR NOT NULL,
     name VARCHAR NOT NULL,
     clearance VARCHAR NOT NULL,

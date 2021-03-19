@@ -1,4 +1,4 @@
-use crate::db::account::{query_account, return_all_accounts, update_account_database};
+use crate::db::account_depricated::{query_account, return_all_accounts, update_account_database};
 use crate::utils::authentication::{decode_jwt, PrivateClaim};
 use crate::utils::database::{PgPool, get_conn};
 use crate::utils::errors::ApiError;
@@ -52,7 +52,10 @@ pub async fn get_all_accounts(
     let mut list = block(move || return_all_accounts(&pool)).await?;
     let resp = list
         .iter()
-        .map(|s| s.clone().into())
+        .map(|s| {
+            println!("{:?}", &s);
+            s.clone().into()
+        })
         .collect::<Vec<Account>>();
 
     respond_json(resp)

@@ -32,7 +32,7 @@ pub struct VisitClick {}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Visit {
-    pub id: Uuid,
+    pub id: i64,
     pub account_id: Uuid,
     pub campaign_id: Uuid,
     pub traffic_source_id: Uuid,
@@ -54,7 +54,6 @@ pub struct Visit {
     pub conversions: Vec<Conversion>,
     pub custom_conversions: Vec<CustomConversionEvent>,
     pub click_is_suspicious: bool,
-    pub created_at: DateTime<Utc>,
     pub last_updated: DateTime<Utc>,
 }
 

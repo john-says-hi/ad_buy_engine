@@ -42,7 +42,7 @@ pub async fn server() -> std::io::Result<()> {
     env_logger::init();
 
     let pool = establish_connection();
-
+diesel_migrations::
     run_pending_migrations(&pool.clone().get().expect("hyuu"))
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     

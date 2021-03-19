@@ -13,7 +13,7 @@ pub async fn get_email_list(pool: Data<PgPool>) -> Result<HttpResponse, ApiError
 	
 	
 	pub async fn email_is_unique(email_to_cmp: &String, pool: Data<PgPool>) -> Result<bool, ApiError> {
-	use crate::schema::emails::dsl::{emails,email};
+	use crate::schema::emails::dsl::{emails,id as email};
 	let conn=pool.get()?;
 	let eml=email_to_cmp.clone();
 	if block(move || emails
@@ -28,16 +28,16 @@ pub async fn get_email_list(pool: Data<PgPool>) -> Result<HttpResponse, ApiError
 }
 
 pub async fn add_email(new_eml: &String, pool: Data<PgPool>) -> Result<(), ApiError> {
-	use crate::schema::emails::dsl::{emails,email};
+	use crate::schema::emails::dsl::{emails,id as email};
 	let conn=pool.get()?;
-	let eml=EmailModel{email:new_eml.clone()};
+	let eml=EmailModel{id:new_eml.clone()};
 	block(move || diesel::insert_into(emails).values(&eml).execute(&conn)).await?;
 	println!("Eml added");
 	Ok(())
 }
 
 pub async fn delete_email(email_to_cmp: &String, pool: Data<PgPool>) -> Result<(), ApiError> {
-	use crate::schema::emails::dsl::{emails,email};
+	use crate::schema::emails::dsl::{emails,id as email};
 	let conn=pool.get()?;
 	let pk=email_to_cmp.clone();
 	block(move || diesel::delete(emails.find(pk)).execute(&conn)).await?;

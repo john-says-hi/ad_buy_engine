@@ -21,7 +21,7 @@ use crate::data::custom_events::CustomConversionEvent;
 )]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VisitModel {
-    pub id: String,
+    pub id: i64,
     pub account_id: String,
     pub campaign_id: String,
     pub traffic_source_id: String,
@@ -43,14 +43,12 @@ pub struct VisitModel {
     pub conversions: String,
     pub custom_conversions: String,
     pub click_is_suspicious: bool,
-    pub created_at: i64,
     pub last_updated: i64,
 }
 
 impl From<Visit> for VisitModel {
     fn from(visit: Visit) -> Self {
         to_json_string!(
-            id; visit.id
             account_id; visit.account_id
             campaign_id; visit.campaign_id
             traffic_source_id; visit.traffic_source_id
@@ -74,7 +72,7 @@ impl From<Visit> for VisitModel {
         );
         
         Self {
-            id,
+            id:visit.id,
             account_id,
             campaign_id,
             traffic_source_id,
@@ -96,7 +94,6 @@ impl From<Visit> for VisitModel {
             conversions,
             custom_conversions,
             click_is_suspicious: visit.click_is_suspicious,
-            created_at: visit.created_at.timestamp(),
             last_updated: visit.last_updated.timestamp(),
         }
     }
@@ -105,7 +102,6 @@ impl From<Visit> for VisitModel {
 impl From<VisitModel> for Visit {
     fn from(visit_model: VisitModel) -> Self {
         from_json_string!(
-            id; visit_model.id => Uuid
             account_id; visit_model.account_id => Uuid
             campaign_id; visit_model.campaign_id => Uuid
             traffic_source_id; visit_model.traffic_source_id => Uuid
@@ -129,7 +125,7 @@ impl From<VisitModel> for Visit {
         );
     
         Self {
-            id,
+            id:visit_model.id,
             account_id,
             campaign_id,
             traffic_source_id,
@@ -151,7 +147,6 @@ impl From<VisitModel> for Visit {
             conversions,
             custom_conversions,
             click_is_suspicious:visit_model.click_is_suspicious,
-            created_at:DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(visit_model.last_updated, 0), Utc),
             last_updated:DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(visit_model.last_updated, 0), Utc),
         }
     }
