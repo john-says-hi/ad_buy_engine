@@ -20,6 +20,8 @@ extern crate validator_derive;
 #[macro_use]
 extern crate ad_buy_engine;
 
+#[macro_use]
+pub mod macros;
 pub mod dns;
 pub use ad_buy_engine::schema;
 

@@ -62,7 +62,7 @@ impl From<Account> for AccountModel {
             report_time_zone; account.report_time_zone
             billing_currency; account.billing_currency
             sys_language; account.sys_language
-            domains_configuration; account.domains_configuration
+            // domains_configuration; account.domains_configuration
             work_spaces; account.work_spaces
             conversion_registration_time_reporting; account.conversion_registration_time_reporting
             default_home_screen; account.default_home_screen
@@ -87,7 +87,7 @@ impl From<Account> for AccountModel {
             report_time_zone,
             billing_currency,
             sys_language,
-            domains_configuration,
+            domains_configuration:serde_json::to_string(&account.domains_configuration).expect("V54sfg"),
             work_spaces,
             fuel,
             conversion_registration_time_reporting,
@@ -118,7 +118,7 @@ impl From<AccountModel> for Account {
            report_time_zone; account_model.report_time_zone => TimeZone
            billing_currency; account_model.billing_currency => Currency
            sys_language; account_model.sys_language => Language
-           domains_configuration; account_model.domains_configuration => DomainsConfiguration
+           // domains_configuration; account_model.domains_configuration => DomainsConfiguration
            work_spaces; account_model.domains_configuration => Vec<WorkSpace>
            conversion_registration_time_reporting; account_model.conversion_registration_time_reporting => ConversionRegistrationTimeReporting
            default_home_screen; account_model.default_home_screen => DefaultHomeScreen
@@ -140,7 +140,7 @@ impl From<AccountModel> for Account {
             report_time_zone,
             billing_currency,
             sys_language,
-            domains_configuration,
+            domains_configuration:serde_json::from_str(&account_model.domains_configuration).expect("G%^$xs"),
             work_spaces,
             fuel,
             conversion_registration_time_reporting,

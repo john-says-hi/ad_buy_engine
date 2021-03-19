@@ -1,8 +1,9 @@
 CREATE TABLE visits (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
-    account_id VARCHAR(36) NOT NULL,
-    campaign_id VARCHAR(36) NOT NULL,
-    traffic_source_id VARCHAR(36) NOT NULL,
+-- time with  nanos
+    id BIGINT NOT NULL PRIMARY KEY,
+    account_id VARCHAR(48) NOT NULL,
+    campaign_id VARCHAR(48) NOT NULL,
+    traffic_source_id VARCHAR(48) NOT NULL,
     funnel_id VARCHAR NOT NULL,
     pre_sell_landing_page_id VARCHAR NOT NULL,
     landing_page_ids VARCHAR NOT NULL,
@@ -21,6 +22,5 @@ CREATE TABLE visits (
     conversions VARCHAR NOT NULL,
     custom_conversions VARCHAR NOT NULL,
     click_is_suspicious BOOL NOT NULL,
-    created_at BIGINT NOT NULL,
     last_updated BIGINT NOT NULL
 );

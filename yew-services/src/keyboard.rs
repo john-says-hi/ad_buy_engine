@@ -10,7 +10,7 @@ use yew::callback::Callback;
 ///
 /// # Note
 /// Elements which natively support keyboard input (such as `<input/>` or `<textarea/>`) can use the
-/// `onkeypress` or `oninput` attributes from within the html macro. You **should use those events
+/// `onkeypress` or `oninput` attributes from within the html macros_backend. You **should use those events
 /// instead** of locating the element and registering an event listener using this service.
 ///
 /// This service is for adding key event listeners to elements which don't support these attributes,

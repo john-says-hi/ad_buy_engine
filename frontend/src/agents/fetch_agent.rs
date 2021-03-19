@@ -1,6 +1,6 @@
 use crate::appstate::app_state::AppState;
 use crate::{alert, notify_primary};
-use ad_buy_engine::constant::apis::private::API_GET_ACCOUNT;
+use ad_buy_engine::constant::apis::private::{API_GET_ACCOUNT, API_POST_SYNC_ELEMENTS};
 use ad_buy_engine::data::account::Account;
 use ad_buy_engine::data::sync::sync_update::{ SyncVisitsResponse};
 use ad_buy_engine::AError;
@@ -10,6 +10,7 @@ use yew::agent::*;
 use yew::format::{Json, Nothing};
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::FetchService;
+use ad_buy_engine::data::elements::sync::{SyncElementResponse, SyncElementRequest};
 
 mod clone;
 mod create;
@@ -21,17 +22,13 @@ mod update;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum FetchResponse {
     ReturnAccount(Account),
-    // ReturnUserAccountData(),
-    // ReturnElements(SyncElementsResponse),
-    // ReturnVisits(SyncVisitsResponse),
+    ReturnSyncElemResponse(SyncElementResponse),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum FetchRequest {
     GetAccount,
-    // SyncUserAccountData,
-    // SyncElements,
-    // SyncVisits,
+    SyncElements(SyncElementRequest),
 }
 
 pub struct FetchAgent {
@@ -42,11 +39,10 @@ pub struct FetchAgent {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Msg {
     Ignore,
-    Failed,
-    // SyncElements(SyncElementsResponse),
-    // SyncVisits(SyncVisitsResponse),
-    // SyncUserAccountData(Account),
+    FetchFailed,
+    DeserializationFailed,
     FetchAccount((Account, HandlerId)),
+    FetchSyncElements((SyncElementResponse, HandlerId)),
 }
 
 impl Agent for FetchAgent {
@@ -64,6 +60,11 @@ impl Agent for FetchAgent {
 
     fn update(&mut self, _msg: Self::Message) {
         match _msg {
+            Msg::FetchSyncElements((data, hid)) => {
+                self.fetch_task = None;
+                self.link.respond(hid, FetchResponse::ReturnSyncElemResponse(data));
+            }
+
             Msg::FetchAccount((data, hid)) => {
                 self.fetch_task = None;
                 self.link.respond(hid, FetchResponse::ReturnAccount(data));
@@ -71,16 +72,46 @@ impl Agent for FetchAgent {
 
             Msg::Ignore => {}
 
-            Msg::Failed => {
+            Msg::FetchFailed => {
                 self.fetch_task = None;
-                notify_primary("Fetch Failed")
+                notify_primary("Fetch Failed");
+            }
+    
+            Msg::DeserializationFailed => {
+                self.fetch_task = None;
+                notify_primary("Deserialization Failed");
             }
         }
     }
 
     fn handle_input(&mut self, msg: Self::Input, hid: HandlerId) {
         match msg {
-            FetchRequest::GetAccount => {
+            FetchRequest::SyncElements(req) => {
+                let request = Request::post(API_POST_SYNC_ELEMENTS)
+                    .body(Json(&req))
+                    .expect("F34segr");
+    
+                let callback =
+                    self.link
+                        .callback(move |response: Response<Json<Result<SyncElementResponse, AError>>>| {
+                            let (meta, Json(body)) = response.into_parts();
+                
+                            if meta.status.is_success() {
+                                if let Ok(data) = body {
+                                    Msg::FetchSyncElements((data, hid))
+                                } else {
+                                    Msg::DeserializationFailed
+                                }
+                            } else {
+                                Msg::FetchFailed
+                            }
+                        });
+    
+                let fetch_task = FetchService::fetch(request, callback).expect("f43ss");
+                self.fetch_task = Some(fetch_task)
+            }
+                
+                FetchRequest::GetAccount => {
                 let request = Request::get(API_GET_ACCOUNT)
                     .body(Nothing)
                     .expect("F34segr");
@@ -94,10 +125,10 @@ impl Agent for FetchAgent {
                                 if let Ok(data) = body {
                                     Msg::FetchAccount((data, hid))
                                 } else {
-                                    Msg::Failed
+                                    Msg::DeserializationFailed
                                 }
                             } else {
-                                Msg::Failed
+                                Msg::FetchFailed
                             }
                         });
 

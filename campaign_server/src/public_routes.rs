@@ -34,7 +34,6 @@ use crate::management::api::reset_users_accounts_emls;
 pub fn public_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/health", web::get().to(get_health))
         .service(resource("/version").to(|| async {HttpResponse::Ok().body("Version 1.2")}))
-        .service(resource("/all").route(get().to(get_all_accounts)))
         .service(resource("/reset_user_account_eml").route(get().to(reset_users_accounts_emls)))
         .service(resource("/get_all_accounts").route(get().to(get_all_accounts)))
         .service(resource("/get_all_emails").route(get().to(get_email_list)))

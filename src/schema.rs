@@ -49,8 +49,8 @@ table! {
 }
 
 table! {
-    emails (email) {
-        email -> Varchar,
+    emails (id) {
+        id -> Varchar,
     }
 }
 
@@ -181,15 +181,15 @@ table! {
 }
 
 table! {
-    visit_ledger_table (account_id) {
-        account_id -> Varchar,
+    visit_ledger_table (id) {
+        id -> Varchar,
         visit_ids -> Varchar,
     }
 }
 
 table! {
     visits (id) {
-        id -> Varchar,
+        id -> Int8,
         account_id -> Varchar,
         campaign_id -> Varchar,
         traffic_source_id -> Varchar,
@@ -211,7 +211,6 @@ table! {
         conversions -> Varchar,
         custom_conversions -> Varchar,
         click_is_suspicious -> Bool,
-        created_at -> Int8,
         last_updated -> Int8,
     }
 }

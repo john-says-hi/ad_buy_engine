@@ -13,7 +13,7 @@ use crate::dns::dns_cname::request_subdomain;
 use crate::management;
 use crate::management::api;
 use crate::db;
-use crate::db::user::*;
+use crate::db::user_depricated::*;
 use crate::schema::accounts::dsl::{id as account_id, accounts};
 use crate::schema::invitation::dsl::invitation;
 use crate::schema::users::dsl::{id as user_id, users};
@@ -42,7 +42,7 @@ pub async fn create_user(
     let params_b = params.clone();
 
     let inv =
-        block(move || crate::db::invitation::find_by_email(&pool_a, params_a.email)).await?;
+        block(move || crate::db::invitation_depricated::find_by_email(&pool_a, params_a.email)).await?;
 
     if inv.email_confirmed {
         let new_user = User {
@@ -51,9 +51,13 @@ pub async fn create_user(
             email: inv.email.clone(),
             password: hash(&params_b.password),
         };
+        println!("new user id {:?}",&new_user.user_id);
+        println!("new account id {:?}",&new_user.account_id);
 
         if api::email::email_is_unique(&inv.email, pool_c).await? {
             let new_account = Account::from(new_user.clone());
+            println!("new account id {:?}",&new_account.account_id);
+            
             api::email::add_email(&inv.email, pool.clone()).await?;
     
             println!("Sub Domain created, {}", request_subdomain(client, new_account
@@ -63,7 +67,7 @@ pub async fn create_user(
                 .to_string()).await?);
     
             let user = block(move || create(&pool, new_user.into(), new_account.into())).await?;
-            block(move || db::invitation::remove(&pool_b, &inv.id)).await?;
+            block(move || db::invitation_depricated::remove(&pool_b, &inv.id)).await?;
             respond_json(user.into())
         } else {
             Err(ApiError::BadRequest("Account email already claimed. Restoration not yet build".to_string()))
