@@ -12,6 +12,10 @@ use crate::data::visit::user_agent::UserAgentData;
 use crate::data::visit::geo_ip::GeoIPData;
 use crate::data::visit::conversion::Conversion;
 use crate::data::custom_events::CustomConversionEvent;
+#[cfg(feature = "backend")]
+use crate::data::backend_models::DatabaseCommunication;
+#[cfg(feature = "backend")]
+use diesel::{QueryResult, PgConnection, prelude::*};
 
 #[cfg_attr(
     feature = "backend",
@@ -44,6 +48,50 @@ pub struct VisitModel {
     pub custom_conversions: String,
     pub click_is_suspicious: bool,
     pub last_updated: i64,
+}
+
+#[cfg(feature = "backend")]
+impl VisitModel {
+    pub fn new(new: Self, conn:&PgConnection)->QueryResult<usize> {
+        diesel::insert_into(crate::schema::visits::dsl::visits)
+        .values(&new)
+            .execute(conn)
+    }
+    
+    pub fn delete(model_id: i64, conn:&PgConnection)->QueryResult<usize> {
+        diesel::delete(crate::schema::visits::dsl::visits.find(model_id))
+        .execute(conn)
+    }
+    
+    pub fn update(model_id: i64, new: Self, conn:&PgConnection)->QueryResult<usize> {
+        diesel::update(crate::schema::visits::dsl::visits.find(model_id))
+        .set(new)
+            .execute(conn)
+    }
+    
+    pub fn get(model_id: i64, conn:&PgConnection)->QueryResult<Self> {
+    crate::schema::visits::dsl::visits.find(model_id)
+    .get_result(conn)
+    }
+    
+    pub fn update_and_get(model_id: i64, new: Self, conn:&PgConnection)->QueryResult<Self> {
+    diesel::update(crate::schema::visits::dsl::visits.find(model_id))
+    .set(&new)
+    .get_result(conn)
+    }
+    
+    pub fn delete_all(conn:&PgConnection)->QueryResult<usize> {
+        diesel::delete(crate::schema::visits::dsl::visits)
+        .execute(conn)
+    }
+    
+    pub fn all(conn:&PgConnection)->QueryResult<Vec<Self>> {
+    crate::schema::visits::dsl::visits.load::<Self>(conn)
+    }
+    
+    // update postback url conversion
+    // update link click, offer click, lp click
+    // get latest 1000
 }
 
 impl From<Visit> for VisitModel {

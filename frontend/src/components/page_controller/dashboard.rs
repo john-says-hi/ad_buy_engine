@@ -23,6 +23,7 @@ pub struct DashboardBtn {
     link: ComponentLink<Self>,
     router: Box<dyn Bridge<RouteAgent>>,
     props: Props,
+    active:bool,
 }
 
 impl Component for DashboardBtn {
@@ -31,17 +32,21 @@ impl Component for DashboardBtn {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
+        let cloned_state = Rc::clone(&props.state);
+        let active = tab_is_active!(AppRoute::Dashboard, cloned_state);
 
         Self {
             link,
             router,
             props,
+            active
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Click => {
+                self.active=true;
                 self.props
                     .state
                     .borrow()
@@ -61,14 +66,20 @@ impl Component for DashboardBtn {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        false
+        let cloned_state = Rc::clone(&props.state);
+        self.active = tab_is_active!(AppRoute::Dashboard, cloned_state);
+        true
     }
 
     fn view(&self) -> Html {
         let callback = self.link.callback(|_| Msg::Click);
-
+        let a_class = if self.active{"active-tab uk-active uk-display-block"}else { "uk-display-block" };
+        let icon_class = if self.active{"active-tab fa fa-money uk-display-block uk-text-center"}else { "fa fa-money uk-display-block uk-text-center" };
         html! {
-            <MatTab icon="dashboard" label="Dashboard" stacked=true is_min_width_indicator=true oninteracted=callback />
+        <li onclick=callback>
+            <span class=icon_class></span>
+            <a class=a_class>{"Dashboard"}</a>
+        </li>
         }
     }
 }

@@ -12,8 +12,15 @@ use yew_material::{MatListItem, MatMenu, MatSelect, MatTab, MatTabBar};
 use yew_router::agent::RouteAgent;
 use yew_router::agent::RouteRequest::ChangeRoute;
 
+enum Conn {
+    ByType,
+    ISPCarrier,
+    MobileCarrier,
+    Proxy,
+}
+
 pub enum Msg {
-    UpdateOnSelect(SelectedDetail),
+    OnSelect(Conn),
     Ignore,
 }
 
@@ -26,6 +33,7 @@ pub struct ConnectionDrop {
     link: ComponentLink<Self>,
     props: Props,
     router: Box<dyn Bridge<RouteAgent>>,
+    active:bool,
 }
 
 impl Component for ConnectionDrop {
@@ -34,18 +42,21 @@ impl Component for ConnectionDrop {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
+        let active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, state_clone!(props.state));
+
         Self {
             link,
             props,
             router,
+            active
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        if let Msg::UpdateOnSelect(data) = msg {
-            if let ListIndex::Single(Some(idx)) = data.index {
-                match idx {
-                    0 => {
+        match msg {
+            Msg::OnSelect(conn)=>{
+                match conn {
+                    Conn::ByType=>{
                         self.props
                             .state
                             .borrow_mut()
@@ -54,7 +65,8 @@ impl Component for ConnectionDrop {
                             );
                         self.router.send(ChangeRoute(AppRoute::Connection.into()));
                     }
-                    1 => {
+                    
+                    Conn::ISPCarrier =>{
                         self.props
                             .state
                             .borrow_mut()
@@ -63,7 +75,8 @@ impl Component for ConnectionDrop {
                             );
                         self.router.send(ChangeRoute(AppRoute::ISPCarrier.into()))
                     }
-                    2 => {
+    
+                    Conn::MobileCarrier =>{
                         self.props
                             .state
                             .borrow_mut()
@@ -73,7 +86,8 @@ impl Component for ConnectionDrop {
                         self.router
                             .send(ChangeRoute(AppRoute::MobileCarrier.into()))
                     }
-                    3 => {
+    
+                    Conn::Proxy =>{
                         self.props
                             .state
                             .borrow_mut()
@@ -82,32 +96,35 @@ impl Component for ConnectionDrop {
                             );
                         self.router.send(ChangeRoute(AppRoute::Proxy.into()))
                     }
-                    _ => {}
                 }
             }
+            
+            Msg::Ignore=>{}
         }
         true
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.link.send_message(Msg::Ignore);
+        self.active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, state_clone!(self.props.state));
         true
     }
 
     fn view(&self) -> Html {
-        let on_select = self
-            .link
-            .callback(|data: SelectedDetail| Msg::UpdateOnSelect(data));
-
+        let active = if self.active{"uk-active"}else { "" };
         html! {
-            <div class="data-dropdown uk-margin-left-small ">
-                <MatSelect label="Connection" outlined=true icon="event" onselected=on_select>
-                    <MatListItem value="0" graphic=GraphicType::Icon selected=app_route_matches(AppRoute::Connection, Rc::clone(&self.props.state)) >{"By Type"}</MatListItem>
-                    <MatListItem value="1" graphic=GraphicType::Icon selected=app_route_matches(AppRoute::ISPCarrier, Rc::clone(&self.props.state)) >{"ISP / Carrier"}</MatListItem>
-                    <MatListItem value="2" graphic=GraphicType::Icon selected=app_route_matches(AppRoute::MobileCarrier, Rc::clone(&self.props.state))>{"Mobile Carrier"}</MatListItem>
-                    <MatListItem value="3" graphic=GraphicType::Icon  selected=app_route_matches(AppRoute::Proxy, Rc::clone(&self.props.state))>{"By Proxy"}</MatListItem>
-                </MatSelect>
-            </div>
+                <li class=active>
+                    <a onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))>{"Connection"}</a>
+                    <div class="uk-navbar-dropdown">
+                        <ul class="uk-nav uk-navbar-dropdown-nav">
+                        
+                            <li class={if tab_is_active!(AppRoute::Connection, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))>{"By Type"}</a></li>
+                            <li class={if tab_is_active!(AppRoute::ISPCarrier, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::ISPCarrier))>{"ISP/Carrier"}</a></li>
+                            <li class={if tab_is_active!(AppRoute::MobileCarrier, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::MobileCarrier))>{"Mobile Carrier"}</a></li>
+                            <li class={if tab_is_active!(AppRoute::Proxy, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::Proxy))>{"Proxy"}</a></li>
+                            
+                        </ul>
+                    </div>
+                </li>
         }
     }
 }
