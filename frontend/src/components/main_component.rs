@@ -65,8 +65,7 @@ impl Component for MainComponent {
                         <div class="uk-child-width-1-1 uk-grid-collapse uk-background-default" uk-grid="">
                             <div><AppBar state=Rc::clone(&self.props.state) /></div>
                             <div><PageController state=Rc::clone(&self.props.state)  /></div>
-                            <div><PageUtilities state=Rc::clone(&self.props.state)  /></div>
-                            <div><DataTable state=Rc::clone(&self.props.state) /></div>
+                            {self.render_dashboard()}
 
                             {self.render_crud_modal()}
                         </div>
@@ -76,6 +75,21 @@ impl Component for MainComponent {
 }
 
 impl MainComponent {
+    fn render_dashboard(&self) -> VNode {
+        if let AppRoute::Dashboard = self.props.state.borrow().return_app_route() {
+            VNode::from(html!{
+                <h1>{"Dashboard"}</h1>
+            })
+        } else {
+            VNode::from(html!{
+                        <>
+                            <div><PageUtilities state=Rc::clone(&self.props.state)  /></div>
+                            <div><DataTable state=Rc::clone(&self.props.state) /></div>
+                        </>
+            })
+        }
+    }
+    
     fn render_crud_modal(&self) -> VNode {
         let state = self.props.state.borrow();
         match state.return_app_route() {

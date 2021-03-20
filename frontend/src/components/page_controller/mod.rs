@@ -13,7 +13,7 @@ mod offers;
 mod os;
 mod traffic_sources;
 
-use crate::appstate::app_state::AppState;
+use crate::appstate::app_state::{AppState, STATE};
 use crate::utils::routes::AppRoute;
 use browser::BrowserDrop;
 use campaigns::CampaignBtn;
@@ -78,34 +78,48 @@ impl Component for PageController {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        false
+        self.props=props;
+        true
     }
 
     fn view(&self) -> Html {
         html! {
-        <div class="uk-child-width-1-1" uk-grid="">
-           <div>
-              <MatTabBar >
-                 <DashboardBtn state=Rc::clone(&self.props.state) />
-                 <CampaignBtn state=Rc::clone(&self.props.state) />
-                 <OfferBtn state=Rc::clone(&self.props.state) />
-                 <LanderBtn state=Rc::clone(&self.props.state) />
-                 <ConversionsBtn state=Rc::clone(&self.props.state) />
-                 <FunnelBtn state=Rc::clone(&self.props.state) />
-                 <TrafficBtn state=Rc::clone(&self.props.state) />
-                 <OfferSourceBtn state=Rc::clone(&self.props.state) />
-              </MatTabBar>
-           </div>
-           <div class="" uk-grid="">
-              <ConnectionDrop state=Rc::clone(&self.props.state) />
-              <DevicesDrop state=Rc::clone(&self.props.state) />
-              <OSDrop state=Rc::clone(&self.props.state) />
-              <BrowserDrop state=Rc::clone(&self.props.state) />
-              <DateDrop state=Rc::clone(&self.props.state) />
-              <DayPartingDrop state=Rc::clone(&self.props.state) />
-           </div>
-        </div>
-
+<div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-grid-row-collapse uk-child-width-1-1" uk-grid="">
+    <div>
+        <nav class="uk-navbar-container" uk-navbar="">
+            <div class="uk-navbar-left">
+                <ul class="uk-navbar-nav">
+                
+                    <DashboardBtn state=Rc::clone(&self.props.state) />
+                    <CampaignBtn state=Rc::clone(&self.props.state) />
+                    <OfferBtn state=Rc::clone(&self.props.state) />
+                    <LanderBtn state=Rc::clone(&self.props.state) />
+                    <ConversionsBtn state=Rc::clone(&self.props.state) />
+                    <FunnelBtn state=Rc::clone(&self.props.state) />
+                    <TrafficBtn state=Rc::clone(&self.props.state) />
+                    <OfferSourceBtn state=Rc::clone(&self.props.state) />
+                    
+                </ul>
+            </div>
+        </nav>
+    </div>
+    <div>
+        <nav class="uk-navbar-container" uk-navbar="">
+            <div class="uk-navbar-left">
+                <ul class="uk-navbar-nav">
+                
+                  <ConnectionDrop state=Rc::clone(&self.props.state) />
+                  // <DevicesDrop state=Rc::clone(&self.props.state) />
+                  // <OSDrop state=Rc::clone(&self.props.state) />
+                  // <BrowserDrop state=Rc::clone(&self.props.state) />
+                  // <DateDrop state=Rc::clone(&self.props.state) />
+                  // <DayPartingDrop state=Rc::clone(&self.props.state) />
+                  
+                </ul>
+            </div>
+        </nav>
+    </div>
+</div>
 
                                         }
     }

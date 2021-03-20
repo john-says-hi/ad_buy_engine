@@ -1,4 +1,11 @@
+  .uk-navbar-nav > li > a {
+  color: inherit;
+  transition: none;
+  }
 
+.active-tab {
+    color: #9148f7 !important;
+}
 
 .logo{
     height: 69px;

@@ -19,7 +19,8 @@ extern crate dotenv_codegen;
 extern crate wee_alloc;
 
 use wasm_bindgen::prelude::*;
-
+#[macro_use]
+pub mod macros;
 pub mod agents;
 pub mod appstate;
 pub mod components;

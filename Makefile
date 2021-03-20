@@ -59,7 +59,7 @@ upload-static:
 		scp -r ./static/ ad_buy_engine@72.14.190.165:~/
 
 upload-frontend:
-	scp ./static/main/secure/index.html ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/abe.js ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/abe.wasm ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js ad_buy_engine@72.14.190.165:~/static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js
+	scp ./static/main/secure/index.html ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/abe.js ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp -C ./static/main/secure/abe.wasm ad_buy_engine@72.14.190.165:~/static/main/secure/ && scp ./static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js ad_buy_engine@72.14.190.165:~/static/main/secure/snippets/frontend-f18a95a0c5c4e16d/src/utils/javascript/js-scripts.js
 
 upload-env:
 	scp ./.env ad_buy_engine@72.14.190.165:~/
