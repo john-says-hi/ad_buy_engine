@@ -9,12 +9,18 @@ macro_rules! callback {
 
 #[macro_export]
 macro_rules! label {
-    ($label:expr) => {html!{<span class="uk-label uk-label-large uk-label-primary">{$label}</span>}}
+    ($label:expr) => {html!{<span class="uk-label uk-label-large uk-label-primary">{$label}</span>}};
+    ("g", $label:expr) => {html!{<span class="uk-label uk-label-large uk-label-success" >{$label}</span>}};
+    ("gb", $label:expr) => {html!{<span class="uk-label uk-label-large uk-label-success" style="color: #000000" >{$label}</span>}};
+    ("m", $label:expr) => {html!{<span class="uk-label uk-label uk-label-primary">{$label}</span>}};
+    ("s", $label:expr) => {html!{<span class="uk-label uk-label-small uk-label-primary">{$label}</span>}};
 }
 
 #[macro_export]
 macro_rules! divider {
-    () => {html!{<hr class="uk-divider-small" />}}
+    () => {html!{<hr class="uk-divider-small" />}};
+    (1) => {html!{<hr class="uk-divider-small" />}};
+    (2) => {html!{<hr class="uk-divider-icon" />}};
 }
 
 #[macro_export]

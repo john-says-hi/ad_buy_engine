@@ -58,6 +58,7 @@ impl Component for PageUtilities {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.props=props;
         true
     }
     

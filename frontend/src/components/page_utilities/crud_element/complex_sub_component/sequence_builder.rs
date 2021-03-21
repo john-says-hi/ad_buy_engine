@@ -112,21 +112,19 @@ impl Component for SequenceBuilder {
         html! {
         <>
                                 <div class="uk-margin">
-                                    <h4>{"Name"}</h4>
+                                    {label!("Sequence Name")}
                                     <input type="text" class="uk-input" oninput=self.link.callback(Msg::UpdateSequenceName) />
                                 </div>
 
                                 <div class="uk-margin">
-                                    <h4>{"Sequence Type"}</h4>
+                                    {label!("Sequence Type")}
                                     <SequenceTypeDropdown eject=self.link.callback(Msg::UpdateSequenceType) />
                                 </div>
 
                                 <div class="uk-margin">
-                                    <h4>{"Referrer Handling"}</h4>
+                                    {label!("Referrer Handling")}
                                     <ReferrerHandlingDropdown state=Rc::clone(&self.props.state) selected=referrer_handling_selected callback=self.link.callback(Msg::UpdateSequenceReferrerHandling) />
                                 </div>
-
-                                <hr class="uk-divider" />
 
                                 {self.render_view()}
         </>

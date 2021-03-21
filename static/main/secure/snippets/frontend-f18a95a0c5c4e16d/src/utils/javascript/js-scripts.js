@@ -48,3 +48,11 @@ export function hide_uk_drop(element) {
 export function show_uk_drop(element) {
     UIkit.drop(element).show();
 }
+
+export function remove_element_by_id(id) {
+    try {
+         document.getElementById(id).remove();
+    } catch (e) {
+        console.log("Got exception ${e}" );
+    }
+}

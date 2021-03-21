@@ -34,11 +34,14 @@ pub struct Props {
     pub label: String,
     #[prop_or_default]
     pub checked:bool,
+    #[prop_or_default]
+    pub size:Option<String>,
 }
 
 pub struct ToggleSwitch {
     pub link: ComponentLink<Self>,
     pub props: Props,
+
     pub checked: bool,
 }
 
@@ -72,11 +75,12 @@ impl Component for ToggleSwitch {
     fn view(&self) -> Html {
         let yes_class = if self.checked {"uk-button uk-button-small uk-button-success"}else{"uk-button uk-button-small uk-button-default"};
         let no_class = if !self.checked {"uk-button uk-button-small uk-button-danger"}else{"uk-button uk-button-small uk-button-default"};
+        let label_class= if let Some(s)=self.props.size.clone()   {format!("uk-label uk-label-{} uk-label-primary", s)}else { "uk-label uk-label-large uk-label-primary".to_string() };
         
         html! {
 <div class="uk-flex uk-flex-left uk-margin-small">
         <div class="uk-margin-small">
-            <span class="uk-label uk-label-large uk-label-primary">{&self.props.label}</span>
+            <span class=label_class>{&self.props.label}</span>
             <div uk-switcher="">
                 <button class=no_class onclick=callback!(self, |_| Msg::OnClick(Switch::No))>{"No"}</button>
                 <button class=yes_class onclick=callback!(self, |_| Msg::OnClick(Switch::Yes))>{"Yes"}</button>

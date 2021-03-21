@@ -84,14 +84,13 @@ impl Component for OfferSelector {
         html! {
         <>
                                 <div class="uk-margin">
-                                    <h4>{"Offers"}</h4>
+                                    {label!("Offers")}
                                 </div>
-
-                                <hr class="uk-divider" />
+                                {divider!(2)}
 
                                 {self.render_offers()}
 
-                                <OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::Select) selected=None />
+                                <div>{label!("g", "Select Offer")}<OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::Select) selected=None /></div>
         </>
         }
     }
@@ -105,11 +104,14 @@ impl OfferSelector {
             let name = offer.offer.name.clone();
             let weight = offer.weight;
             nodes.push(html!{
-                                <div class="uk-margin">
-                                    <h5>{name}</h5>
-                                    <button class="uk-button" onclick=self.link.callback(move |_| Msg::RemoveOffer(idx)) >{"X"}</button>
-                                    <input type="number" class="uk-input" value=weight.to_string() oninput=self.link.callback(move|i:InputData|Msg::UpdateWeight((idx,i))) />
+                                <>
+                                <div class="uk-margin uk-flex uk-flex-middle uk-text-center uk-child-width-1-3" uk-grid="">
+                                    <div>{label!("Name")}<p>{format!("#{} - {}", idx+1, name)}</p></div>
+                                    <div>{label!("Weight")}<input type="number" class="uk-input" value=weight.to_string() oninput=self.link.callback(move|i:InputData|Msg::UpdateWeight((idx,i))) /></div>
+                                    <div>{label!("Remove")}<button class="uk-button uk-button-small" onclick=self.link.callback(move |_| Msg::RemoveOffer(idx)) >{"X"}</button></div>
                                 </div>
+                                {divider!()}
+                                </>
             })
         }
 

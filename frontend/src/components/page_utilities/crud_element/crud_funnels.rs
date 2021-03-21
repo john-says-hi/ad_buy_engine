@@ -123,20 +123,20 @@ impl Component for CRUDFunnel {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let tt = TickTock::bridge(link.callback(|_| Msg::Ignore));
-        let init_default_seq = Sequence {
-            id: Uuid::new_v4(),
-            name: "New Default Sequence".to_string(),
-            weight: 100,
-            sequence_type: SequenceType::OffersOnly,
-            redirect_option: RedirectOption::Redirect,
-            referrer_handling: ReferrerHandling::DoNothing,
-            pre_landing_page: None,
-            listicle_pairs: vec![],
-            landing_pages: vec![],
-            offers: vec![],
-            weight_optimization_active: false,
-            sequence_is_active: true,
-        };
+        // let init_default_seq = Sequence {
+        //     id: Uuid::new_v4(),
+        //     name: "New Default Sequence".to_string(),
+        //     weight: 100,
+        //     sequence_type: SequenceType::OffersOnly,
+        //     redirect_option: RedirectOption::Redirect,
+        //     referrer_handling: ReferrerHandling::DoNothing,
+        //     pre_landing_page: None,
+        //     listicle_pairs: vec![],
+        //     landing_pages: vec![],
+        //     offers: vec![],
+        //     weight_optimization_active: false,
+        //     sequence_is_active: true,
+        // };
 
         Self {
             link,
@@ -145,7 +145,7 @@ impl Component for CRUDFunnel {
             country: Country::Global,
             default_referrer_handling: ReferrerHandling::DoNothing,
             conditional_sequences: vec![],
-            default_sequences: vec![init_default_seq],
+            default_sequences: vec![],
             notes: "".to_string(),
             fetch_task: None,
             active_element: ActiveElement::Funnel,
@@ -485,7 +485,7 @@ impl Component for CRUDFunnel {
               </div>
               <div class="uk-modal-body" >
 
-                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2 uk-grid-divider" uk-grid="">
+                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2 uk-grid-divider uk-grid-row-collapse uk-flex uk-flex-top" uk-grid="">
 
                         <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1">
 
