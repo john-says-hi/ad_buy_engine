@@ -54,18 +54,24 @@ impl Component for AccountTabBar {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        false
+        self.props=props;
+        true
     }
 
     fn view(&self) -> Html {
         html! {
-        <>
-                <MatTabBar >
+<div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1  uk-grid-row-collapse" uk-grid="">
+        <nav class="uk-margin-top" uk-navbar="">
+            <div class="uk-navbar-left">
+                <ul class="uk-navbar-nav uk-flex-wrap uk-flex-center">
+                   
                    <CustomConversionBtn state=Rc::clone(&self.props.state) />
                    <ReferrerHanldingBtn state=Rc::clone(&self.props.state) />
-                </MatTabBar>
-        </>
-
+                  
+                </ul>
+            </div>
+        </nav>
+</div>
                                           }
     }
 }

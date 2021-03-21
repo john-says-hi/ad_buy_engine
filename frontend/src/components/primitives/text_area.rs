@@ -54,7 +54,7 @@ impl Component for TextArea {
         };
 
         html! {
-                    <div class="uk-margin">
+                    <div class="">
                         {label}
                         <textarea class="uk-textarea" rows=self.props.rows placeholder=self.props.placeholder oninput=self.link.callback(Msg::OnInput) value=self.props.value ></textarea>
                     </div>

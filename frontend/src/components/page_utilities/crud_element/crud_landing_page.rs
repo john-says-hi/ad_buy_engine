@@ -241,11 +241,11 @@ impl Component for CRUDLandingPage {
                             {
                                 if self.is_pre_landing_page {
                             VNode::from(
-                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{"Pre-Lander"}</label><label><input class="uk-radio" type="radio" name="radio2" onclick=self.link.callback(|_|Msg::TogglePreSell) />{"Lander"}</label></>},
+                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Pre-Lander "}</label><label><input class="uk-radio" type="radio" name="radio2" onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Lander"}</label></>},
                             )
                         } else {
                             VNode::from(
-                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2"  onclick=self.link.callback(|_|Msg::TogglePreSell) />{"Pre-Lander"}</label><label><input class="uk-radio" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{"Lander"}</label></>},
+                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2"  onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Pre-Lander "}</label><label><input class="uk-radio" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Lander"}</label></>},
                             )
                         }
                             }
@@ -262,7 +262,7 @@ impl Component for CRUDLandingPage {
                         <LandingPageClickURLGenerator number_of_ctas=ctas tracking_domain=&self.tracking_domain is_pre_sell=&self.is_pre_landing_page />
 
                         <div class="uk-margin">
-                           <h5>{"Notes"}</h5>
+                            {label!("Notes")}
                            <NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.notes />
                         </div>
 

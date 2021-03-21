@@ -5,7 +5,7 @@ docker-volume-reset:
 	ssh ad_buy_engine@72.14.190.165 'docker-compose down && docker volume rm campaign_server_storage && docker volume create --name=campaign_server_storage'
 
 update-frontend:
-	make build-secure-frontend && make docker-down && make upload-frontend && make docker-up
+	make build-secure-frontend && make docker-down && make upload-frontend && make docker-up && firefox -new-tab "https://adbuyengine.com/secure/"
 
 update-migration:
 	make docker-down && make upload-migrations && make docker-up
@@ -21,6 +21,9 @@ upload-migrations:
 
 update-docker-files:
 	scp ./Dockerfile ad_buy_engine@72.14.190.165:~/ && scp ./docker-compose.yml ad_buy_engine@72.14.190.165:~/
+
+update-ovalhalla-css:
+	scp ./static/main/public/assets/css/ovalhalla.css ad_buy_engine@72.14.190.165:/home/ad_buy_engine/static/main/public/assets/css/ovalhalla.css
 
 docker-down:
 	ssh ad_buy_engine@72.14.190.165 'docker-compose down'

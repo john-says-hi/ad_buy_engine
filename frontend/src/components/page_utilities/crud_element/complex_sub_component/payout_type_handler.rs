@@ -111,19 +111,19 @@ impl Component for PayoutTypeHandler {
         html! {
         <>
                     <div class="uk-margin">
-                        <h5>{"Payout Type"}</h5>
+                        {label!("Payout Type")}
                         <select class="uk-select">
                             {payout_type_options}
                         </select>
                     </div>
 
                     <div class="uk-margin">
-                        <h5>{"Default Payout Value"}</h5>
+                        {label!("Default Payout Value")}
                         <input class="uk-input" value=&self.payout_value.to_string() type="text" placeholder="0" oninput=self.link.callback(Msg::ParsePayoutValue) />
                     </div>
 
                     <div class="uk-margin">
-                        <h5>{"Currency"}</h5>
+                        {label!("Currency")}
                         <select class="uk-select">
                             {currency_options}
                         </select>

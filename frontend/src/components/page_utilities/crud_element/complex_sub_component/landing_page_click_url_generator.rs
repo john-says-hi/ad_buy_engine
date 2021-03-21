@@ -87,7 +87,7 @@ impl Component for LandingPageClickURLGenerator {
 
         html! {
         <div class="uk-margin uk-margin-bottom-large">
-            <h3>{"Click URLs"}</h3>
+            {label!("Click URLs")}
             {nodes}
         </div>
                             }

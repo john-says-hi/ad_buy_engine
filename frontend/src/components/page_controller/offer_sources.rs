@@ -32,8 +32,8 @@ impl Component for OfferSourceBtn {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
-        let cloned_state = Rc::clone(&props.state);
-        let active = tab_is_active!(AppRoute::OfferSources, cloned_state);
+        let active_tab = state_clone!(props.state).borrow().return_app_route();
+        let active = tab_is_active!(AppRoute::OfferSources, active_tab);
 
         Self {
             link,
@@ -67,15 +67,15 @@ impl Component for OfferSourceBtn {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let cloned_state = Rc::clone(&props.state);
-        self.active = tab_is_active!(AppRoute::OfferSources, cloned_state);
+        let active_tab = state_clone!(props.state).borrow().return_app_route();
+        self.active = tab_is_active!(AppRoute::OfferSources, active_tab);
         true
     }
 
     fn view(&self) -> Html {
         let callback = self.link.callback(|_| Msg::Click);
         let a_class = if self.active{"active-tab uk-active uk-display-block"}else { "uk-display-block" };
-        let icon_class = if self.active{"active-tab fa fa-money uk-display-block uk-text-center"}else { "fa fa-money uk-display-block uk-text-center" };
+        let icon_class = if self.active{"active-tab fa fa-shopping-basket uk-display-block uk-text-center"}else { "fa fa-shopping-basket uk-display-block uk-text-center" };
         html! {
         <li onclick=callback>
             <span class=icon_class></span>

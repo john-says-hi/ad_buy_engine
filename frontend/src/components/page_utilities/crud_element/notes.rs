@@ -59,9 +59,9 @@ impl Component for NotesComponent {
 
     fn view(&self) -> Html {
         html! {
-        <div class="uk-margin">
+        // <div class="uk-margin">
            <TextArea oninput=self.link.callback(|i:InputData|Msg::OnInput(i)) rows="4" value=&self.value />
-        </div>
+        // </div>
                             }
     }
 }

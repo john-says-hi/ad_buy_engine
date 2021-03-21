@@ -46,7 +46,7 @@ impl Component for DataTable {
 
     fn view(&self) -> Html {
         html! {
-        <table class="uk-table uk-table-responsive uk-table-divider uk-table-striped uk-table-hover uk-table-small">
+        <table class="uk-table uk-table-divider uk-table-striped uk-table-hover uk-table-small">
 
         <DataTableHead state=Rc::clone(&self.props.state) />
 

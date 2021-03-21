@@ -258,7 +258,7 @@ impl Component for CRUDOffer {
                         <PayoutTypeHandler payout_type=&self.payout_type payout_value=&self.payout_value payout_currency=&self.payout_currency eject_payout_type=self.link.callback(Msg::UpdatePayoutType) eject_payout_value=self.link.callback(Msg::UpdatePayoutValue) eject_payout_currency=self.link.callback(Msg::UpdatePayoutCurrency) />
 
                         <div class="uk-margin">
-                           <h5>{"Notes"}</h5>
+                           {label!("Notes")}
                            <NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.notes />
                         </div>
 

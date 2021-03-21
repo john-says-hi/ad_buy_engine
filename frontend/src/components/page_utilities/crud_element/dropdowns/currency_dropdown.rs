@@ -63,11 +63,11 @@ impl Component for CurrencyDropdown {
         let label = if self.props.label.is_empty() {
             html! {}
         } else {
-            html! {<h4>{&self.props.label}</h4>}
+            label!(&self.props.label)
         };
 
         html! {
-        <div class="uk-margin">
+        <div class="">
             {label}
             <select class="uk-select">
                 {options}

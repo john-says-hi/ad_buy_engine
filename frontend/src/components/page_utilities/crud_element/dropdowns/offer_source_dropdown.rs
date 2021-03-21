@@ -73,7 +73,7 @@ impl Component for OfferSourceDropdown {
             let name = item.name.clone();
             options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{name}</option>});
         } else {
-            options.push(html! {<option >{"Select a Traffic Source"}</option>});
+            options.push(html! {<option >{"Select an Offer Source"}</option>});
         }
 
         for item in self.available_offer_sources.iter().cloned() {
@@ -90,7 +90,7 @@ impl Component for OfferSourceDropdown {
         let label = if self.props.label.is_empty() {
             html! {}
         } else {
-            html! {<h4>{&self.props.label}</h4>}
+            label!(&self.props.label)
         };
 
         html! {

@@ -63,7 +63,7 @@ impl Component for TrafficSourcePostbackURLTokenSelector {
         let selected_style = "border:2px solid blue;".to_string();
         let mut tokens_as_button_nodes = VList::new();
 
-        for token in DataURLToken::iter()
+        for token in DataURLToken::iter() //todo setup filter
             // .filter(|s| s != &DataURLToken::Parameter1)
             // && s != &DataURLToken::Parameter2
             // && s != &DataURLToken::Parameter3
@@ -88,7 +88,7 @@ impl Component for TrafficSourcePostbackURLTokenSelector {
 
         html! {
         <div class="uk-margin">
-            <h4>{"Lander URL Tokens"}</h4>
+            <h4>{"Traffic Source Postback URL Tokens"}</h4>
             {tokens_as_button_nodes}
         </div>
                 }

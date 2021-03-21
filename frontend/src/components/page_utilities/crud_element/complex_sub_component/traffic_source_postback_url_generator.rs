@@ -121,7 +121,7 @@ impl Component for TrafficSourcePostbackUrlGenerator {
         html! {
                 <div class="uk-margin uk-margin-bottom-large">
 
-                    <h3>{"Lander URL"}</h3>
+                    {label!("Traffic Source Postback URL")}
 
                     {
           html!{<input class="uk-input" value=&self.url_string type="text" placeholder="i.e. https://xyz/com" oninput=self.link.callback(Msg::OnInput) onblur=self.link.callback(|_| Msg::OnBlur) />}

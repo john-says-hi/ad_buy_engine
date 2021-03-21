@@ -32,8 +32,8 @@ impl Component for OfferBtn {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
-        let cloned_state = Rc::clone(&props.state);
-        let active = tab_is_active!(AppRoute::Offers, cloned_state);
+        let active_tab = state_clone!(props.state).borrow().return_app_route();
+        let active = tab_is_active!(AppRoute::Offers, active_tab);
 
         Self {
             link,
@@ -65,8 +65,8 @@ impl Component for OfferBtn {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let cloned_state = Rc::clone(&props.state);
-        self.active = tab_is_active!(AppRoute::Offers, cloned_state);
+        let active_tab = state_clone!(props.state).borrow().return_app_route();
+        self.active = tab_is_active!(AppRoute::Offers, active_tab);
         true
     }
 

@@ -70,7 +70,7 @@ impl Component for TrackingMethodDropdown {
 
         html! {
         <div class="uk-margin">
-            <h4>{"Conversion Tracking Method:"}</h4>
+            {label!("Conversion Tracking Method:")}
             <select class="uk-select">
                 {options}
             </select>
