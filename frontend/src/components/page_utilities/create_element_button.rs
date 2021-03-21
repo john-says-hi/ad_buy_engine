@@ -87,7 +87,7 @@ impl Component for NewElement {
     fn view(&self) -> Html {
         let html = if self.creatable_elem_btn_should_render() && self.only_render_if_is_main_tab() {
             html! {
-                    <div class="uk-margin-right"><button uk-toggle="" href={&self.href} onclick=self.link.callback(|_| Msg::Click) class="uk-button uk-button-default uk-background-primary uk-light"><span class="fas fa-plus uk-margin-small-right"></span>{format!("New {}" ,self.get_creatable_element_text())}</button></div>
+                    <div class="uk-margin-right"><button uk-toggle="" href={&self.href} onclick=self.link.callback(|_| Msg::Click) class="uk-button uk-button-default uk-button-small uk-background-primary uk-light"><span class="fas fa-plus uk-margin-small-right"></span>{format!("New {}" ,self.get_creatable_element_text())}</button></div>
             }
         } else {
             html! {}

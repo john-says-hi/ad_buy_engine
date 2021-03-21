@@ -48,7 +48,7 @@ impl Component for TextInput {
         let label = if self.props.label.is_empty() {
             html! {}
         } else {
-            html! {<h4>{{&self.props.label}}</h4>}
+            label!(&self.props.label)
         };
 
         html! {

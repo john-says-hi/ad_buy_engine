@@ -60,6 +60,7 @@ use ad_buy_engine::data::elements::traffic_source::TrafficSource;
 use crate::components::page_utilities::crud_element::complex_sub_component::traffic_source_postback_url_generator::TrafficSourcePostbackUrlGenerator;
 use crate::components::page_utilities::crud_element::complex_sub_component::traffic_source_postback_url_token_selector::TrafficSourcePostbackURLTokenSelector;
 use crate::components::page_utilities::crud_element::complex_sub_component::traffic_source_url_parameter_configuration::TrafficSourceUrlParameterConfig;
+use crate::components::page_utilities::crud_element::toggle_switch::ToggleSwitch;
 
 pub enum Msg {
     Tick,
@@ -250,8 +251,7 @@ impl Component for CRUDTrafficSource {
                         <CurrencyDropdown callback=self.link.callback(Msg::UpdateCurrency) label="Cost Currency".to_string() />
 
                         <div class="uk-margin">
-                           <h5>{"Traffic Source Postback URL"}</h5>
-                           <MatSwitch checked=self.traffic_source_postback_url_is_active onchange=self.link.callback(|_|Msg::ToggleTrafficSourcePostbackURL) />
+                           <ToggleSwitch label="Traffic Source Postback URL" checked=self.traffic_source_postback_url_is_active onchange=self.link.callback(|_|Msg::ToggleTrafficSourcePostbackURL)  />
                         </div>
 
                         {if self.traffic_source_postback_url_is_active {html!{
@@ -265,7 +265,7 @@ impl Component for CRUDTrafficSource {
                         }}}
 
                         <div class="uk-margin">
-                           <h5>{"Notes"}</h5>
+                            {label!("Notes")}
                            <NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.notes />
                         </div>
 

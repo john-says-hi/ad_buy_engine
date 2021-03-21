@@ -44,6 +44,7 @@ use yew_material::{MatSwitch, MatTextArea, MatTextField};
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::storage::Area;
 use yew_services::{FetchService, StorageService};
+use crate::components::page_utilities::crud_element::toggle_switch::ToggleSwitch;
 
 pub enum Msg {
     Ignore,
@@ -268,7 +269,7 @@ impl Component for CRUDOfferSource {
                         <TextInput label="Name of Source:" value=&self.name placeholder="Name" oninput=self.link.callback(Msg::UpdateName) />
 
                         <div>
-                            <h4>{"Tracking Parameters"}</h4>
+                            {label!("Tracking Parameters")}
                             <table class="uk-table uk-table-small">
                                 <thead>
                                     <tr>
@@ -310,38 +311,30 @@ impl Component for CRUDOfferSource {
                             <TrackingMethodDropdown selected=Some(self.tracking_method) callback=self.link.callback(|c:ConversionTrackingMethod|Msg::UpdateTrackingMethod(c)) />
                         </div>
 
-                        <div>
-                           <h5>{"Include More Parameters"}</h5>
-                           <MatSwitch checked=self.include_all_parameters onchange=self.link.callback(|_|Msg::ToggleIncludeAdditionalParams) />
-                        </div>
-
-                           <TextArea rows="4" label="Postback URL" value=self.generate_tracking_code() oninput=self.link.callback(|_|Msg::Ignore) />
-
-                       <CurrencyDropdown label="Payout Currency" callback=self.link.callback(|c:Currency|Msg::UpdatePayoutCurrency(c)) />
+                       <ToggleSwitch label="Include More Parameters".to_string() checked=self.include_all_parameters onchange=self.link.callback(|_|Msg::ToggleIncludeAdditionalParams) />
 
                         <div class="uk-margin">
-                           <h5>{"Append Click ID"}</h5>
-                           <MatSwitch checked=self.append_click_id onchange=self.link.callback(|_|Msg::ToggleAppendClickID) />
+                            {label!("Postback URL")}
+                           <TextArea rows="4" value=self.generate_tracking_code() oninput=self.link.callback(|_|Msg::Ignore) />
                         </div>
 
                         <div class="uk-margin">
-                           <h5>{"Accept Duplicate Postbacks"}</h5>
-                           <MatSwitch checked=self.accept_duplicate_postback onchange=self.link.callback(|_|Msg::ToggleAcceptDuplicatePostback) />
+                            {label!("Payout Currency")}
+                       <CurrencyDropdown callback=self.link.callback(|c:Currency|Msg::UpdatePayoutCurrency(c)) />
                         </div>
+                       
+                       <ToggleSwitch label="Append Click ID".to_string() checked=self.append_click_id onchange=self.link.callback(|_|Msg::ToggleAppendClickID) />
+                       <ToggleSwitch label="Accept Duplicate Postbacks".to_string() checked=self.accept_duplicate_postback onchange=self.link.callback(|_|Msg::ToggleAcceptDuplicatePostback) />
+                       <ToggleSwitch label="Whitelist Postback URL IPs".to_string() checked=self.whitelist_postback_ips onchange=self.link.callback(|_|Msg::ToggleWhiteListedPostbackIPs) />
+                        {self.whitelist_postback_ips()}
 
                         <div class="uk-margin">
-                           <h5>{"Whitelist Postback URL IPs"}</h5>
-                           <MatSwitch checked=self.whitelist_postback_ips onchange=self.link.callback(|_|Msg::ToggleWhiteListedPostbackIPs) />
-                              {self.whitelist_postback_ips()}
-                        </div>
-
-                        <div class="uk-margin">
-                           <h5>{"Referrer Handling"}</h5>
+                           <span class="uk-label uk-label-large uk-label-primary">{"Referrer Handling"}</span>
                            <ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateReferrerHandling) state=Rc::clone(&self.props.state) selected=self.referrer_handling.clone() />
                         </div>
 
                         <div class="uk-margin">
-                           <h5>{"Notes"}</h5>
+                           <span class="uk-label uk-label-large uk-label-primary">{"Notes"}</span>
                            <NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.notes />
                         </div>
 

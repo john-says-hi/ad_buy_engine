@@ -9,3 +9,5 @@ pub mod dropdowns;
 pub mod notes;
 pub mod select_custom_event;
 pub mod whitelist_postback_ips;
+pub mod toggle_switch;
+pub mod small_switch;

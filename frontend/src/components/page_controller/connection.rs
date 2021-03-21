@@ -42,7 +42,8 @@ impl Component for ConnectionDrop {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
-        let active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, state_clone!(props.state));
+        let app_route = state_clone!(props.state).borrow().return_app_route();
+        let active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, app_route);
 
         Self {
             link,
@@ -105,22 +106,37 @@ impl Component for ConnectionDrop {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, state_clone!(self.props.state));
+        let active_tab = state_clone!(props.state).borrow().return_app_route();
+        self.active=dropdown_is_active!(AppRoute::Connection AppRoute::ISPCarrier AppRoute::MobileCarrier AppRoute::Proxy, active_tab);
         true
     }
 
     fn view(&self) -> Html {
-        let active = if self.active{"uk-active"}else { "" };
+        let active_tab = self.props.state.borrow().return_app_route();
+        
         html! {
-                <li class=active>
-                    <a onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))>{"Connection"}</a>
-                    <div class="uk-navbar-dropdown">
+                <li class={if self.active {"uk-active"}else { "" }}>
+                    <span class={if self.active {"active-tab fa fa-connectdevelop uk-display-block uk-text-center"}else { "fa fa-connectdevelop uk-display-block uk-text-center"} } onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))></span>
+                    <a class={if self.active {"active-tab uk-display-block"}else { "uk-display-block"} } onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))>{"Connection"}</a>
+                    
+                    <div class="uk-navbar-dropdown"  uk-drop="pos: bottom-center;" >
                         <ul class="uk-nav uk-navbar-dropdown-nav">
                         
-                            <li class={if tab_is_active!(AppRoute::Connection, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))>{"By Type"}</a></li>
-                            <li class={if tab_is_active!(AppRoute::ISPCarrier, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::ISPCarrier))>{"ISP/Carrier"}</a></li>
-                            <li class={if tab_is_active!(AppRoute::MobileCarrier, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::MobileCarrier))>{"Mobile Carrier"}</a></li>
-                            <li class={if tab_is_active!(AppRoute::Proxy, state_clone!(self.props.state)) {"uk-active"}else { "" }}><a onclick=callback!(self, |_| Msg::OnSelect(Conn::Proxy))>{"Proxy"}</a></li>
+                            <li class={if tab_is_active!(AppRoute::Connection, active_tab) {"uk-active"}else { "" } }>
+                                <a class={if tab_is_active!(AppRoute::Connection, active_tab) {"active-tab"}else { ""} } onclick=callback!(self, |_| Msg::OnSelect(Conn::ByType))><span class={if tab_is_active!(AppRoute::Connection, active_tab) {"active-tab fa fa-connectdevelop"}else { "fa fa-connectdevelop"} }></span>{" By Type"}</a>
+                            </li>
+                            
+                            <li class={if tab_is_active!(AppRoute::ISPCarrier, active_tab) {"uk-active"}else { "" }}>
+                                <a class={if tab_is_active!(AppRoute::ISPCarrier, active_tab) {"active-tab"}else { ""} } onclick=callback!(self, |_| Msg::OnSelect(Conn::ISPCarrier))><span class={if tab_is_active!(AppRoute::ISPCarrier, active_tab) {"active-tab fa fa-crosshairs"}else { "fa fa-crosshairs"} }></span>{" ISP/Carrier"}</a>
+                            </li>
+                            
+                            <li class={if tab_is_active!(AppRoute::MobileCarrier, active_tab) {"uk-active"}else { "" }}>
+                                <a class={if tab_is_active!(AppRoute::MobileCarrier, active_tab) {"active-tab"}else { ""} } onclick=callback!(self, |_| Msg::OnSelect(Conn::MobileCarrier))><span class={if tab_is_active!(AppRoute::MobileCarrier, active_tab) {"active-tab fa fa-mobile"}else { "fa fa-mobile"} }></span>{" Mobile Carrier"}</a>
+                            </li>
+                            
+                            <li class={if tab_is_active!(AppRoute::Proxy, active_tab) {"uk-active"}else { "" }}>
+                                <a class={if tab_is_active!(AppRoute::Proxy, active_tab) {"active-tab"}else { ""} } onclick=callback!(self, |_| Msg::OnSelect(Conn::Proxy))><span class={if tab_is_active!(AppRoute::Proxy, active_tab) {"active-tab fa fa-ban"}else { "fa fa-ban"} }></span>{" Proxy"}</a>
+                            </li>
                             
                         </ul>
                     </div>

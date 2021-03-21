@@ -68,7 +68,7 @@ impl Component for TrackingDomainDropdown {
 
         html! {
         <div class="uk-margin">
-            <h4>{"Tracking Domain:"}</h4>
+            {label!("Tracking Domain:")}
             <select class="uk-select">
                 {options}
             </select>

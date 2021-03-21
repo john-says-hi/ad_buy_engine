@@ -24,6 +24,7 @@ use yew_material::{MatListItem, MatSelect};
 use yew_services::storage::Area;
 use yew_services::StorageService;
 use crate::components::primitives::TextInput;
+use crate::components::page_utilities::crud_element::small_switch::SmallSwitch;
 
 pub enum Msg {
     UpdateCostParameter(InputData),
@@ -154,7 +155,7 @@ impl Component for TrafficSourceUrlParameterConfig {
         html! {
         <div class="uk-margin">
         
-                          <h4>{"Traffic Source Parameters"}</h4>
+                            {label!("Traffic Source Parameters")}
                             <table class="uk-table uk-table-small">
                             
                                 <thead>
@@ -163,6 +164,7 @@ impl Component for TrafficSourceUrlParameterConfig {
                                         <th>{"Parameter"}</th>
                                         <th>{"Token"}</th>
                                         <th>{"Active"}</th>
+                                        <th>{"Edit"}</th>
                                     </tr>
                                 </thead>
                                 
@@ -194,16 +196,12 @@ impl Component for TrafficSourceUrlParameterConfig {
                                       </td>
                                    </tr>
                                    
-                                   <tr>
-                                        <button onclick=self.link.callback(|_|Msg::AddCustomVariable) class="uk-button uk-background-primary">{"+ Add Custom Variable"}</button>
-                                   </tr>
-                                   
                                    {self.gen_custom_vars()}
                                    
                                 </tbody>
                                 
                             </table>
-
+                                        <button onclick=self.link.callback(|_|Msg::AddCustomVariable) class="uk-button uk-button-success  uk-button-small uk-flex- uk-flex-left">{"+ Add Custom Variable"}</button>
         </div>
                             }
     }
@@ -218,18 +216,29 @@ impl TrafficSourceUrlParameterConfig {
             nodes.push(html!{
                                    <tr>
                                       <td>
+                                        {label!("Name")}
                                          <TextInput value=&custom_variable.name oninput=self.link.callback(move |i:InputData| Msg::UpdateCustomVariableName((idx,i )))  />
                                       </td>
                                       <td>
+                                      {label!("Parameter")}
                                          <TextInput value=&custom_variable.parameter oninput=self.link.callback(move |i:InputData|Msg::UpdateCustomVariableParameter((idx, i)))  />
                                       </td>
                                       <td>
+                                      {label!("Placeholder")}
                                          <TextInput value=&custom_variable.placeholder oninput=self.link.callback(move |i:InputData|Msg::UpdateCustomVariablePlaceholder((idx, i)))  />
                                       </td>
                                       
                                       <td>
                                             <div class="uk-margin">
-                                               <MatSwitch checked=custom_variable.is_tracked onchange=self.link.callback(move |_|Msg::ToggleCustomVariableIsActive(idx)) />
+                                                {label!("Active")}
+                                                <SmallSwitch checked=custom_variable.is_tracked onchange=self.link.callback(move |_|Msg::ToggleCustomVariableIsActive(idx)) />
+                                            </div>
+                                      </td>
+                                      
+                                      <td>
+                                            <div class="uk-margin">
+                                                {label!("Remove")}
+                                                <a onclick=callback!(self, move |_| Msg::RemoveCustomVariable(idx)) >{{"X"}}</a>
                                             </div>
                                       </td>
                                       

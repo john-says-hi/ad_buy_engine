@@ -93,9 +93,8 @@ impl Component for TagsSelector {
         html! {
         <div class="uk-margin uk-margin-bottom-large">
 
-            <h4>{"Type a Tag and Press Enter to Save"}</h4>
-
-            <div class="uk-margin-small">
+            {label!("Type a Tag and Press Enter to Save")}
+            <div class="">
                 {nodes}
             </div>
 

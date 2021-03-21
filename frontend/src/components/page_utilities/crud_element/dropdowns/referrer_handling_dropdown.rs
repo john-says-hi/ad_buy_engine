@@ -129,7 +129,7 @@ impl Component for ReferrerHandlingDropdown {
         };
 
         html! {
-        <div class="uk-margin">
+        <div class="">
             <select class="uk-select">
                 {options}
             </select>

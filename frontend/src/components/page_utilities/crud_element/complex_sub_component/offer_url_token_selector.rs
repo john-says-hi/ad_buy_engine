@@ -73,7 +73,7 @@ impl Component for OfferURLTokenSelector {
 
         html! {
         <div class="uk-margin">
-            <h4>{"Offer URL Tokens"}</h4>
+            <h4>{"Offer URL Tokens:"}</h4>
             {tokens_as_button_nodes}
         </div>
                 }

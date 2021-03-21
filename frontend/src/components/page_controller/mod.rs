@@ -84,12 +84,11 @@ impl Component for PageController {
 
     fn view(&self) -> Html {
         html! {
-<div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-grid-row-collapse uk-child-width-1-1" uk-grid="">
-    <div>
-        <nav class="uk-navbar-container" uk-navbar="">
+<div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1  uk-grid-row-collapse" uk-grid="">
+        <nav class="uk-margin-top" uk-navbar="">
             <div class="uk-navbar-left">
-                <ul class="uk-navbar-nav">
-                
+                <ul class="uk-navbar-nav uk-flex-wrap uk-flex-center">
+                    
                     <DashboardBtn state=Rc::clone(&self.props.state) />
                     <CampaignBtn state=Rc::clone(&self.props.state) />
                     <OfferBtn state=Rc::clone(&self.props.state) />
@@ -98,27 +97,16 @@ impl Component for PageController {
                     <FunnelBtn state=Rc::clone(&self.props.state) />
                     <TrafficBtn state=Rc::clone(&self.props.state) />
                     <OfferSourceBtn state=Rc::clone(&self.props.state) />
-                    
-                </ul>
-            </div>
-        </nav>
-    </div>
-    <div>
-        <nav class="uk-navbar-container" uk-navbar="">
-            <div class="uk-navbar-left">
-                <ul class="uk-navbar-nav">
-                
-                  <ConnectionDrop state=Rc::clone(&self.props.state) />
-                  // <DevicesDrop state=Rc::clone(&self.props.state) />
-                  // <OSDrop state=Rc::clone(&self.props.state) />
-                  // <BrowserDrop state=Rc::clone(&self.props.state) />
-                  // <DateDrop state=Rc::clone(&self.props.state) />
-                  // <DayPartingDrop state=Rc::clone(&self.props.state) />
+                    <ConnectionDrop state=Rc::clone(&self.props.state) />
+                    <BrowserDrop state=Rc::clone(&self.props.state) />
+                    <DevicesDrop state=Rc::clone(&self.props.state) />
+                    <OSDrop state=Rc::clone(&self.props.state) />
+                    <DateDrop state=Rc::clone(&self.props.state) />
+                    <DayPartingDrop state=Rc::clone(&self.props.state) />
                   
                 </ul>
             </div>
         </nav>
-    </div>
 </div>
 
                                         }

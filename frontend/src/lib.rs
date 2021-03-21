@@ -216,13 +216,13 @@ impl Component for RootComponent {
                     VNode::from(html! {<MainComponent state=Rc::clone(&self.state)  />})
                 }
                 AppRoute::Account => {
-                    VNode::from(html! {<AccountComponent state=Rc::clone(&self.state)  />})
+                    VNode::from(html! {<MainComponent state=Rc::clone(&self.state)  />})
                 }
                 AppRoute::CustomConversions => {
-                    VNode::from(html! {<AccountComponent state=Rc::clone(&self.state)  />})
+                    VNode::from(html! {<MainComponent state=Rc::clone(&self.state)  />})
                 }
                 AppRoute::ReferrerHandling => {
-                    VNode::from(html! {<AccountComponent state=Rc::clone(&self.state)  />})
+                    VNode::from(html! {<MainComponent state=Rc::clone(&self.state)  />})
                 }
                 _ => {
                     html! { "404 Page Not Found" }
