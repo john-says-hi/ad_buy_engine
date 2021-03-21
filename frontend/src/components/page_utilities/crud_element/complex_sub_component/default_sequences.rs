@@ -1,7 +1,7 @@
 use crate::appstate::app_state::AppState;
 use crate::components::page_utilities::crud_element::complex_sub_component::plus_button::PlusButton;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
-use crate::notify_danger;
+use crate::{notify_danger, notify_primary};
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::constant::utility::UUID_PLACEHOLDER;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence};
@@ -15,6 +15,7 @@ use yew::virtual_dom::VList;
 use yew_material::MatSwitch;
 use yew_services::storage::Area;
 use yew_services::StorageService;
+use crate::components::page_utilities::crud_element::toggle_switch::ToggleSwitch;
 
 pub enum Msg {
     UpdateWeight(InputData),
@@ -46,6 +47,7 @@ impl Component for DefaultSequences {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        
         Self {
             link,
             props,
@@ -88,12 +90,13 @@ impl Component for DefaultSequences {
     fn view(&self) -> Html {
         html! {
         <>
-                                <div>
-                                    <h2 class="uk-flex-left">{"Default Sequences"}</h2>
-                                    <PlusButton label={"Create Sequence"} eject=self.link.callback(|_|Msg::CreateSequence) />
+                                {divider!()}
+                                <div class="uk-margin-top-small">
+                                    <h3 class="uk-flex-left">{"Default Sequences"}</h3>
+                                    <button onclick=self.link.callback(|_| Msg::CreateSequence) class="uk-button uk-button-small uk-button-success"><span class="fas fa-plus uk-margin-small-right"></span>{" New Sequence"}</button>
                                 </div>
 
-                                <hr class="uk-divider" />
+                                <hr class="uk-divider-small" />
 
                                 {self.render_default_sequences()}
         </>
@@ -104,7 +107,9 @@ impl Component for DefaultSequences {
 impl DefaultSequences {
     pub fn render_default_sequences(&self) -> VList {
         let mut nodes = VList::new();
-
+        
+        if self.props.default_sequences.is_empty() {self.link.send_message(Msg::CreateSequence)}
+        
         for sequence in self.props.default_sequences.iter() {
             let sequence_name = sequence.name.clone();
             let sequence_id = sequence.id.clone();
@@ -115,7 +120,7 @@ impl DefaultSequences {
                     if seq_id == sequence_id {
                         "border: 2px solid blue;"
                     } else {
-                        ""
+                        "border: 2px solid #f4f3f2"
                     }
                 } else {
                     ""
@@ -125,12 +130,12 @@ impl DefaultSequences {
             let active_element_sequence_three = ActiveElement::DefaultSequence(sequence_id.clone());
 
             nodes.push(html!{
-                                <div style=sequence_selected_style onclick=self.link.callback(move |_| Msg::SetActiveElement(active_element_sequence.clone())) >
-                                    <h4 class="uk-flex-left">{sequence_name}</h4>
-                                    <div class="uk-flex-right">
-                                        <input uk-tooltip="title: Weight" class="uk-input" type="number" value=weight oninput=self.link.callback(|i:InputData| Msg::UpdateWeight(i)) />
-                                        <button uk-tooltip="title: Remove Sequence" class="uk-button" onclick=self.link.callback(move |_| Msg::RemoveSequence(active_element_sequence_two.clone())) >{"X"}</button>
-                                        <MatSwitch checked=is_active onchange=self.link.callback(move |_| Msg::ToggleActive(active_element_sequence_three.clone())) />
+                                <div class="uk-margin-small" style=sequence_selected_style onclick=self.link.callback(move |_| Msg::SetActiveElement(active_element_sequence.clone())) >
+                                    {label!("g", sequence_name)}
+                                    <div class="uk-child-width-1-3" uk-grid="">
+                                        <div>{label!("s", "Weight")}<input uk-tooltip="title: Weight" class="uk-input" type="number" value=weight oninput=self.link.callback(|i:InputData| Msg::UpdateWeight(i)) /></div>
+                                        <div>{label!("s", "Remove")}<button uk-tooltip="title: Remove Sequence" class="uk-button" onclick=self.link.callback(move |_| Msg::RemoveSequence(active_element_sequence_two.clone())) >{"X"}</button></div>
+                                        <div><ToggleSwitch label="Active" size=Some("small".to_string()) checked=is_active onchange=self.link.callback(move |_| Msg::ToggleActive(active_element_sequence_three.clone())) /></div>
                                     </div>
                                 </div>
             })

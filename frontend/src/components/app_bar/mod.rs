@@ -6,6 +6,7 @@ use logout::Logout;
 use yew::prelude::*;
 use yew_router::agent::RouteAgent;
 use yew_router::agent::RouteRequest::ChangeRoute;
+use crate::utils::javascript::clean_all_modals;
 
 pub enum Msg {
     RouteAccount,
@@ -47,6 +48,7 @@ impl Component for AppBar {
             }
 
             Msg::RouteAccount => {
+                clean_all_modals();
                 self.props
                     .state
                     .borrow()

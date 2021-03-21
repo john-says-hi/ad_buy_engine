@@ -74,7 +74,7 @@ impl Component for UpdateElement {
             AppRoute::OfferSources => "#offer-sources".to_string(),
             AppRoute::Offers => "#offer".to_string(),
             AppRoute::Landers => "#landing-pages".to_string(),
-            AppRoute::Traffic => "#traffic".to_string(),
+            AppRoute::Traffic => "#traffic-sources".to_string(),
             AppRoute::Funnels => "#funnels".to_string(),
             AppRoute::Campaign => "#campaigns".to_string(),
             _ => "".to_string(),

@@ -30,4 +30,7 @@ extern "C" {
     #[wasm_bindgen(js_name = "hide_uk_modal")]
     pub fn hide_uk_modal(id: &str);
 
+    #[wasm_bindgen(js_name = "remove_element_by_id")]
+    pub fn remove_element_by_id(id: &str);
+
 }

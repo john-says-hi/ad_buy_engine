@@ -61,7 +61,7 @@ impl Component for SequenceTypeDropdown {
         }
 
         html! {
-        <div class="uk-margin">
+        <div class="">
             <select class="uk-select">
                 {options}
             </select>

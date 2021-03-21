@@ -76,12 +76,12 @@ impl Component for FunnelViewBasicData {
         html! {
         <>
                                 <div class="uk-margin">
-                                    <h2 class="uk-flex-left">{"Funnel Name"}</h2>
+                                    <h2 class="uk-flex-left">{"Funnel Setup"}</h2>
                                 </div>
 
                                 <div class="uk-margin">
                                     <CountryDropdown selected=Some(self.props.funnel_country) eject=self.link.callback(Msg::UpdateCountry) label="Country".to_string() />
-                                    <div class="uk-margin"><h4>{"Name"}</h4><input type="text" class="uk-input" oninput=self.link.callback(Msg::UpdateFunnelName) /></div>
+                                    <div class="uk-margin">{label!("Name")}<input type="text" class="uk-input" value=&self.props.funnel_name oninput=self.link.callback(Msg::UpdateFunnelName) /></div>
                                 </div>
 
                                 <div class="uk-margin">
@@ -89,11 +89,11 @@ impl Component for FunnelViewBasicData {
                                 </div>
 
                                 <div class="uk-margin">
-                                    <ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateDefaultReferrerHandling) selected=&self.props.default_referrer_handling state=Rc::clone(&self.props.state) />
+                                    {label!("Referrer Handling")}<ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateDefaultReferrerHandling) selected=&self.props.default_referrer_handling state=Rc::clone(&self.props.state) />
                                 </div>
 
                                 <div class="uk-margin">
-                                    <NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.props.notes />
+                                    {label!("Notes")}<NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.props.notes />
                                 </div>
 
         </>
