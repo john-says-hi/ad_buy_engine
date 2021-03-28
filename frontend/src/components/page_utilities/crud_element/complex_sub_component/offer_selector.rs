@@ -1,5 +1,5 @@
 use crate::appstate::app_state::{AppState, STATE};
-use crate::components::page_utilities::crud_element::complex_sub_component::funnel_view_basic_data::FunnelViewBasicData;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
 use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::OfferDropdown;
 use crate::notify_danger;
@@ -83,7 +83,7 @@ impl Component for OfferSelector {
     fn view(&self) -> Html {
         html! {
         <>
-                                <div class="uk-margin">
+                                <div class="uk-margin-top uk-margin-bottom-remove">
                                     {label!("Offers")}
                                 </div>
                                 {divider!(2)}
@@ -108,7 +108,7 @@ impl OfferSelector {
                                 <div class="uk-margin uk-flex uk-flex-middle uk-text-center uk-child-width-1-3" uk-grid="">
                                     <div>{label!("Name")}<p>{format!("#{} - {}", idx+1, name)}</p></div>
                                     <div>{label!("Weight")}<input type="number" class="uk-input" value=weight.to_string() oninput=self.link.callback(move|i:InputData|Msg::UpdateWeight((idx,i))) /></div>
-                                    <div>{label!("Remove")}<button class="uk-button uk-button-small" onclick=self.link.callback(move |_| Msg::RemoveOffer(idx)) >{"X"}</button></div>
+                                    <div class="uk-flex-middle">{label!("Remove")}<div><button class="uk-button uk-button-small" onclick=self.link.callback(move |_| Msg::RemoveOffer(idx)) >{"X"}</button></div></div>
                                 </div>
                                 {divider!()}
                                 </>

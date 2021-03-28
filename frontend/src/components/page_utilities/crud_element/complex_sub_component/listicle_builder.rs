@@ -1,5 +1,5 @@
 use crate::appstate::app_state::{AppState, STATE};
-use crate::components::page_utilities::crud_element::complex_sub_component::funnel_view_basic_data::FunnelViewBasicData;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
 use crate::components::page_utilities::crud_element::dropdowns::landing_page_dropdown::LandingPageDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::OfferDropdown;
@@ -55,8 +55,17 @@ impl From<OptionalPair> for ListiclePair {
     }
 }
 
+impl From<ListiclePair> for OptionalPair {
+    fn from(lp:ListiclePair)->Self{
+        Self{
+            landing_page:Some(lp.landing_page),
+            offer: lp.offer.iter().map(|s| Some(s.clone())).collect::<Vec<Option<Offer>>>(),
+        }
+    }
+}
+
 pub enum Msg {
-    OnBlur,
+    Submit,
     SelectPreLandingPage(LandingPage),
     SelectLandingPage(LandingPageGrouping),
     SelectOffer(OfferGrouping),
@@ -83,15 +92,13 @@ impl Component for ListicleBuilder {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            
-            Msg::OnBlur=>{
+            Msg::Submit=>{
                 if self.all_fields_filled_out() {
-                    let mut sequence=self.props.active_sequence.clone();
-                    sequence.offers.clear();
-                    sequence.landing_pages.clear();
-                    sequence.pre_landing_page=self.pre_landing_page.clone();
-                    sequence.listicle_pairs=self.pairs.iter().cloned().map(|s| s.into()).collect::<Vec<ListiclePair>>();
-                    self.props.eject_listicle.emit(sequence);
+                    let mut new_seq = self.props.active_sequence.clone();
+                        new_seq.pre_landing_page = self.pre_landing_page.clone();
+                        new_seq.listicle_pairs = self.pairs.iter().map(|s| s.clone().into()).collect::<Vec<ListiclePair>>();
+            
+                    self.props.eject_listicle.emit(new_seq);
                 } else {
                     notify_warning("Please fill out all fields")
                 }
@@ -107,6 +114,8 @@ impl Component for ListicleBuilder {
                 } else {
                     notify_danger("Err: Pair not found")
                 }
+    
+                self.link.send_message(Msg::Submit);
             }
             
             Msg::SelectLandingPage(landing_page_group)=>{
@@ -143,21 +152,9 @@ impl Component for ListicleBuilder {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let pre_landing_page=props.active_sequence.pre_landing_page.clone();
-        
-        let mut optional_pairs = vec![];
-        
-         for pair in props.active_sequence.listicle_pairs.iter() {
-             let offer =pair.offer.iter().map(|s| Some(s.clone())).collect::<Vec<Option<Offer>>>();
-             
-            optional_pairs.push(OptionalPair{
-                landing_page:Some(pair.landing_page.clone()),
-                offer,
-            });
-        }
-        
-        self.pre_landing_page=pre_landing_page;
-        self.pairs=optional_pairs;
+        self.pre_landing_page=props.active_sequence.pre_landing_page.clone();
+        self.pairs=props.active_sequence.listicle_pairs.iter().map(|s| s.clone().into()).collect::<Vec<OptionalPair>>();
+    
         self.props = props;
         true
     }
@@ -165,11 +162,10 @@ impl Component for ListicleBuilder {
     fn view(&self) -> Html {
         html! {
         <>
-                                <div class="uk-margin">
-                                    <h4>{"Listicle Setup"}</h4>
+                                <div class="uk-margin-top uk-margin-bottom-remove">
+                                    {label!("Listicle Setup")}
                                 </div>
-
-                                <hr class="uk-divider" />
+                                {divider!(2)}
 
                                 {self.render_pre_lander()}
         </>
@@ -183,51 +179,57 @@ impl ListicleBuilder {
         let node = if let Some(pre_lander)= &self.pre_landing_page {
             html!{
             <>
-                <div class="uk-margin"><PreLandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::SelectPreLandingPage) selected=Some(pre_lander.clone()) /></div>
-                {self.render_landers()}
+                                <div>{label!("g", "Select Pre Landing Page")}<PreLandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::SelectPreLandingPage) selected=Some(pre_lander.clone()) /></div>
+                                {divider!()}
+                                {self.render_lander_groups()}
             </>
             }
         } else {
-            notify_primary("no pre lp");
-            html!{<div class="uk-margin"><PreLandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::SelectPreLandingPage) selected=None /></div>}
+            html!{
+                                <div>{label!("g", "Select Pre Landing Page")}<PreLandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::SelectPreLandingPage) selected=None /></div>
+            }
         };
         
         VNode::from(node)
     }
     
-    pub fn render_landers(&self) -> VNode {
+    pub fn render_lander_groups(&self) -> VNode {
         notify_primary("render lps");
         let mut nodes =VList::new();
+    
+        let pre_lander = self.pre_landing_page.clone().unwrap();
+        let num_of_pairs = pre_lander.number_of_calls_to_action;
+    
+        for (group_idx,landing_page_group) in self.pairs.iter().enumerate() {
+            let selected_lander=landing_page_group.landing_page.clone();
+            let group_number = group_idx as u8 + 1;
         
-        if let Some(pre_lander)= &self.pre_landing_page {
-            notify_danger("has pre lp");
-            for (group_idx,landing_page_group) in self.pairs.iter().enumerate() {
-                notify_primary("as lp group");
-                let selected_lander=landing_page_group.landing_page.clone();
-                let group_number = group_idx as u8 + 1;
+            let mut offer_nodes=VList::new();
+            if let Some(landing_page)= &landing_page_group.landing_page {
+                let num_of_offers= landing_page.number_of_calls_to_action;
+            
+                for (offer_pos_in_lander, option_offer) in landing_page_group.offer.iter().enumerate() {
                 
-                let mut offer_nodes=VList::new();
-                if let Some(landing_page)= &landing_page_group.landing_page {
-                    for (offer_pos_in_lander, option_offer) in landing_page_group.offer.iter().enumerate() {
-                        
-                        offer_nodes.push(html!{
-                            <div class="uk-margin-small uk-flex-right" onblur=self.link.callback(|_| Msg::OnBlur) >
+                    offer_nodes.push(html!{
+                            <div class="uk-margin-small uk-flex-right">
+                                {label!("g", format!("Offer {} of {}", offer_pos_in_lander+1,num_of_offers))}
                                 <OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |offer:Offer| Msg::SelectOffer(OfferGrouping{landing_page_group_index: group_idx, index_in_landing_page: offer_pos_in_lander, offer})) selected=option_offer.clone() />
                             </div>
                         })
-                    }
                 }
-                
-                nodes.push(html!{
+            }
+        
+            nodes.push(html! {
                 <div class="uk-margin">
                     <div class="uk-margin-small">
-                        {group_number.to_string()} {"---> "}  <LandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |lp:LandingPage| Msg::SelectLandingPage(LandingPageGrouping{group_index: group_idx, landing_page: lp})) selected=selected_lander />
+                        {label!(format!("Pair {} of {}", group_number.to_string(), num_of_pairs))}
+                        {label!("g", "Landing Page")}
+                        <LandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |lp:LandingPage| Msg::SelectLandingPage(LandingPageGrouping{group_index: group_idx, landing_page: lp})) selected=selected_lander />
                     </div>
                     
                     {offer_nodes}
                 </div>
                 })
-            }
         }
         
         VNode::from(nodes)

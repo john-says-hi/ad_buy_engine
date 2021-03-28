@@ -64,7 +64,7 @@ pub enum Msg {
 
 #[derive(Properties, Clone)]
 pub struct Props {
-    pub update_name: Callback<InputData>,
+    pub update_name: Callback<String>,
     pub update_conditions: Callback<Vec<Condition>>,
     pub conditional_sequence_name: String,
     pub conditions: Vec<Condition>,
@@ -756,7 +756,7 @@ impl Component for ConditionView {
                 self.props.update_conditions.emit(self.conditions.clone());
             }
 
-            Msg::UpdateConditionalSequenceName(i) => self.props.update_name.emit(i),
+            Msg::UpdateConditionalSequenceName(i) => self.props.update_name.emit(i.value),
         }
         true
     }
@@ -776,7 +776,7 @@ impl Component for ConditionView {
                                 </div>
 
                                 <div class="uk-margin-top-small uk-margin-bottom-large">
-                                    <input type="text" class="uk-input" oninput=self.link.callback(Msg::UpdateConditionalSequenceName) />
+                                    <input type="text" class="uk-input" oninput=self.link.callback(Msg::UpdateConditionalSequenceName) value=&self.props.conditional_sequence_name />
                                 </div>
 
                                 <hr class="uk-divider" />

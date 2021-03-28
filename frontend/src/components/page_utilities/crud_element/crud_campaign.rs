@@ -63,9 +63,9 @@ use crate::components::page_utilities::crud_element::complex_sub_component::traf
 use ad_buy_engine::data::elements::funnel::{Funnel, ConditionalSequence, Sequence, SequenceType};
 use ad_buy_engine::data::lists::click_transition_method::RedirectOption;
 use crate::components::page_utilities::crud_element::complex_sub_component::plus_button::PlusButton;
-use crate::components::page_utilities::crud_element::complex_sub_component::conditional_sequences::ConditionalSequenceConfig;
-use crate::components::page_utilities::crud_element::complex_sub_component::default_sequences::DefaultSequences;
-use crate::components::page_utilities::crud_element::complex_sub_component::funnel_view_renderer::FunnelViewRenderer;
+use crate::components::page_utilities::crud_element::complex_sub_component::lhs_conditional_sequences::LHSConditionalSequence;
+use crate::components::page_utilities::crud_element::complex_sub_component::lhs_default_sequences::LHSDefaultSequences;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view::RHSFunnelView;
 use ad_buy_engine::data::lists::condition::Condition;
 use ad_buy_engine::data::elements::campaign::{CampaignDestinationType, Campaign};
 use either::Either;
@@ -73,7 +73,7 @@ use fancy_regex::Regex;
 use crate::components::page_utilities::crud_element::dropdowns::traffic_source_dropdown::TrafficSourceDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::cost_model_dropdown::CostModelDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::funnel_dropdown::FunnelDropdown;
-use crate::components::page_utilities::crud_element::complex_sub_component::mini_sequence_builder::MiniSequenceBuilder;
+// use crate::components::page_utilities::crud_element::complex_sub_component::mini_sequence_builder::MiniRHSSequenceBuilder;
 
 pub enum Msg {
     Submit,
@@ -393,9 +393,9 @@ impl CRUDCampaign {
 
             CampaignDestinationType::Sequence => {
                 let seq_cb = self.link.callback(Msg::UpdateSequence);
-                VNode::from(
-                    html! {<MiniSequenceBuilder state=Rc::clone(&self.props.state) update_sequence=seq_cb restored_sequence=&self.sequence />},
-                )
+                VNode::from(html! {
+                // <MiniRHSSequenceBuilder state=Rc::clone(&self.props.state) update_sequence=seq_cb restored_sequence=&self.sequence />
+                })
             }
         }
     }

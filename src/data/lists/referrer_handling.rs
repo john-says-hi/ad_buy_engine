@@ -1,7 +1,7 @@
 use strum::IntoEnumIterator;
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone, Debug, EnumString, ToString, EnumIter)]
+#[derive(Serialize, Deserialize, Clone, Debug, EnumString, ToString, EnumIter, PartialEq)]
 pub enum ReferrerHandling {
     #[strum(serialize = "Do Nothing")]
     DoNothing,
@@ -32,9 +32,3 @@ impl Default for ReplaceReferrerList {
         }
     }
 }
-// #[derive(Serialize, Deserialize, Clone, Debug)]
-// pub struct ReplaceMatchingReferrer {
-//     pub name: String,
-//     pub original: Url,
-//     pub new: Url,
-// }
