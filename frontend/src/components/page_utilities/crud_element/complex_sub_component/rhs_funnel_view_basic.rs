@@ -94,10 +94,10 @@ impl Component for RHSFunnelViewBasic {
                                 </div>
 
                                 <div class="uk-margin">
-                                    {label!("Referrer Handling")}<ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateDefaultReferrerHandling) selected=&self.props.default_referrer_handling state=Rc::clone(&self.props.state) />
+                                    <ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateDefaultReferrerHandling) selected=&self.props.default_referrer_handling state=Rc::clone(&self.props.state) />
                                 </div>
 
-                                <div class="uk-margin">
+                                <div class="">
                                     {label!("Notes")}<NotesComponent callback=self.link.callback(Msg::UpdateNotes) value=&self.props.notes />
                                 </div>
 

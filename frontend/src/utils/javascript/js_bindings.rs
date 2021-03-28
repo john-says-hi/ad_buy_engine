@@ -33,4 +33,6 @@ extern "C" {
     #[wasm_bindgen(js_name = "remove_element_by_id")]
     pub fn remove_element_by_id(id: &str);
 
+    #[wasm_bindgen(js_name = "select_option")]
+    pub fn select_option(id: &str, idx: usize);
 }

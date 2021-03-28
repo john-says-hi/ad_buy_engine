@@ -229,21 +229,39 @@ impl RHSSequenceBuilder {
 
     pub fn render_view(&self) -> VNode {
         if let Some(sequence) = self.return_active_sequence() {
+            // notify_danger(format!("num of offers: {}", sequence.offers.len()).as_str());
+            // notify_danger(format!("num of lps: {}", sequence.landing_pages.len()).as_str());
+            // notify_danger(format!("num of pairs: {}", sequence.listicle_pairs.len()).as_str());
+
             match sequence.sequence_type {
-                SequenceType::OffersOnly => VNode::from(html! {
-                    <OfferSelector state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
-                }),
+                SequenceType::OffersOnly => {
+                    let offers = sequence.offers.clone();
 
-                SequenceType::LandingPageAndOffers => VNode::from(html! {
-                <>
-                    <LandingPageSelector state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
-                    <OfferSelector state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
-                </>
-                }),
+                    VNode::from(html! {
+                        <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                    })
+                }
 
-                SequenceType::Listicle => VNode::from(html! {
-                    <ListicleBuilder state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=sequence.clone() />
-                }),
+                SequenceType::LandingPageAndOffers => {
+                    let offers = sequence.offers.clone();
+                    let landers = sequence.landing_pages.clone();
+
+                    VNode::from(html! {
+                    <>
+                        <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
+                        <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                    </>
+                    })
+                }
+
+                SequenceType::Listicle => {
+                    let psp = sequence.pre_landing_page.clone();
+                    let pairs = sequence.listicle_pairs.clone();
+
+                    VNode::from(html! {
+                        <ListicleBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=sequence.clone() />
+                    })
+                }
             }
         } else {
             VNode::from(html! {})

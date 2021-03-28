@@ -56,3 +56,11 @@ export function remove_element_by_id(id) {
         console.log("Got exception ${e}" );
     }
 }
+
+export function select_option(id, idx) {
+    try {
+         document.getElementById(id).options[idx].selected = true;
+    } catch (e) {
+        console.log("Got exception ${e}" );
+    }
+}

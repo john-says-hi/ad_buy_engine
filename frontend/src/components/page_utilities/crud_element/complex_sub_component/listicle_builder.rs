@@ -27,7 +27,16 @@ pub struct Props {
     pub state: STATE,
     pub eject_listicle: Callback<Sequence>,
     pub active_sequence: Sequence,
+    pub psp:Option<LandingPage>,
+    pub pairs: Vec<ListiclePair>,
 }
+
+#[derive(Copy, Clone)]
+pub struct OfferPosition {
+    pub     landing_page_group_index: usize,
+    pub index_in_landing_page: usize,
+}
+
 
 pub struct OfferGrouping {
     pub     landing_page_group_index: usize,
@@ -69,6 +78,7 @@ pub enum Msg {
     SelectPreLandingPage(LandingPage),
     SelectLandingPage(LandingPageGrouping),
     SelectOffer(OfferGrouping),
+    RemoveOffer(OfferPosition),
 }
 
 pub struct ListicleBuilder {
@@ -83,21 +93,27 @@ impl Component for ListicleBuilder {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-  
+        let pre_landing_page = props.psp.clone();
+        let pairs = props.pairs.iter().map(|s| s.clone().into()).collect::<Vec<OptionalPair>>();
         
         Self {
             
-            link, props,pre_landing_page:None,pairs:vec![] }
+            link, props,pre_landing_page,pairs }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::RemoveOffer(pos)=>{
+                self.pairs.get_mut(pos.landing_page_group_index).map(|s| s.offer.get_mut(pos.index_in_landing_page).map(|mut s| *s = None).unwrap_or_else(|| notify_danger("E:dreg55"))).unwrap_or_else(|| notify_danger("E:G5g5r"));
+            }
+            
             Msg::Submit=>{
                 if self.all_fields_filled_out() {
                     let mut new_seq = self.props.active_sequence.clone();
                         new_seq.pre_landing_page = self.pre_landing_page.clone();
                         new_seq.listicle_pairs = self.pairs.iter().map(|s| s.clone().into()).collect::<Vec<ListiclePair>>();
-            
+                    
+                    notify_primary("Saved!");
                     self.props.eject_listicle.emit(new_seq);
                 } else {
                     notify_warning("Please fill out all fields")
@@ -151,8 +167,8 @@ impl Component for ListicleBuilder {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.pre_landing_page=props.active_sequence.pre_landing_page.clone();
-        self.pairs=props.active_sequence.listicle_pairs.iter().map(|s| s.clone().into()).collect::<Vec<OptionalPair>>();
+        self.pre_landing_page=props.psp.clone();
+        self.pairs=props.pairs.iter().map(|s| s.clone().into()).collect::<Vec<OptionalPair>>();
     
         self.props = props;
         true
@@ -162,7 +178,7 @@ impl Component for ListicleBuilder {
         html! {
         <>
                                 <div class="uk-margin-top uk-margin-bottom-remove">
-                                    {label!("Listicle Setup")}
+                                    {label!("o", "Listicle Setup")}
                                 </div>
                                 {divider!(2)}
 
@@ -192,8 +208,31 @@ impl ListicleBuilder {
         VNode::from(node)
     }
     
+    pub fn offer_or_drop(&self, offer_option:&Option<Offer>, lander_index: usize, offer_index: usize) -> VNode {
+        if let Some(offer) = offer_option.clone() {
+            let pos = OfferPosition {
+                landing_page_group_index: lander_index,
+                index_in_landing_page: offer_index
+            };
+            
+            VNode::from(html!{
+                <div>
+                    <span class="uk-margin-right-large">{format!("Name: {}", &offer.name)}</span>
+                    <button onclick=callback!(self, move |_| Msg::RemoveOffer(pos)) class="uk-button uk-button-small uk-margin-left-large">{"Remove"}</button>
+                </div>
+            })
+        } else {
+            VNode::from(html!{
+                <OfferDropdown
+                    state=Rc::clone(&self.props.state)
+                    eject=self.link.callback(move |offer:Offer| Msg::SelectOffer(OfferGrouping{landing_page_group_index: lander_index, index_in_landing_page: offer_index, offer}))
+                    selected=offer_option.clone()
+                />
+            })
+        }
+    }
+    
     pub fn render_lander_groups(&self) -> VNode {
-        notify_primary("render lps");
         let mut nodes =VList::new();
     
         let pre_lander = self.pre_landing_page.clone().unwrap();
@@ -210,9 +249,13 @@ impl ListicleBuilder {
                 for (offer_pos_in_lander, option_offer) in landing_page_group.offer.iter().enumerate() {
                 
                     offer_nodes.push(html!{
-                            <div class="uk-margin-small uk-flex-right">
+                            <div class="uk-margin-small">
                                 {label!("g", format!("Offer {} of {}", offer_pos_in_lander+1,num_of_offers))}
-                                <OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |offer:Offer| Msg::SelectOffer(OfferGrouping{landing_page_group_index: group_idx, index_in_landing_page: offer_pos_in_lander, offer})) selected=option_offer.clone() />
+                                {self.offer_or_drop(option_offer, group_idx, offer_pos_in_lander)}
+                                // <OfferDropdown
+                                // state=Rc::clone(&self.props.state)
+                                // eject=self.link.callback(move |offer:Offer| Msg::SelectOffer(OfferGrouping{landing_page_group_index: group_idx, index_in_landing_page: offer_pos_in_lander, offer}))
+                                // selected=option_offer.clone() />
                             </div>
                         })
                 }
@@ -221,7 +264,7 @@ impl ListicleBuilder {
             nodes.push(html! {
                 <div class="uk-margin">
                     <div class="uk-margin-small">
-                        {label!(format!("Pair {} of {}", group_number.to_string(), num_of_pairs))}
+                        {label!("o", format!("Pair {} of {}", group_number.to_string(), num_of_pairs))}
                         {label!("g", "Landing Page")}
                         <LandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |lp:LandingPage| Msg::SelectLandingPage(LandingPageGrouping{group_index: group_idx, landing_page: lp})) selected=selected_lander />
                     </div>

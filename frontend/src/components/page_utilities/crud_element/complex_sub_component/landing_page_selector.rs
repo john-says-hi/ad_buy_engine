@@ -31,6 +31,7 @@ pub enum Msg {
 pub struct Props {
     pub state: STATE,
     pub eject_selected_landing_pages: Callback<Vec<WeightedLandingPage>>,
+    pub landers: Vec<WeightedLandingPage>,
 }
 
 pub struct LandingPageSelector {
@@ -45,11 +46,13 @@ impl Component for LandingPageSelector {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let landing_pages = props.landers.clone();
+
         Self {
             link,
             props,
             weight: "".to_string(),
-            landing_pages: vec![],
+            landing_pages,
         }
     }
 
@@ -87,6 +90,7 @@ impl Component for LandingPageSelector {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.landing_pages = props.landers.clone();
         self.props = props;
         true
     }
@@ -95,7 +99,7 @@ impl Component for LandingPageSelector {
         html! {
         <>
                                 <div class="uk-margin-top uk-margin-bottom-remove">
-                                    {label!("Landing Pages")}
+                                    {label!("o", "Landing Pages")}
                                 </div>
                                 {divider!(2)}
 
