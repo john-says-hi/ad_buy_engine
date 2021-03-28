@@ -29,6 +29,7 @@ pub enum Msg {
 pub struct Props {
     pub state: STATE,
     pub eject_selected_offers: Callback<Vec<WeightedOffer>>,
+    pub offers: Vec<WeightedOffer>,
 }
 
 pub struct OfferSelector {
@@ -43,11 +44,13 @@ impl Component for OfferSelector {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let offers = props.offers.clone();
+
         Self {
             link,
             props,
             weight: "".to_string(),
-            offers: vec![],
+            offers,
         }
     }
 
@@ -76,6 +79,7 @@ impl Component for OfferSelector {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.offers = props.offers.clone();
         self.props = props;
         true
     }
@@ -84,7 +88,7 @@ impl Component for OfferSelector {
         html! {
         <>
                                 <div class="uk-margin-top uk-margin-bottom-remove">
-                                    {label!("Offers")}
+                                    {label!("o", "Offers")}
                                 </div>
                                 {divider!(2)}
 

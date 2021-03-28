@@ -280,6 +280,11 @@ impl Component for CRUDFunnel {
             Msg::RemoveSequence(active_element) => match active_element {
                 ActiveElement::ConditionalSequence((condi_id, None)) => {
                     self.conditional_sequences.retain(|s| s.id != condi_id);
+                    if self.conditional_sequences.is_empty() {
+                        self.active_element = ActiveElement::DefaultSequence(
+                            self.default_sequences.first().expect("F$%c").id.clone(),
+                        );
+                    }
                 }
 
                 ActiveElement::ConditionalSequence((condi_id, Some(seq_id))) => {
@@ -288,7 +293,11 @@ impl Component for CRUDFunnel {
                         .iter_mut()
                         .find(|s| s.id == condi_id)
                     {
-                        condi.sequences.retain(|s| s.id != seq_id)
+                        condi.sequences.retain(|s| s.id != seq_id);
+                        if condi.sequences.is_empty() {
+                            self.active_element =
+                                ActiveElement::ConditionalSequence((condi_id, None));
+                        }
                     }
                 }
 
@@ -476,11 +485,7 @@ impl Component for CRUDFunnel {
         } else {
             "Create Funnel"
         };
-        let funnel_name_style = if let ActiveElement::Funnel = self.active_element {
-            border!(COLOR_BLUE)
-        } else {
-            format!("")
-        };
+
         let funnel_name_icon = if let ActiveElement::Funnel = self.active_element {
             html! {}
         } else {
@@ -500,7 +505,7 @@ impl Component for CRUDFunnel {
 
                         <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1">
 
-                            <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel))  uk-grid="" style=funnel_name_style>
+                            <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel))  uk-grid="" >
                                 <div class="uk-width-expand"><h2>{format!("{} - {}", self.country.to_string(), &self.funnel_name)} </h2></div>
                                 <div class="uk-flex-right">{funnel_name_icon}</div>
                             </div>

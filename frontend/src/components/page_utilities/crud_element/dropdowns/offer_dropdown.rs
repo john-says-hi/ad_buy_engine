@@ -59,20 +59,22 @@ impl Component for OfferDropdown {
         let mut options = VList::new();
 
         if let Some(selected_offer) = self.props.selected.clone() {
-            let name = selected_offer.name.clone();
-            options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(selected_offer.clone())) >{name}</option>})
+            // let name = selected_offer.name.clone();
+            // options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(selected_offer.clone())) >{name}</option>})
         } else {
             options.push(html! {<option >{"Select Offer"}</option>})
         }
 
         let offers = self.props.state.borrow().offers.borrow().clone();
-        for item in offers.iter().cloned() {
+
+        for (idx, item) in offers.iter().cloned().enumerate() {
             let name = item.name.clone();
-            options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{name}</option>});
+
+            options.push(html!{<option value=idx onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{name}</option>});
         }
 
         html! {
-        <select class="uk-select">
+        <select class="uk-select" id="bFhTRvF"  >
             {options}
         </select>
                         }
