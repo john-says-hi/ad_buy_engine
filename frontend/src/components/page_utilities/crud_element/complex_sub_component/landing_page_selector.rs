@@ -1,5 +1,5 @@
 use crate::appstate::app_state::{AppState, STATE};
-use crate::components::page_utilities::crud_element::complex_sub_component::funnel_view_basic_data::FunnelViewBasicData;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
 use crate::components::page_utilities::crud_element::dropdowns::landing_page_dropdown::LandingPageDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::OfferDropdown;
@@ -94,15 +94,14 @@ impl Component for LandingPageSelector {
     fn view(&self) -> Html {
         html! {
         <>
-                                <div class="uk-margin">
-                                    <h4>{"Landing Pages"}</h4>
+                                <div class="uk-margin-top uk-margin-bottom-remove">
+                                    {label!("Landing Pages")}
                                 </div>
-
-                                <hr class="uk-divider" />
+                                {divider!(2)}
 
                                 {self.render_landers()}
 
-                                <div class="uk-margin"><LandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::Select) selected=None /></div>
+                                <div>{label!("g", "Select Landing Page")}<LandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::Select) selected=None /></div>
         </>
         }
     }
@@ -115,12 +114,18 @@ impl LandingPageSelector {
         for (idx, landing_page) in self.landing_pages.iter().enumerate() {
             let name = landing_page.landing_page.name.clone();
             let weight = landing_page.weight;
+            let num_of_offers_on_lp = landing_page.landing_page.number_of_calls_to_action;
+
             nodes.push(html!{
-                                <div class="uk-margin">
-                                    <h5>{name}</h5>
-                                    <button class="uk-button" onclick=self.link.callback(move |_| Msg::RemoveLandingPage(idx)) >{"X"}</button>
-                                    <input type="number" class="uk-input" value=weight.to_string() oninput=self.link.callback(move|i:InputData|Msg::UpdateWeight((idx,i))) />
+                                <>
+                                <div class="uk-margin uk-flex uk-flex-middle uk-text-center uk-child-width-1-4" uk-grid="">
+                                    <div>{label!("Name")}<p>{format!("#{} - {}", idx+1, name)}</p></div>
+                                    <div>{label!("Offers")}<p>{format!("{}",num_of_offers_on_lp)}</p></div>
+                                    <div>{label!("Weight")}<input type="number" class="uk-input" value=weight.to_string() oninput=self.link.callback(move|i:InputData|Msg::UpdateWeight((idx,i))) /></div>
+                                    <div class="uk-flex-middle">{label!("Remove")}<div><button class="uk-button uk-button-small" onclick=self.link.callback(move |_| Msg::RemoveLandingPage(idx)) >{"X"}</button></div></div>
                                 </div>
+                                {divider!()}
+                                </>
             })
         }
 

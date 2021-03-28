@@ -2,7 +2,7 @@ use crate::appstate::app_state::{AppState, STATE};
 use crate::components::tab_state::ActivatedTab;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use crate::utils::routes::AppRoute;
-use crate::RootComponent;
+use crate::{notify_danger, RootComponent};
 use ad_buy_engine::data::elements::crud::CreatableElement;
 use ad_buy_engine::data::elements::funnel::SequenceType;
 use ad_buy_engine::data::elements::offer::Offer;
@@ -28,6 +28,7 @@ pub enum Msg {
 #[derive(Properties, Clone)]
 pub struct Props {
     pub eject: Callback<SequenceType>,
+    pub selected: SequenceType,
 }
 
 pub struct SequenceTypeDropdown {
@@ -51,11 +52,17 @@ impl Component for SequenceTypeDropdown {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.props = props;
         true
     }
 
     fn view(&self) -> Html {
         let mut options = VList::new();
+        let init = self.props.selected.clone();
+        let init_str = init.to_string();
+
+        // options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(init)) >{init_str}</option>});
+
         for item in SequenceType::iter() {
             options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{item.to_string()}</option>});
         }

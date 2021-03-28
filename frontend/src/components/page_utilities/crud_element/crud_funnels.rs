@@ -63,15 +63,16 @@ use crate::components::page_utilities::crud_element::complex_sub_component::traf
 use ad_buy_engine::data::elements::funnel::{Funnel, ConditionalSequence, Sequence, SequenceType};
 use ad_buy_engine::data::lists::click_transition_method::RedirectOption;
 use crate::components::page_utilities::crud_element::complex_sub_component::plus_button::PlusButton;
-use crate::components::page_utilities::crud_element::complex_sub_component::conditional_sequences::ConditionalSequenceConfig;
-use crate::components::page_utilities::crud_element::complex_sub_component::default_sequences::DefaultSequences;
-use crate::components::page_utilities::crud_element::complex_sub_component::funnel_view_renderer::FunnelViewRenderer;
+use crate::components::page_utilities::crud_element::complex_sub_component::lhs_conditional_sequences::LHSConditionalSequence;
+use crate::components::page_utilities::crud_element::complex_sub_component::lhs_default_sequences::LHSDefaultSequences;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view::RHSFunnelView;
 use ad_buy_engine::data::lists::condition::Condition;
+use ad_buy_engine::constant::{COLOR_BLUE, COLOR_GRAY};
 
 pub enum Msg {
     Ignore,
     Submit,
-    UpdateName(InputData),
+    UpdateName(String),
     UpdateFunnelCountry(Country),
     CreateSequence(ActiveElement),
     UpdateReferrerHandling(ReferrerHandling),
@@ -392,20 +393,20 @@ impl Component for CRUDFunnel {
             Msg::Submit => self.fetch_task = self.fetch(),
 
             Msg::UpdateName(i) => match self.active_element {
-                ActiveElement::Funnel => self.funnel_name = i.value,
+                ActiveElement::Funnel => self.funnel_name = i,
 
                 ActiveElement::DefaultSequence(seq_id) => {
                     self.default_sequences
                         .iter_mut()
                         .find(|s| s.id == seq_id)
-                        .map(|s| s.name = i.value);
+                        .map(|s| s.name = i);
                 }
 
                 ActiveElement::ConditionalSequence((condi_id, None)) => {
                     self.conditional_sequences
                         .iter_mut()
                         .find(|s| s.id == condi_id)
-                        .map(|s| s.name = i.value);
+                        .map(|s| s.name = i);
                 }
 
                 ActiveElement::ConditionalSequence((condi_id, Some(seq_id))) => {
@@ -416,7 +417,7 @@ impl Component for CRUDFunnel {
                             s.sequences
                                 .iter_mut()
                                 .find(|s| s.id == seq_id)
-                                .map(|s| s.name = i.value)
+                                .map(|s| s.name = i)
                         });
                 }
             },
@@ -475,6 +476,16 @@ impl Component for CRUDFunnel {
         } else {
             "Create Funnel"
         };
+        let funnel_name_style = if let ActiveElement::Funnel = self.active_element {
+            border!(COLOR_BLUE)
+        } else {
+            format!("")
+        };
+        let funnel_name_icon = if let ActiveElement::Funnel = self.active_element {
+            html! {}
+        } else {
+            html! {<span class="fa fa-hand-pointer" style=format!("color: {};", COLOR_BLUE) ></span>}
+        };
 
         html! {
         <div id="funnels" class="uk-flex-top uk-modal-container" uk-modal="bg-close:false;">
@@ -489,22 +500,23 @@ impl Component for CRUDFunnel {
 
                         <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1">
 
-                            <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel)) >
-                                <h2>{format!("{} - {}", self.country.to_string(), &self.funnel_name)}</h2>
+                            <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel))  uk-grid="" style=funnel_name_style>
+                                <div class="uk-width-expand"><h2>{format!("{} - {}", self.country.to_string(), &self.funnel_name)} </h2></div>
+                                <div class="uk-flex-right">{funnel_name_icon}</div>
                             </div>
 
                             <div class="uk-margin-top-large uk-margin-bottom-large uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-                                <ConditionalSequenceConfig active_element=&self.active_element conditional_sequences=&self.conditional_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
+                                <LHSConditionalSequence active_element=&self.active_element conditional_sequences=&self.conditional_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
                             </div>
 
                             <div class="uk-margin-top-large uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-                                <DefaultSequences active_element=&self.active_element default_sequences=&self.default_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
+                                <LHSDefaultSequences active_element=&self.active_element default_sequences=&self.default_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
                              </div>
 
                         </div>
 
                         <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-                            <FunnelViewRenderer state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
+                            <RHSFunnelView state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
                         </div>
 
                    </div>

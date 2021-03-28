@@ -49,7 +49,7 @@ pub struct Funnel {
     pub last_updated: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, EnumString, ToString, EnumIter)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, EnumString, ToString, EnumIter, PartialEq)]
 pub enum SequenceType {
     #[strum(serialize = "Offers Only")]
     OffersOnly,
@@ -85,7 +85,7 @@ pub struct Sequence {
 }
 
 impl Default for Sequence {
-    fn default()->Self{
+    fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
             name: "".to_string(),
@@ -98,7 +98,7 @@ impl Default for Sequence {
             landing_pages: vec![],
             offers: vec![],
             weight_optimization_active: false,
-            sequence_is_active: false
+            sequence_is_active: false,
         }
     }
 }
