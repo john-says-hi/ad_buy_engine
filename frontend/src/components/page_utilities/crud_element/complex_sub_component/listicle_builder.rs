@@ -114,7 +114,6 @@ impl Component for ListicleBuilder {
                 } else {
                     notify_danger("Err: Pair not found")
                 }
-    
                 self.link.send_message(Msg::Submit);
             }
             
