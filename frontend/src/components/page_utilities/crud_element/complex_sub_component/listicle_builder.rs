@@ -123,7 +123,7 @@ impl Component for ListicleBuilder {
                      pair.landing_page=Some(landing_page_group.landing_page);
                      
                      let mut offers = vec![];
-                     for cta in 1..num_of_ctas {
+                     for cta in 0..num_of_ctas {
                          offers.push(None);
                      }
                      
@@ -136,7 +136,7 @@ impl Component for ListicleBuilder {
             Msg::SelectPreLandingPage(lp) => {
                 let mut pairs
                     =vec![];
-                for pair in 1..lp.number_of_calls_to_action {
+                for pair in 0..lp.number_of_calls_to_action {
                     pairs.push(OptionalPair{
                         landing_page:None,
                         offer:vec![],
