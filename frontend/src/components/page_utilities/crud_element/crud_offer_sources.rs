@@ -40,11 +40,11 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::{MatSwitch, MatTextArea, MatTextField};
+
+use crate::components::page_utilities::crud_element::toggle_switch::ToggleSwitch;
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::storage::Area;
 use yew_services::{FetchService, StorageService};
-use crate::components::page_utilities::crud_element::toggle_switch::ToggleSwitch;
 
 pub enum Msg {
     Ignore,
@@ -322,14 +322,13 @@ impl Component for CRUDOfferSource {
                             {label!("Payout Currency")}
                        <CurrencyDropdown callback=self.link.callback(|c:Currency|Msg::UpdatePayoutCurrency(c)) />
                         </div>
-                       
+
                        <ToggleSwitch label="Append Click ID".to_string() checked=self.append_click_id onchange=self.link.callback(|_|Msg::ToggleAppendClickID) />
                        <ToggleSwitch label="Accept Duplicate Postbacks".to_string() checked=self.accept_duplicate_postback onchange=self.link.callback(|_|Msg::ToggleAcceptDuplicatePostback) />
                        <ToggleSwitch label="Whitelist Postback URL IPs".to_string() checked=self.whitelist_postback_ips onchange=self.link.callback(|_|Msg::ToggleWhiteListedPostbackIPs) />
                         {self.whitelist_postback_ips()}
 
                         <div class="uk-margin">
-                           <span class="uk-label uk-label-large uk-label-primary">{"Referrer Handling"}</span>
                            <ReferrerHandlingDropdown callback=self.link.callback(Msg::UpdateReferrerHandling) state=Rc::clone(&self.props.state) selected=self.referrer_handling.clone() />
                         </div>
 

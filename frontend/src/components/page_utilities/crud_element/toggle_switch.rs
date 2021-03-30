@@ -13,18 +13,16 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VList;
-use yew_material::text_inputs::TextAreaCharCounter;
-use yew_material::{MatListItem, MatSelect};
-use yew_material::{MatTextArea, MatTextField};
+
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
 pub enum Switch {
     Yes,
-    No
+    No,
 }
 
- pub enum Msg {
+pub enum Msg {
     OnClick(Switch),
 }
 
@@ -33,9 +31,9 @@ pub struct Props {
     pub onchange: Callback<()>,
     pub label: String,
     #[prop_or_default]
-    pub checked:bool,
+    pub checked: bool,
     #[prop_or_default]
-    pub size:Option<String>,
+    pub size: Option<String>,
 }
 
 pub struct ToggleSwitch {
@@ -51,17 +49,19 @@ impl Component for ToggleSwitch {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let checked = props.checked.clone();
-        Self { link, props, checked }
+        Self {
+            link,
+            props,
+            checked,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::OnClick(data) => {
-                match data {
-                    Switch::No => self.props.onchange.emit(()),
-                    Switch::Yes => self.props.onchange.emit(()),
-                }
-            }
+            Msg::OnClick(data) => match data {
+                Switch::No => self.props.onchange.emit(()),
+                Switch::Yes => self.props.onchange.emit(()),
+            },
         }
         true
     }
@@ -73,20 +73,32 @@ impl Component for ToggleSwitch {
     }
 
     fn view(&self) -> Html {
-        let yes_class = if self.checked {"uk-button uk-button-small uk-button-success"}else{"uk-button uk-button-small uk-button-default"};
-        let no_class = if !self.checked {"uk-button uk-button-small uk-button-danger"}else{"uk-button uk-button-small uk-button-default"};
-        let label_class= if let Some(s)=self.props.size.clone()   {format!("uk-label uk-label-{} uk-label-primary", s)}else { "uk-label uk-label-large uk-label-primary".to_string() };
-        
+        let yes_class = if self.checked {
+            "uk-button uk-button-small uk-button-success"
+        } else {
+            "uk-button uk-button-small uk-button-default"
+        };
+        let no_class = if !self.checked {
+            "uk-button uk-button-small uk-button-danger"
+        } else {
+            "uk-button uk-button-small uk-button-default"
+        };
+        let label_class = if let Some(s) = self.props.size.clone() {
+            format!("uk-label uk-label-{} uk-label-primary", s)
+        } else {
+            "uk-label uk-label-large uk-label-primary".to_string()
+        };
+
         html! {
-<div class="uk-flex uk-flex-left uk-margin-small">
-        <div class="uk-margin-small">
-            <span class=label_class>{&self.props.label}</span>
-            <div uk-switcher="">
-                <button class=no_class onclick=callback!(self, |_| Msg::OnClick(Switch::No))>{"No"}</button>
-                <button class=yes_class onclick=callback!(self, |_| Msg::OnClick(Switch::Yes))>{"Yes"}</button>
-            </div>
+        <div class="uk-flex uk-flex-left uk-margin-small">
+                <div class="uk-margin-small">
+                    <span class=label_class>{&self.props.label}</span>
+                    <div uk-switcher="">
+                        <button class=no_class onclick=callback!(self, |_| Msg::OnClick(Switch::No))>{"No"}</button>
+                        <button class=yes_class onclick=callback!(self, |_| Msg::OnClick(Switch::Yes))>{"Yes"}</button>
+                    </div>
+                </div>
         </div>
-</div>
-                            }
+                                    }
     }
 }

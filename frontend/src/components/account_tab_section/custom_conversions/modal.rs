@@ -33,7 +33,7 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::{MatSwitch, MatTextArea, MatTextField};
+
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::storage::Area;
 use yew_services::{FetchService, StorageService};

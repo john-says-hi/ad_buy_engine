@@ -8,8 +8,8 @@
 #![allow(unused_assignments)]
 #![allow(dead_code)]
 #![allow(unreachable_patterns)]
-#[macro_use]
-extern crate educe;
+// #[macro_use]
+// extern crate educe;
 #[macro_use]
 extern crate strum_macros;
 #[macro_use]
@@ -120,12 +120,13 @@ impl Component for RootComponent {
                         .borrow_mut()
                         .update_account_update_date();
                     self.state.borrow().store_sync_ledger();
-                    
+
                     let sync_elem_req = self.state.borrow().request_sync_elements();
-                    self.fetch_agent.send(FetchRequest::SyncElements(sync_elem_req));
+                    self.fetch_agent
+                        .send(FetchRequest::SyncElements(sync_elem_req));
                 }
-                
-                FetchResponse::ReturnSyncElemResponse(res)=>{
+
+                FetchResponse::ReturnSyncElemResponse(res) => {
                     self.state.borrow().sync_update(res);
                 }
             },

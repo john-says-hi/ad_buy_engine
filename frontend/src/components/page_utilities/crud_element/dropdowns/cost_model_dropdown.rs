@@ -18,8 +18,7 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VList;
-use yew_material::MatTextField;
-use yew_material::{MatListItem, MatSelect};
+
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -66,9 +65,12 @@ impl Component for CostModelDropdown {
         }
 
         html! {
-        <select class="uk-select">
-            {options}
-        </select>
+        <div>
+            {label!("Cost Model")}
+            <select class="uk-select">
+                {options}
+            </select>
+        </div>
                         }
     }
 }

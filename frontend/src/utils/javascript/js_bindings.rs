@@ -35,4 +35,7 @@ extern "C" {
 
     #[wasm_bindgen(js_name = "select_option")]
     pub fn select_option(id: &str, idx: usize);
+
+    #[wasm_bindgen(js_name = "copy_to_clipboard")]
+    pub fn copy_to_clipboard(id: &str);
 }

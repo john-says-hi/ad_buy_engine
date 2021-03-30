@@ -5,8 +5,7 @@ use crate::utils::routes::AppRoute;
 use std::cell::RefCell;
 use std::rc::Rc;
 use yew::prelude::*;
-use yew_material::list::GraphicType;
-use yew_material::{MatListItem, MatMenu, MatSelect, MatTab, MatTabBar};
+
 use yew_router::agent::RouteAgent;
 use yew_router::agent::RouteRequest::ChangeRoute;
 
@@ -24,7 +23,7 @@ pub struct CampaignBtn {
     link: ComponentLink<Self>,
     router: Box<dyn Bridge<RouteAgent>>,
     props: Props,
-    active:bool,
+    active: bool,
 }
 
 impl Component for CampaignBtn {
@@ -35,19 +34,19 @@ impl Component for CampaignBtn {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
         let active_tab = state_clone!(props.state).borrow().return_app_route();
         let active = tab_is_active!(AppRoute::Campaign, active_tab);
-        
+
         Self {
             link,
             router,
             props,
-            active:false,
+            active: false,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Click => {
-                self.active=true;
+                self.active = true;
                 self.props
                     .state
                     .borrow()
@@ -73,8 +72,16 @@ impl Component for CampaignBtn {
 
     fn view(&self) -> Html {
         let callback = self.link.callback(|_| Msg::Click);
-        let a_class = if self.active{"active-tab uk-active uk-display-block"}else { "uk-display-block" };
-        let icon_class = if self.active{"active-tab fa fa-rocket uk-display-block uk-text-center"}else { "fa fa-rocket uk-display-block uk-text-center" };
+        let a_class = if self.active {
+            "active-tab uk-active uk-display-block"
+        } else {
+            "uk-display-block"
+        };
+        let icon_class = if self.active {
+            "active-tab fa fa-rocket uk-display-block uk-text-center"
+        } else {
+            "fa fa-rocket uk-display-block uk-text-center"
+        };
         html! {
         <li onclick=callback>
             <span class=icon_class></span>

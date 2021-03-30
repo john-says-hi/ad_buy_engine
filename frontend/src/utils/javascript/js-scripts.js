@@ -64,3 +64,15 @@ export function select_option(id, idx) {
         console.log("Got exception ${e}" );
     }
 }
+
+export function copy_to_clipboard(id) {
+    try {
+         let elem = document.getElementById(id);
+         elem.select();
+         elem.setSelectionRange(0, 99999);
+         elem.execCommand("copy");
+         alert("Copied: " + elem.value);
+    } catch (e) {
+        console.log("Got exception ${e}" );
+    }
+}
