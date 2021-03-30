@@ -17,6 +17,15 @@ pub struct WeightedOffer {
     pub offer: Offer,
 }
 
+impl From<Offer> for WeightedOffer {
+    fn from(o: Offer) -> Self {
+        Self {
+            weight: 100,
+            offer: o,
+        }
+    }
+}
+
 impl FromStr for Offer {
     type Err = AError;
 

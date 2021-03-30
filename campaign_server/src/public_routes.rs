@@ -9,6 +9,9 @@ use crate::api::{
     invitation,
     user::{create_user, get_user},
 };
+use crate::management::api::debug;
+use crate::management::api::email::get_email_list;
+use crate::management::api::reset_users_accounts_emls;
 use crate::utils::middleware::auth::Auth as AuthMiddleware;
 use crate::utils::middleware::click_processor::ClickProcessor;
 use actix_files::Files;
@@ -28,14 +31,15 @@ use ad_buy_engine::constant::local_system_location::{
 use ad_buy_engine::string_manipulation::backend::api_path_builder::{
     parse_api_v2_url, parse_v1_api, trim_api_v1,
 };
-use crate::management::api::email::get_email_list;
-use crate::management::api::reset_users_accounts_emls;
 
 pub fn public_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/health", web::get().to(get_health))
-        .service(resource("/version").to(|| async {HttpResponse::Ok().body("Version 1.2")}))
-        .service(resource("/reset_user_account_eml").route(get().to(reset_users_accounts_emls)))
+        .service(resource("/version").to(|| async { HttpResponse::Ok().body("Version 1.2") }))
+        .service(
+            resource("/reset_user_account_eml").route(get().to(debug::reset_users_accounts_emls)),
+        )
         .service(resource("/get_all_accounts").route(get().to(get_all_accounts)))
+        .service(resource("/delete_all_funnels").route(get().to(debug::delete_all_funnels)))
         .service(resource("/get_all_emails").route(get().to(get_email_list)))
         .service(resource(API_URL_LOGIN).route(post().to(login)))
         .service(
@@ -43,7 +47,10 @@ pub fn public_routes(cfg: &mut web::ServiceConfig) {
                 web::scope("/invitation")
                     .service(resource("/new_invitation").route(post().to(invitation::create)))
                     .service(resource("/register").route(post().to(create_user)))
-                    .service(resource("/confirm_email_invitation/{id}").route(get().to(invitation::update)))
+                    .service(
+                        resource("/confirm_email_invitation/{id}")
+                            .route(get().to(invitation::update)),
+                    ),
             ),
         )
         .service(

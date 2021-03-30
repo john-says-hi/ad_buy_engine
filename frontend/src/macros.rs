@@ -13,6 +13,7 @@ macro_rules! label {
     ("gb", $label:expr) => {html!{<span class="uk-label uk-label-large uk-label-success" style="color: #000000" >{$label}</span>}};
     ("m", $label:expr) => {html!{<span class="uk-label uk-label uk-label-primary">{$label}</span>}};
     ("s", $label:expr) => {html!{<span class="uk-label uk-label-small uk-label-primary">{$label}</span>}};
+    ("p", $label:expr) => {html!{<span class="uk-label uk-label-small uk-label-purple">{$label}</span>}};
 }
 
 #[macro_export]

@@ -79,7 +79,7 @@ pub struct Sequence {
     pub pre_landing_page: Option<LandingPage>,
     pub listicle_pairs: Vec<ListiclePair>,
     pub landing_pages: Vec<WeightedLandingPage>,
-    pub offers: Vec<WeightedOffer>,
+    pub offers: Vec<Vec<WeightedOffer>>,
     pub weight_optimization_active: bool,
     pub sequence_is_active: bool,
 }
@@ -96,7 +96,7 @@ impl Default for Sequence {
             pre_landing_page: None,
             listicle_pairs: vec![],
             landing_pages: vec![],
-            offers: vec![],
+            offers: vec![vec![]],
             weight_optimization_active: false,
             sequence_is_active: false,
         }
