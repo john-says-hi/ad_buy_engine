@@ -43,7 +43,8 @@ rand = { version = "0.7", features = ["wasm-bindgen"] }
 url =  {version="2.1.1", features=["serde"]}
 
 rayon = "1.4.0"
-parking_lot = { version = "0.11.1", features = ["nightly"] }
+#parking_lot = "0.11.1"
+#parking_lot = { version = "0.11.1", features = ["nightly"] }
 
 [workspace]
 members=[

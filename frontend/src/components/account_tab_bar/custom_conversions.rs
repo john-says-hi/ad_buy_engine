@@ -5,8 +5,7 @@ use crate::utils::routes::AppRoute;
 use std::cell::RefCell;
 use std::rc::Rc;
 use yew::prelude::*;
-use yew_material::list::GraphicType;
-use yew_material::{MatListItem, MatMenu, MatSelect, MatTab, MatTabBar};
+
 use yew_router::agent::RouteAgent;
 use yew_router::agent::RouteRequest::ChangeRoute;
 
@@ -24,26 +23,26 @@ pub struct CustomConversionBtn {
     link: ComponentLink<Self>,
     router: Box<dyn Bridge<RouteAgent>>,
     props: Props,
-    active:bool,
+    active: bool,
 }
 
 impl Component for CustomConversionBtn {
     type Message = Msg;
     type Properties = Props;
-    
+
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let router = RouteAgent::bridge(link.callback(|_| Msg::Ignore));
         let active_tab = state_clone!(props.state).borrow().return_app_route();
         let active = tab_is_active!(AppRoute::CustomConversions, active_tab);
-        
+
         Self {
             link,
             router,
             props,
-            active
+            active,
         }
     }
-    
+
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Click => {
@@ -58,24 +57,32 @@ impl Component for CustomConversionBtn {
         }
         false
     }
-    
+
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         let active_tab = state_clone!(props.state).borrow().return_app_route();
         self.active = tab_is_active!(AppRoute::CustomConversions, active_tab);
-        
+
         true
     }
-    
+
     fn view(&self) -> Html {
         let callback = self.link.callback(|_| Msg::Click);
-        let a_class = if self.active { "active-tab uk-active uk-display-block" } else { "uk-display-block" };
-        let icon_class = if self.active { "active-tab fa fa-compress uk-display-block uk-text-center" } else { "fa fa-compress uk-display-block uk-text-center" };
-        
+        let a_class = if self.active {
+            "active-tab uk-active uk-display-block"
+        } else {
+            "uk-display-block"
+        };
+        let icon_class = if self.active {
+            "active-tab fa fa-compress uk-display-block uk-text-center"
+        } else {
+            "fa fa-compress uk-display-block uk-text-center"
+        };
+
         html! {
-        <li onclick=callback>
-            <span class=icon_class></span>
-            <a class=a_class>{"Custom Conversions"}</a>
-        </li>
-    }
+            <li onclick=callback>
+                <span class=icon_class></span>
+                <a class=a_class>{"Custom Conversions"}</a>
+            </li>
+        }
     }
 }

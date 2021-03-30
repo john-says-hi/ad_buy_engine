@@ -17,8 +17,7 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VList;
-use yew_material::MatTextField;
-use yew_material::{MatListItem, MatSelect};
+
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -83,25 +82,9 @@ impl Component for CountryDropdown {
             options.push(html! {<option onclick=self.link.callback(move |_|Msg::Select(Country::ISOCountry(iso_country))) >{name}</option>});
         }
 
-        // for item in  {
-        //     if let Some(selected_item) = &self.props.selected {
-        //         if selected_item.offer_source_id != item.offer_source_id {
-        //             options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{item.name.clone()}</option>});
-        //         }
-        //     } else {
-        //         options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{item.name.clone()}</option>});
-        //     }
-        // }
-
-        let label = if self.props.label.is_empty() {
-            html! {}
-        } else {
-            label!(&self.props.label)
-        };
-
         html! {
-        <div class="uk-margin">
-            {label}
+        <div>
+            {label!("Country")}
             <select class="uk-select">
                 {options}
             </select>

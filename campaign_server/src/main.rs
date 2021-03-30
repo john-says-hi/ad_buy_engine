@@ -1,4 +1,4 @@
-#![feature(in_band_lifetimes)]
+// #![feature(in_band_lifetimes)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
@@ -27,15 +27,15 @@ pub use ad_buy_engine::schema;
 
 use crate::server::server;
 
-pub mod helper_functions;
-pub mod campaign_agent;
-pub mod email_service;
 pub mod api;
+pub mod campaign_agent;
 pub mod db;
+pub mod email_service;
+pub mod helper_functions;
+pub mod management;
 mod private_routes;
 mod public_routes;
 mod server;
-pub mod management;
 pub mod utils;
 
 #[actix_web::main]

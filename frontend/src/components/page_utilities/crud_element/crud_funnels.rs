@@ -14,19 +14,23 @@ use crate::components::primitives::TextInput;
 use crate::components::tab_state::ActivatedTab;
 use crate::utils::javascript::js_bindings::{hide_uk_modal, toggle_uk_dropdown};
 use crate::utils::routes::AppRoute;
-use crate::{notify_primary, RootComponent, notify_danger, notify_debug};
+use crate::{notify_danger, notify_debug, notify_primary, RootComponent};
 use ad_buy_engine::constant::apis::private::API_CRUD_ELEMENT;
 use ad_buy_engine::constant::browser_storage_keys::OFFER_SOURCES;
 use ad_buy_engine::data::account::domains_configuration::CustomDomainName;
-use ad_buy_engine::data::conversion::{ConversionTrackingMethod, WhiteListedPostbackIPs, ConversionCapConfig, PayoutType};
+use ad_buy_engine::data::conversion::{
+    ConversionCapConfig, ConversionTrackingMethod, PayoutType, WhiteListedPostbackIPs,
+};
 use ad_buy_engine::data::custom_events::{CustomConversionEvent, CustomConversionEventToken};
 use ad_buy_engine::data::elements::crud::{
     CRUDElementRequest, CRUDElementResponse, CreatableElement, PrimeElementBuild,
 };
-use ad_buy_engine::data::elements::offer_source::{ OfferSource};
-use ad_buy_engine::data::elements::traffic_source::traffic_source_params::{ExternalIDParameter, CustomParameter, CostParameter};
+use ad_buy_engine::data::elements::offer_source::OfferSource;
+use ad_buy_engine::data::elements::traffic_source::traffic_source_params::{
+    CostParameter, CustomParameter, ExternalIDParameter,
+};
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
-use ad_buy_engine::data::lists::{Currency, Language, Vertical, DataURLToken};
+use ad_buy_engine::data::lists::{Currency, DataURLToken, Language, Vertical};
 use ad_buy_engine::data::work_space::Clearance;
 use ad_buy_engine::{AError, Country};
 use chrono::Utc;
@@ -40,7 +44,7 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::{MatSwitch, MatTextArea, MatTextField};
+
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::storage::Area;
 use yew_services::{FetchService, StorageService};

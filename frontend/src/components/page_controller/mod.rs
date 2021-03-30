@@ -36,8 +36,7 @@ use std::rc::Rc;
 use web_sys::Element;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::list::GraphicType;
-use yew_material::{MatListItem, MatMenu, MatSelect, MatTab, MatTabBar};
+
 use yew_router::agent::RouteAgent;
 use yew_router::agent::RouteRequest::ChangeRoute;
 
@@ -78,37 +77,37 @@ impl Component for PageController {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.props=props;
+        self.props = props;
         true
     }
 
     fn view(&self) -> Html {
         html! {
-<div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1  uk-grid-row-collapse" uk-grid="">
-        <nav class="uk-margin-top" uk-navbar="">
-            <div class="uk-navbar-left">
-                <ul class="uk-navbar-nav uk-flex-wrap uk-flex-center">
-                    
-                    <DashboardBtn state=Rc::clone(&self.props.state) />
-                    <CampaignBtn state=Rc::clone(&self.props.state) />
-                    <OfferBtn state=Rc::clone(&self.props.state) />
-                    <LanderBtn state=Rc::clone(&self.props.state) />
-                    <ConversionsBtn state=Rc::clone(&self.props.state) />
-                    <FunnelBtn state=Rc::clone(&self.props.state) />
-                    <TrafficBtn state=Rc::clone(&self.props.state) />
-                    <OfferSourceBtn state=Rc::clone(&self.props.state) />
-                    <ConnectionDrop state=Rc::clone(&self.props.state) />
-                    <BrowserDrop state=Rc::clone(&self.props.state) />
-                    <DevicesDrop state=Rc::clone(&self.props.state) />
-                    <OSDrop state=Rc::clone(&self.props.state) />
-                    <DateDrop state=Rc::clone(&self.props.state) />
-                    <DayPartingDrop state=Rc::clone(&self.props.state) />
-                  
-                </ul>
-            </div>
-        </nav>
-</div>
+        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1  uk-grid-row-collapse" uk-grid="">
+                <nav class="uk-margin-top" uk-navbar="mode: click">
+                    <div class="uk-navbar-left">
+                        <ul class="uk-navbar-nav uk-flex-wrap uk-flex-center">
 
-                                        }
+                            <DashboardBtn state=Rc::clone(&self.props.state) />
+                            <CampaignBtn state=Rc::clone(&self.props.state) />
+                            <OfferBtn state=Rc::clone(&self.props.state) />
+                            <LanderBtn state=Rc::clone(&self.props.state) />
+                            <ConversionsBtn state=Rc::clone(&self.props.state) />
+                            <FunnelBtn state=Rc::clone(&self.props.state) />
+                            <TrafficBtn state=Rc::clone(&self.props.state) />
+                            <OfferSourceBtn state=Rc::clone(&self.props.state) />
+                            <ConnectionDrop state=Rc::clone(&self.props.state) />
+                            <BrowserDrop state=Rc::clone(&self.props.state) />
+                            <DevicesDrop state=Rc::clone(&self.props.state) />
+                            <OSDrop state=Rc::clone(&self.props.state) />
+                            <DateDrop state=Rc::clone(&self.props.state) />
+                            <DayPartingDrop state=Rc::clone(&self.props.state) />
+
+                        </ul>
+                    </div>
+                </nav>
+        </div>
+
+                                                }
     }
 }

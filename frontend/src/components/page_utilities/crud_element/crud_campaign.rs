@@ -12,21 +12,25 @@ use crate::components::page_utilities::crud_element::whitelist_postback_ips::Whi
 use crate::components::primitives::text_area::TextArea;
 use crate::components::primitives::TextInput;
 use crate::components::tab_state::ActivatedTab;
-use crate::utils::javascript::js_bindings::{hide_uk_modal, toggle_uk_dropdown};
+use crate::utils::javascript::js_bindings::{copy_to_clipboard, hide_uk_modal, toggle_uk_dropdown};
 use crate::utils::routes::AppRoute;
-use crate::{notify_primary, RootComponent, notify_danger};
+use crate::{notify_danger, notify_primary, RootComponent};
 use ad_buy_engine::constant::apis::private::API_CRUD_ELEMENT;
 use ad_buy_engine::constant::browser_storage_keys::OFFER_SOURCES;
 use ad_buy_engine::data::account::domains_configuration::CustomDomainName;
-use ad_buy_engine::data::conversion::{ConversionTrackingMethod, WhiteListedPostbackIPs, ConversionCapConfig, PayoutType};
+use ad_buy_engine::data::conversion::{
+    ConversionCapConfig, ConversionTrackingMethod, PayoutType, WhiteListedPostbackIPs,
+};
 use ad_buy_engine::data::custom_events::{CustomConversionEvent, CustomConversionEventToken};
 use ad_buy_engine::data::elements::crud::{
     CRUDElementRequest, CRUDElementResponse, CreatableElement, PrimeElementBuild,
 };
-use ad_buy_engine::data::elements::offer_source::{ OfferSource};
-use ad_buy_engine::data::elements::traffic_source::traffic_source_params::{ExternalIDParameter, CustomParameter, CostParameter};
+use ad_buy_engine::data::elements::offer_source::OfferSource;
+use ad_buy_engine::data::elements::traffic_source::traffic_source_params::{
+    CostParameter, CustomParameter, ExternalIDParameter,
+};
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
-use ad_buy_engine::data::lists::{Currency, Language, Vertical, DataURLToken, CostModel};
+use ad_buy_engine::data::lists::{CostModel, Currency, DataURLToken, Language, Vertical};
 use ad_buy_engine::data::work_space::Clearance;
 use ad_buy_engine::{AError, Country};
 use chrono::Utc;
@@ -40,7 +44,7 @@ use web_sys::Element;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::{MatSwitch, MatTextArea, MatTextField};
+
 use yew_services::fetch::{FetchTask, Request, Response};
 use yew_services::storage::Area;
 use yew_services::{FetchService, StorageService};
@@ -73,6 +77,8 @@ use fancy_regex::Regex;
 use crate::components::page_utilities::crud_element::dropdowns::traffic_source_dropdown::TrafficSourceDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::cost_model_dropdown::CostModelDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::funnel_dropdown::FunnelDropdown;
+use crate::components::page_utilities::crud_element::complex_sub_component::campaign_sequence_builder::CampaignSequenceBuilder;
+use ad_buy_engine::constant::COLOR_GRAY;
 // use crate::components::page_utilities::crud_element::complex_sub_component::mini_sequence_builder::MiniRHSSequenceBuilder;
 
 pub enum Msg {
@@ -90,6 +96,9 @@ pub enum Msg {
     FetchData(CRUDElementResponse),
     FetchFailed,
     DeserializationFailed,
+    Switch(Tab),
+    TrackingDomain(Url),
+    Copy(String),
 }
 
 #[derive(Properties, Clone)]
@@ -98,6 +107,11 @@ pub struct Props {
     #[prop_or_default]
     pub restored_element: Option<Campaign>,
     pub modal_type: ModalType,
+}
+
+pub enum Tab {
+    Build,
+    Info,
 }
 
 pub struct CRUDCampaign {
@@ -113,6 +127,8 @@ pub struct CRUDCampaign {
     pub cost_model: CostModel,
     pub cost_value: Decimal,
     pub tt: Box<dyn Bridge<TickTock>>,
+    pub is_saved: bool,
+    pub tab: Tab,
 
     pub notes: String,
     pub fetch_task: Option<FetchTask>,
@@ -144,17 +160,26 @@ impl Component for CRUDCampaign {
             destination_type: CampaignDestinationType::Funnel,
             funnel: None,
             sequence: None,
-            cost_model: CostModel::CPC,
+            cost_model: CostModel::NotTracked,
             cost_value: Decimal::from(0),
             notes: "".to_string(),
             fetch_task: None,
             tt,
+            is_saved: false,
+            tab: Tab::Build,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Copy(id) => copy_to_clipboard(&id),
+
+            Msg::TrackingDomain(url) => self.tracking_domain = url,
+
             Msg::Ignore => {}
+
+            Msg::Switch(tab) => self.tab = tab,
+
             Msg::UpdateCostValue(i) => {
                 if let Ok(decimal) = i.value.parse::<Decimal>() {
                     self.cost_value = decimal;
@@ -163,32 +188,24 @@ impl Component for CRUDCampaign {
                 }
             }
 
-            Msg::UpdateSequence(seq) => self.sequence = Some(seq),
+            Msg::UpdateSequence(seq) => {
+                self.funnel = None;
+                self.sequence = Some(seq)
+            }
 
-            Msg::SelectFunnel(funnel) => self.funnel = Some(funnel),
+            Msg::SelectFunnel(funnel) => {
+                self.sequence = None;
+                self.funnel = Some(funnel)
+            }
 
             Msg::SelectDestinationType(dest) => self.destination_type = dest,
 
             Msg::SelectTrafficSource(ts) => {
                 self.traffic_source = Some(ts);
-                self.name = self.generate_campaign_name(
-                    &self.country.to_string(),
-                    &self.traffic_source.clone().unwrap().name,
-                    None,
-                );
             }
 
             Msg::SelectCountry(c) => {
                 self.country = c;
-                self.name = self.generate_campaign_name(
-                    &self.country.to_string(),
-                    if let Some(ts) = &self.traffic_source {
-                        ts.name.as_str()
-                    } else {
-                        ""
-                    },
-                    None,
-                )
             }
 
             Msg::SelectCostModel(cm) => self.cost_model = cm,
@@ -199,15 +216,7 @@ impl Component for CRUDCampaign {
             },
 
             Msg::UpdateName(i) => {
-                self.name = self.generate_campaign_name(
-                    &self.country.to_string(),
-                    if let Some(ts) = &self.traffic_source {
-                        ts.name.as_str()
-                    } else {
-                        ""
-                    },
-                    Some(i),
-                );
+                self.name = i.value;
             }
 
             Msg::UpdateNotes(i) => self.notes = i.value,
@@ -216,19 +225,21 @@ impl Component for CRUDCampaign {
                 self.fetch_task = None;
                 self.props.state.borrow().crud_update(response);
                 self.tt.send(TickTockRequest::Tick);
-                hide_uk_modal("#campaigns");
+                self.tab = Tab::Info;
+                self.is_saved = true;
+                // hide_uk_modal("#campaigns");
             }
 
             Msg::FetchFailed => {
                 self.fetch_task = None;
                 notify_primary("Fetch Failed");
-                hide_uk_modal("#campaigns");
+                // hide_uk_modal("#campaigns");
             }
 
             Msg::DeserializationFailed => {
                 self.fetch_task = None;
                 notify_primary("Deserialization Failed");
-                hide_uk_modal("#campaigns");
+                // hide_uk_modal("#campaigns");
             }
         }
 
@@ -239,6 +250,9 @@ impl Component for CRUDCampaign {
         let rc_state = Rc::clone(&props.state);
         let state = rc_state.borrow();
         if let Some(restored_element) = &props.restored_element {
+            self.tab = Tab::Info;
+            self.is_saved = true;
+
             let campaign = restored_element.clone();
             self.name = campaign.name.clone();
             self.notes = campaign.notes.clone();
@@ -265,7 +279,10 @@ impl Component for CRUDCampaign {
             }
             self.cost_model = campaign.cost_model;
         } else {
-            self.name = self.generate_campaign_name(&Country::Global.to_string(), "", None);
+            self.tab = Tab::Build;
+            self.is_saved = false;
+
+            self.name = "New Campaign".to_string();
             self.traffic_source = None;
             self.country = Country::Global;
             self.notes = "".to_string();
@@ -294,12 +311,6 @@ impl Component for CRUDCampaign {
             "Create Campaign"
         };
 
-        let ts_cb = self.link.callback(Msg::SelectTrafficSource);
-        let country_cb = self.link.callback(Msg::SelectCountry);
-        let name_cb = self.link.callback(Msg::UpdateName);
-        let cost_model_cb = self.link.callback(Msg::SelectCostModel);
-        let notes_cb = self.link.callback(Msg::UpdateNotes);
-
         html! {
         <div id="campaigns" class="uk-flex-top" uk-modal="bg-close:false;">
            <div class="uk-modal-dialog uk-margin-auto-vertical">
@@ -309,30 +320,8 @@ impl Component for CRUDCampaign {
               </div>
               <div class="uk-modal-body" >
 
-                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-
-                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2" uk-grid="">
-                            <div class="uk-margin-right-small"><span class="uk-label">{"Traffic Source"}</span><TrafficSourceDropdown state=Rc::clone(&self.props.state) onselect=ts_cb /></div>
-                            <CountryDropdown selected=self.country eject=country_cb label="Country" />
-                        </div>
-
-                        <div class="uk-margin">
-                            <span class="uk-label uk-margin-right-small">{"Name"}</span><input type="text" class="uk-input" value=&self.name oninput=name_cb />
-                        </div>
-
-                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2" uk-grid="">
-                            <div class="uk-margin-right-small"><span class="uk-label">{"Cost Model"}</span><CostModelDropdown onselect=cost_model_cb /></div>
-                            <div>{self.render_cost_value()}</div>
-                        </div>
-
-                        <NotesComponent callback=notes_cb value=&self.notes />
-
-                        <h4>{"Setup Campaign Destination"}</h4>
-                        {self.render_destination_button()}
-                        <hr class="uk-divider" />
-                        {self.render_destination()}
-
-                   </div>
+                  {self.switcher()}
+                  {self.body()}
 
                  <div class="uk-modal-footer uk-text-right">
                     <button class="uk-button uk-button-default uk-modal-close" type="button">{"Cancel"}</button>
@@ -348,13 +337,158 @@ impl Component for CRUDCampaign {
 }
 
 impl CRUDCampaign {
-    pub fn render_destination_button(&self) -> VNode {
+    pub fn switcher(&self) -> VNode {
+        if !self.is_saved {
+            VNode::from(html! {})
+        } else {
+            VNode::from(html! {
+                <ul class="uk-subnav uk-subnav-pill" uk-switcher="">
+                    <li><a onclick=callback!(self, |_| Msg::Switch(Tab::Build)) >{"Build"}</a></li>
+                    <li><a onclick=callback!(self, |_| Msg::Switch(Tab::Info))>{"Info"}</a></li>
+                </ul>
+            })
+        }
+    }
+
+    pub fn body(&self) -> VNode {
+        if !self.is_saved {
+            VNode::from(html! {
+                {self.build_body()}
+            })
+        } else {
+            VNode::from(html! {
+                <ul class="uk-switcher uk-margin">
+                    <li>
+                        {self.build_body()}
+                    </li>
+
+                    <li>
+                        {self.build_info()}
+                    </li>
+                </ul>
+            })
+        }
+    }
+
+    pub fn build_info(&self) -> VNode {
+        VNode::from(html! {
+                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
+
+                        <h4 class="uk-margin-top-small">{"Tracking"}</h4>
+
+
+                        <div class="uk-margin" style=format!("background-color: {};", COLOR_GRAY) >
+                            {label!("Campaign Name")}
+                            <div class="uk-child-width-1-2" uk-grid="">
+                                <div class="uk-flex-left">
+                                    <span id="campaignname">{self.props.restored_element.clone().unwrap().campaign_name()}</span>
+                                </div>
+                                <div class="uk-flex-right">
+                                    <a onclick=callback!(self, |_| Msg::Copy("campaignname".to_string()))>{"Copy"}</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <TrackingDomainDropdown state=rc!(self.props.state) callback=callback!(self, |url:Url| Msg::TrackingDomain(url)) />
+
+                        <div class="uk-margin" style=format!("background-color: {};", COLOR_GRAY) >
+                            {label!("Campaign URL")}
+                            <div class="uk-child-width-1-2" uk-grid="">
+                                <div class="uk-flex-left">
+                                    <span id="trackingdomain">{self.props.restored_element.clone().unwrap().campaign_url(&self.tracking_domain)}</span>
+                                </div>
+                                <div class="uk-flex-right">
+                                    <a onclick=callback!(self, |_| Msg::Copy("trackingdomain".to_string()))>{"Copy"}</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="uk-margin" style=format!("background-color: {};", COLOR_GRAY) >
+                            {label!("Click URL")}
+                            <div class="uk-child-width-1-2" uk-grid="">
+                                <div class="uk-flex-left">
+                                    <span id="clickurl">{format!("{}extra", self.tracking_domain.to_string())}</span>
+                                </div>
+                                <div class="uk-flex-right">
+                                    <a onclick=callback!(self, |_| Msg::Copy("clickurl".to_string()))>{"Copy"}</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="uk-margin" style=format!("background-color: {};", COLOR_GRAY) >
+                            {label!("Mutli-Offer Click URL")}
+                            <div class="uk-child-width-1-2" uk-grid="">
+                                <div class="uk-flex-left">
+                                    <span id="multiclickurl">{format!("{}extra/1", self.tracking_domain.to_string())}</span>
+                                </div>
+                                <div class="uk-flex-right">
+                                    <a onclick=callback!(self, |_| Msg::Copy("multiclickurl".to_string()))>{"Copy"}</a>
+                                </div>
+                            </div>
+                        </div>
+
+                   </div>
+        })
+    }
+
+    pub fn build_body(&self) -> VNode {
+        let ts_cb = self.link.callback(Msg::SelectTrafficSource);
+        let country_cb = self.link.callback(Msg::SelectCountry);
+        let name_cb = self.link.callback(Msg::UpdateName);
+        let cost_model_cb = self.link.callback(Msg::SelectCostModel);
+        let notes_cb = self.link.callback(Msg::UpdateNotes);
+
+        VNode::from(html! {
+                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
+
+                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2" uk-grid="">
+                            <TrafficSourceDropdown state=Rc::clone(&self.props.state) onselect=ts_cb />
+                            <CountryDropdown selected=self.country eject=country_cb />
+                        </div>
+
+                        <div class="uk-margin">
+                            <span class="uk-label uk-margin-right-small">{"Name"}</span><input type="text" class="uk-input" value=&self.name oninput=name_cb />
+                        </div>
+
+                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2" uk-grid="">
+                            <CostModelDropdown onselect=cost_model_cb />
+                            {self.render_cost_value()}
+                        </div>
+
+                        <NotesComponent callback=notes_cb value=&self.notes />
+
+                        <h4 class="uk-margin-top-small">{"Setup Campaign Destination"}</h4>
+                        {self.build_btn()}
+
+                        {self.build()}
+
+                   </div>
+        })
+    }
+
+    pub fn build(&self) -> VNode {
+        match self.destination_type {
+            CampaignDestinationType::Funnel => {
+                let f_cb = self.link.callback(Msg::SelectFunnel);
+                VNode::from(
+                    html! {<div class="uk-margin"><h3>{"Select Funnel"}</h3><FunnelDropdown state=Rc::clone(&self.props.state) onselect=f_cb /></div>},
+                )
+            }
+
+            CampaignDestinationType::Sequence => VNode::from(html! {
+            <CampaignSequenceBuilder state=rc!(self.props.state) restored_sequence=self.sequence.clone() update_sequence=callback!(self, |seq:Sequence| Msg::UpdateSequence(seq)) />
+            }),
+        }
+    }
+
+    pub fn build_btn(&self) -> VNode {
         let funn_cb = self
             .link
             .callback(|_| Msg::SelectDestinationType(CampaignDestinationType::Funnel));
         let seq_cb = self
             .link
             .callback(|_| Msg::SelectDestinationType(CampaignDestinationType::Sequence));
+
         let f_btn = if let CampaignDestinationType::Funnel = self.destination_type {
             VNode::from(
                 html! {<label><input class="uk-radio" type="radio" name="radio2" checked=true onclick=funn_cb />{"Funnel"}</label>},
@@ -364,6 +498,7 @@ impl CRUDCampaign {
                 html! {<label><input class="uk-radio" type="radio" name="radio2" onclick=funn_cb />{"Funnel"}</label>},
             )
         };
+
         let seq_btn = if let CampaignDestinationType::Sequence = self.destination_type {
             VNode::from(
                 html! {<label><input class="uk-radio" type="radio" name="radio2" checked=true onclick=seq_cb />{"Sequence"}</label>},
@@ -382,24 +517,6 @@ impl CRUDCampaign {
         })
     }
 
-    pub fn render_destination(&self) -> VNode {
-        match self.destination_type {
-            CampaignDestinationType::Funnel => {
-                let f_cb = self.link.callback(Msg::SelectFunnel);
-                VNode::from(
-                    html! {<div class="uk-margin"><h3>{"Select Funnel"}</h3><FunnelDropdown state=Rc::clone(&self.props.state) onselect=f_cb /></div>},
-                )
-            }
-
-            CampaignDestinationType::Sequence => {
-                let seq_cb = self.link.callback(Msg::UpdateSequence);
-                VNode::from(html! {
-                // <MiniRHSSequenceBuilder state=Rc::clone(&self.props.state) update_sequence=seq_cb restored_sequence=&self.sequence />
-                })
-            }
-        }
-    }
-
     pub fn render_cost_value(&self) -> VNode {
         let currency = if let Some(ts) = &self.traffic_source {
             ts.currency.to_string()
@@ -407,17 +524,24 @@ impl CRUDCampaign {
             Currency::USD.to_string()
         };
         let cost_value_cb = self.link.callback(Msg::UpdateCostValue);
+
         if CostModel::CPC == self.cost_model
             || CostModel::CPA == self.cost_model
             || CostModel::CPM == self.cost_model
         {
-            VNode::from(
-                html! {<><span class="uk-label">{"Cost Value"}</span><input type="number" class="uk-input uk-margin" value=self.cost_value.to_string() oninput=cost_value_cb /><span class="uk-margin-small-left">{currency}</span></>},
-            )
+            VNode::from(html! {<>
+                <div>
+                    <span class="uk-label">{format!("Cost Value in {}", &currency)}</span>
+                    <input type="number" class="uk-input" value=self.cost_value.to_string() oninput=cost_value_cb />
+                </div>
+            </>})
         } else if CostModel::RevShare == self.cost_model {
-            VNode::from(
-                html! {<><span class="uk-label">{"Percentage Share"}</span><input type="number" class="uk-input uk-margin" value=self.cost_value.to_string() oninput=cost_value_cb /><span class="uk-margin-small-left">{format!("{}   {}","%", currency)}</span></>},
-            )
+            VNode::from(html! {<>
+            <div>
+                <span class="uk-label">{"Percentage Share"}</span>
+                <input type="number" class="uk-input" value=self.cost_value.to_string() oninput=cost_value_cb />
+            </div>
+            </>})
         } else {
             VNode::from(html! {})
         }
@@ -529,62 +653,5 @@ impl CRUDCampaign {
 
         let fetch_task = FetchService::fetch(request, callback).expect("f43ss");
         Ok(Some(fetch_task))
-    }
-
-    fn render_campaign_url(&self) -> Html {
-        if let Some(restored_campaign) = &self.props.restored_element {
-            let mut url = self.tracking_domain.clone();
-            url.set_path(restored_campaign.campaign_id.to_string().as_str());
-            let q_str = restored_campaign.traffic_source.generate_query();
-            url.set_query(if q_str.is_empty() {
-                None
-            } else {
-                Some(q_str.as_str())
-            });
-
-            VNode::from(
-                html! {<div class="uk-margin"><h4>{"Campaign URL"}</h4><input type="text" class="uk-input" value=url.to_string() /></div>},
-            )
-        } else {
-            VNode::from(
-                html! {<div class="uk-margin"><h4>{"Campaign URL"}</h4><p>{"Please Save Campaign to Generate URL"}</p></div>},
-            )
-        }
-    }
-
-    fn generate_campaign_name(
-        &self,
-        country: &str,
-        traffic_sources_name: &str,
-        input_data: Option<InputData>,
-    ) -> String {
-        let mut name = if self.name.is_empty() {
-            format!("{} - {} - ", country, traffic_sources_name)
-        } else {
-            self.name.clone()
-        };
-
-        if let Some(i) = input_data {
-            let minimum_re = Regex::new(r".*?-.*?- ").expect("RE:f43sdf");
-
-            if let Ok(Some(x)) = minimum_re.find(&self.name) {
-                let name_re = Regex::new(r"([^-]*)$").expect("Re:g54se");
-                if let Ok(Some(data)) = name_re.find(&self.name) {
-                    name = self.name.replace(data.as_str().trim(), i.value.as_str());
-                }
-            }
-        } else {
-            let traffic_re = Regex::new(r".*?(?= -)").expect("RE: g534swfdg");
-            let country_re = Regex::new(r"(?<=- ).*(?= -)").expect("RE: gt45w45yh");
-
-            if let Ok(Some(data)) = traffic_re.find(&self.name) {
-                name = self.name.replace(data.as_str(), traffic_sources_name);
-            }
-
-            if let Ok(Some(data)) = country_re.find(&self.name) {
-                name = self.name.replace(data.as_str(), country);
-            }
-        }
-        name
     }
 }

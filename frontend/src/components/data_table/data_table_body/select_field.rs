@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
-use yew_material::MatCheckbox;
 
 pub enum Msg {
     Ignore,

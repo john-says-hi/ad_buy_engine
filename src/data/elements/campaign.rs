@@ -67,3 +67,21 @@ pub struct Campaign {
     pub last_clicked: DateTime<Utc>,
     pub hosts: Vec<Url>,
 }
+
+impl Campaign {
+    pub fn campaign_url(&self, tracking_domain: &Url) -> String {
+        let mut url = tracking_domain.clone();
+        url.set_path(self.campaign_id.to_string().as_str());
+        url.set_query(Some(self.traffic_source.generate_query().as_str()));
+        url.to_string()
+    }
+
+    pub fn campaign_name(&self) -> String {
+        format!(
+            "{} - {} - {}",
+            self.traffic_source.name,
+            self.country.to_string(),
+            self.name
+        )
+    }
+}

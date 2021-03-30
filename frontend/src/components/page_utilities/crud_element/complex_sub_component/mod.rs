@@ -1,3 +1,4 @@
+pub mod campaign_sequence_builder;
 pub mod condition_view;
 pub mod lander_url_generator;
 pub mod lander_url_token_selector;
@@ -6,7 +7,6 @@ pub mod landing_page_selector;
 pub mod lhs_conditional_sequences;
 pub mod lhs_default_sequences;
 pub mod listicle_builder;
-pub mod mini_sequence_builder;
 pub mod offer_selector;
 pub mod offer_url_generator;
 pub mod offer_url_token_selector;
