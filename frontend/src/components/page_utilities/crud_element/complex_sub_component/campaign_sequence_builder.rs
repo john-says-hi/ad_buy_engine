@@ -27,7 +27,7 @@ use yew_services::StorageService;
 
 pub enum Msg {
     UpdateSequenceType(SequenceType),
-    UpdateOffers(Vec<WeightedOffer>),
+    UpdateOffers(Vec<Vec<WeightedOffer>>),
     UpdateLandingPages(Vec<WeightedLandingPage>),
     UpdateSequence(Sequence),
 }
@@ -72,6 +72,7 @@ impl Component for CampaignSequenceBuilder {
 
             Msg::UpdateLandingPages(lps) => {
                 self.sequence.landing_pages = lps;
+                self.equalize_offer_groups();
                 self.props.update_sequence.emit(self.sequence.clone());
             }
 
@@ -108,6 +109,32 @@ impl Component for CampaignSequenceBuilder {
 }
 
 impl CampaignSequenceBuilder {
+    pub fn equalize_offer_groups(&mut self) {
+        let current_len = self.sequence.offers.len();
+        let mut highest_len = current_len;
+
+        self.sequence.landing_pages.iter().map(|s| {
+            if s.landing_page.number_of_calls_to_action as usize > current_len {
+                highest_len = s.landing_page.number_of_calls_to_action as usize;
+            }
+        });
+
+        notify_danger(format!("Current: {} Highest: {}", current_len, highest_len).as_str());
+
+        if current_len < highest_len {
+            let difference_to_add = highest_len - current_len;
+            for new_group in 1..difference_to_add {
+                notify_danger(format!("New Group usize: {}", new_group).as_str());
+                self.sequence.offers.push(vec![])
+            }
+        } else {
+            let difference_to_subtract = current_len - highest_len;
+            for rm_group in (1..difference_to_subtract).rev() {
+                self.sequence.offers.remove(rm_group);
+            }
+        }
+    }
+
     pub fn sequence_type(&self) -> VNode {
         let mut oc = "uk-button uk-button-small".to_string();
         let mut loc = "uk-button uk-button-small".to_string();
