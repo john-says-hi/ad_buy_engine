@@ -11,20 +11,20 @@ use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct WeightedOffer {
-    pub weight: u8,
-    pub offer: Offer,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct WeightedOffer {
+//     pub weight: u8,
+//     pub offer: Offer,
+// }
 
-impl From<Offer> for WeightedOffer {
-    fn from(o: Offer) -> Self {
-        Self {
-            weight: 100,
-            offer: o,
-        }
-    }
-}
+// impl From<Offer> for WeightedOffer {
+//     fn from(o: Offer) -> Self {
+//         Self {
+//             weight: 100,
+//             offer: o,
+//         }
+//     }
+// }
 
 impl FromStr for Offer {
     type Err = AError;
@@ -64,8 +64,15 @@ pub struct Offer {
     pub language: Language,
     pub vertical: Vertical,
     pub notes: String,
+    pub weight: u8,
     pub archived: bool,
     pub last_updated: DateTime<Utc>,
+}
+
+impl PartialEq for Offer {
+    fn eq(&self, other: &Self) -> bool {
+        self.offer_id == other.offer_id
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

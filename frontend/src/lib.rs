@@ -29,6 +29,7 @@ pub mod prelude;
 pub mod utils;
 
 pub use ad_buy_engine;
+pub use ad_buy_engine::traversal;
 
 use yew_router::prelude::*;
 
@@ -44,7 +45,10 @@ use crate::utils::javascript::js_bindings;
 use crate::utils::routes::AppRoute;
 use crate::utils::uikit::NotificationStatus;
 use ad_buy_engine::constant::apis::private::API_GET_ACCOUNT;
-use ad_buy_engine::constant::browser_storage_keys::{SYNC_HISTORY_KEY, USER_ACCOUNT_STATE_KEY};
+use ad_buy_engine::constant::browser_storage_keys::{
+    CAMPAIGNS_KEY, FUNNELS_KEY, LANDING_PAGES_KEY, OFFERS_KEY, OFFER_SOURCES, SYNC_HISTORY_KEY,
+    TRAFFIC_SOURCES_KEY, USER_ACCOUNT_STATE_KEY,
+};
 use ad_buy_engine::data::account::Account;
 use ad_buy_engine::data::sync::SyncHistoryLedger;
 use ad_buy_engine::data::visit::Visit;
@@ -128,6 +132,52 @@ impl Component for RootComponent {
 
                 FetchResponse::ReturnSyncElemResponse(res) => {
                     self.state.borrow().sync_update(res);
+                }
+
+                FetchResponse::ClearCRUDBrowserStorage => {
+                    {
+                        let state = self.state.borrow();
+
+                        let mut local_state = state.offer_sources.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(OFFER_SOURCES);
+
+                        let mut local_state = state.offers.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(OFFERS_KEY);
+
+                        let mut local_state = state.traffic_sources.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(TRAFFIC_SOURCES_KEY);
+
+                        let mut local_state = state.landing_pages.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(LANDING_PAGES_KEY);
+
+                        let mut local_state = state.funnels.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(FUNNELS_KEY);
+
+                        let mut local_state = state.campaigns.borrow_mut();
+                        local_state.clear();
+                        StorageService::new(Area::Local)
+                            .expect("f43sa")
+                            .remove(CAMPAIGNS_KEY);
+                    }
+
+                    let sync_elem_req = self.state.borrow().request_sync_elements();
+                    self.fetch_agent
+                        .send(FetchRequest::SyncElements(sync_elem_req))
                 }
             },
 

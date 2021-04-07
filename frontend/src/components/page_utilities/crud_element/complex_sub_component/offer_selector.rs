@@ -5,7 +5,7 @@ use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::
 use crate::notify_danger;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType};
-use ad_buy_engine::data::elements::offer::{Offer, WeightedOffer};
+use ad_buy_engine::data::elements::offer::Offer;
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
 use ad_buy_engine::Country;
 use std::cell::RefCell;
@@ -29,15 +29,15 @@ pub enum Msg {
 #[derive(Properties, Clone)]
 pub struct Props {
     pub state: STATE,
-    pub eject_selected_offers: Callback<Vec<Vec<WeightedOffer>>>,
-    pub offers: Vec<Vec<WeightedOffer>>,
+    pub eject_selected_offers: Callback<Vec<Vec<Offer>>>,
+    pub offers: Vec<Vec<Offer>>,
 }
 
 pub struct OfferSelector {
     link: ComponentLink<Self>,
     props: Props,
     weight: String,
-    offers: Vec<Vec<WeightedOffer>>,
+    offers: Vec<Vec<Offer>>,
 }
 
 impl Component for OfferSelector {
@@ -107,13 +107,14 @@ impl Component for OfferSelector {
 
 impl OfferSelector {
     pub fn body(&self) -> VNode {
-        VNode::from(
-            self.offers
-                .iter()
-                .enumerate()
-                .map(|(group_idx, _)| self.render_offer_group(group_idx))
-                .collect::<Vec<VNode>>(),
-        )
+        let mut nodes = VList::new();
+
+        self.offers
+            .iter()
+            .enumerate()
+            .map(|(group_idx, _)| nodes.push(self.render_offer_group(group_idx)));
+
+        VNode::from(nodes)
     }
 
     pub fn render_offer_group(&self, group_pos: usize) -> VNode {
@@ -126,8 +127,12 @@ impl OfferSelector {
                     {divider!(2)}
                 }
                 } else {
-                    {divider!(2)}
-                    {label!("p", &group_number)}
+                    html!{
+                    <>
+                        {divider!(2)}
+                        {label!("p", &group_number)}
+                    </>
+                    }
                 }}
             </>
         });
@@ -139,7 +144,7 @@ impl OfferSelector {
             .iter()
             .enumerate()
         {
-            let name = offer.offer.name.clone();
+            let name = offer.name.clone();
             let weight = offer.weight;
             nodes.push(html!{
                                 <>
@@ -154,7 +159,7 @@ impl OfferSelector {
         }
 
         nodes.push(html!{
-            <div>{label!("g", "Select Offer")}<OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(|o:Offer| Msg::Select((group_pos, o))) selected=None /></div>
+            <div>{label!("g", "Select Offer")}<OfferDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(move |o:Offer| Msg::Select((group_pos, o))) selected=None /></div>
         });
 
         VNode::from(nodes)

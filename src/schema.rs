@@ -84,7 +84,6 @@ table! {
     landing_pages (id) {
         id -> Varchar,
         account_id -> Varchar,
-        is_pre_landing_page -> Bool,
         clearance -> Varchar,
         country -> Varchar,
         name -> Varchar,
@@ -95,6 +94,7 @@ table! {
         vertical -> Varchar,
         language -> Varchar,
         notes -> Varchar,
+        weight -> Varchar,
         archived -> Bool,
         last_updated -> Int8,
     }
@@ -144,6 +144,7 @@ table! {
         language -> Varchar,
         vertical -> Varchar,
         notes -> Varchar,
+        weight -> Varchar,
         archived -> Bool,
         last_updated -> Int8,
     }

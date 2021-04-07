@@ -1,6 +1,6 @@
 use crate::appstate::app_state::{AppState, STATE};
 use crate::components::page_utilities::crud_element::complex_sub_component::landing_page_selector::LandingPageSelector;
-use crate::components::page_utilities::crud_element::complex_sub_component::listicle_builder::ListicleBuilder;
+// use crate::components::page_utilities::crud_element::complex_sub_component::listicle_builder::MatrixBuilder;
 use crate::components::page_utilities::crud_element::complex_sub_component::offer_selector::OfferSelector;
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
@@ -9,8 +9,8 @@ use crate::components::page_utilities::crud_element::dropdowns::sequence_type_dr
 use crate::notify_danger;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType};
-use ad_buy_engine::data::elements::landing_page::{LandingPage, WeightedLandingPage};
-use ad_buy_engine::data::elements::offer::WeightedOffer;
+use ad_buy_engine::data::elements::landing_page::LandingPage;
+use ad_buy_engine::data::elements::offer::Offer;
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
 use ad_buy_engine::Country;
 use std::cell::RefCell;
@@ -22,6 +22,11 @@ use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::{VList, VNode};
 
+use crate::components::page_utilities::crud_element::complex_sub_component::matrix_builder::{
+    MatrixBuilder, RootMatrix,
+};
+use ad_buy_engine::data::elements::matrix::MatrixData;
+use either::Either;
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -29,10 +34,11 @@ pub enum Msg {
     UpdateSequenceName(InputData),
     UpdateSequenceReferrerHandling(ReferrerHandling),
     UpdateSequenceType(SequenceType),
-    UpdateOffers(Vec<WeightedOffer>),
-    UpdateLandingPages(Vec<WeightedLandingPage>),
+    UpdateOffers(Vec<Vec<Offer>>),
+    UpdateLandingPages(Vec<LandingPage>),
     UpdateSequence(Sequence),
     OnBlurName,
+    UpdateMatrix(RootMatrix),
 }
 
 #[derive(Properties, Clone)]
@@ -89,17 +95,28 @@ impl Component for RHSSequenceBuilder {
             weight: "".to_string(),
             name,
             sequence_type: SequenceType::OffersOnly,
-            referrer_handling: Default::default(),
+            referrer_handling: ReferrerHandling::RemoveAll,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::UpdateMatrix(root_matrix) => {
+                if let Some(mut sequence) = self.return_active_sequence().cloned() {
+                    let matrix = &*root_matrix.borrow_mut();
+                    sequence.matrix = matrix.clone();
+                    self.props.update_sequence.emit(sequence);
+                } else {
+                    notify_danger("Err: Could not extract active sequence")
+                }
+            }
+
             Msg::UpdateSequence(seq) => self.props.update_sequence.emit(seq),
 
             Msg::UpdateLandingPages(lps) => {
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
-                    sequence.landing_pages = lps;
+                    // sequence.landing_pages = lps; //todo
+                    // sequence.equalize_offer_groups();
                     self.props.update_sequence.emit(sequence);
                 } else {
                     notify_danger("Err: Could not extract active sequence")
@@ -108,7 +125,31 @@ impl Component for RHSSequenceBuilder {
 
             Msg::UpdateOffers(offers) => {
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
-                    sequence.offers = offers;
+                    match sequence.sequence_type {
+                        SequenceType::OffersOnly => {
+                            // sequence.matrix = offers
+                            //     .iter()
+                            //     .flatten()
+                            //     .map(|s| s.clone().into())
+                            //     .collect::<Vec<Matrix>>();
+                        }
+
+                        SequenceType::LandingPageAndOffers => {
+                            // sequence.matrix.iter_mut().map(|s| {
+                            //     s.child_group.iter_mut().enumerate().map(|(idx, s)| {
+                            //         let offer_group = offers
+                            //             .get(idx)
+                            //             .expect("54sdfKKg")
+                            //             .iter()
+                            //             .map(|s| s.clone().into())
+                            //             .collect::<Vec<Matrix>>();
+                            //         *s = offer_group;
+                            //     })
+                            // });
+                        }
+                        _ => {}
+                    }
+
                     self.props.update_sequence.emit(sequence);
                 } else {
                     notify_danger("Err: Could not extract active sequence")
@@ -210,7 +251,7 @@ impl RHSSequenceBuilder {
         match sequence_type {
             SequenceType::OffersOnly => oc.push_str(" uk-button-success"),
             SequenceType::LandingPageAndOffers => loc.push_str(" uk-button-success"),
-            SequenceType::Listicle => lc.push_str(" uk-button-success"),
+            SequenceType::Matrix => lc.push_str(" uk-button-success"),
         }
 
         html! {
@@ -220,7 +261,7 @@ impl RHSSequenceBuilder {
                         <div uk-switcher="">
                             <button class=oc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::OffersOnly))>{"Offers Only"}</button>
                             <button class=loc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::LandingPageAndOffers))>{"Landing Pages & Offers"}</button>
-                            <button class=lc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::Listicle))>{"Listicle"}</button>
+                            <button class=lc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::Matrix))>{"Matrix"}</button>
                         </div>
                     </div>
             </div>
@@ -229,37 +270,51 @@ impl RHSSequenceBuilder {
 
     pub fn render_view(&self) -> VNode {
         if let Some(sequence) = self.return_active_sequence() {
-            // notify_danger(format!("num of offers: {}", sequence.offers.len()).as_str());
-            // notify_danger(format!("num of lps: {}", sequence.landing_pages.len()).as_str());
-            // notify_danger(format!("num of pairs: {}", sequence.listicle_pairs.len()).as_str());
-
             match sequence.sequence_type {
                 SequenceType::OffersOnly => {
-                    let offers = sequence.offers.clone();
+                    let matrix = self
+                        .return_active_sequence()
+                        .cloned()
+                        .expect("G%5467643252")
+                        .matrix;
+                    let local_matrix = Rc::new(matrix.clone());
+                    let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                        <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
 
                 SequenceType::LandingPageAndOffers => {
-                    let offers = sequence.offers.clone();
-                    let landers = sequence.landing_pages.clone();
+                    // let mut offers = vec![vec![]];
+                    // let mut landers = vec![vec![]];
+
+                    // let offers = sequence
+                    //     .matrix
+                    //     .children_groups
+                    //     .iter().map(|s| s.iter().filter(|s| s.value.data == MatrixData::Offer(offer)))
+                    //
+                    // let mut landers = vec![];
+                    // sequence.matrix.iter().map(|s| {
+                    //     if let Either::Left(lp) = s.value.clone() {
+                    //         landers.push(lp);
+                    //     }
+                    // });
 
                     VNode::from(html! {
                     <>
-                        <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
-                        <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                        // <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
+                        // <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
                     </>
                     })
                 }
 
-                SequenceType::Listicle => {
-                    let psp = sequence.pre_landing_page.clone();
-                    let pairs = sequence.listicle_pairs.clone();
+                SequenceType::Matrix => {
+                    // let psp = sequence.pre_landing_page.clone();
+                    // let pairs = sequence.listicle_pairs.clone();
 
                     VNode::from(html! {
-                        <ListicleBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=sequence.clone() />
+                        // <MatrixBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=sequence.clone() />
                     })
                 }
             }

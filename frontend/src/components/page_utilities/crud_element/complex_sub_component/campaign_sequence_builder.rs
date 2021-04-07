@@ -1,6 +1,6 @@
 use crate::appstate::app_state::{AppState, STATE};
 use crate::components::page_utilities::crud_element::complex_sub_component::landing_page_selector::LandingPageSelector;
-use crate::components::page_utilities::crud_element::complex_sub_component::listicle_builder::ListicleBuilder;
+use crate::components::page_utilities::crud_element::complex_sub_component::listicle_builder::MatrixBuilder;
 use crate::components::page_utilities::crud_element::complex_sub_component::offer_selector::OfferSelector;
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
@@ -143,7 +143,7 @@ impl CampaignSequenceBuilder {
         match self.sequence.sequence_type {
             SequenceType::OffersOnly => oc.push_str(" uk-button-success"),
             SequenceType::LandingPageAndOffers => loc.push_str(" uk-button-success"),
-            SequenceType::Listicle => lc.push_str(" uk-button-success"),
+            SequenceType::Matrix => lc.push_str(" uk-button-success"),
         }
 
         html! {
@@ -153,7 +153,7 @@ impl CampaignSequenceBuilder {
                         <div uk-switcher="">
                             <button class=oc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::OffersOnly))>{"Offers Only"}</button>
                             <button class=loc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::LandingPageAndOffers))>{"Landing Pages & Offers"}</button>
-                            <button class=lc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::Listicle))>{"Listicle"}</button>
+                            <button class=lc onclick=callback!(self, |_| Msg::UpdateSequenceType(SequenceType::Matrix))>{"Matrix"}</button>
                         </div>
                     </div>
             </div>
@@ -163,34 +163,34 @@ impl CampaignSequenceBuilder {
     pub fn render_view(&self) -> VNode {
         match self.sequence.sequence_type {
             SequenceType::OffersOnly => {
-                notify_danger("o");
-                let offers = self.sequence.offers.clone();
+                // notify_danger("o");
+                // let offers = self.sequence.offers.clone();
 
                 VNode::from(html! {
-                    <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                    // <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
                 })
             }
 
             SequenceType::LandingPageAndOffers => {
-                notify_danger("lp o");
-                let offers = self.sequence.offers.clone();
-                let landers = self.sequence.landing_pages.clone();
+                // notify_danger("lp o");
+                // let offers = self.sequence.offers.clone();
+                // let landers = self.sequence.landing_pages.clone();
 
                 VNode::from(html! {
                 <>
-                    <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
-                    <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
+                    // <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
+                    // <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
                 </>
                 })
             }
 
-            SequenceType::Listicle => {
-                notify_danger("l");
-                let psp = self.sequence.pre_landing_page.clone();
-                let pairs = self.sequence.listicle_pairs.clone();
+            SequenceType::Matrix => {
+                // notify_danger("l");
+                // let psp = self.sequence.pre_landing_page.clone();
+                // let pairs = self.sequence.listicle_pairs.clone();
 
                 VNode::from(html! {
-                    <ListicleBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=self.sequence.clone() />
+                    // <MatrixBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=self.sequence.clone() />
                 })
             }
         }

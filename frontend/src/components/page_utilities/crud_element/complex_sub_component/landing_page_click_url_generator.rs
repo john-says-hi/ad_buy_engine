@@ -32,7 +32,6 @@ pub struct Props {
     #[prop_or_default]
     pub number_of_ctas: u8,
     pub tracking_domain: Url,
-    pub is_pre_sell: bool,
 }
 
 pub struct LandingPageClickURLGenerator {
@@ -61,11 +60,7 @@ impl Component for LandingPageClickURLGenerator {
 
     fn view(&self) -> Html {
         let mut nodes = VList::new();
-        let tok_ident = if self.props.is_pre_sell {
-            "learn"
-        } else {
-            "extra"
-        };
+        let tok_ident = "extra";
 
         for cta in 0..self.props.number_of_ctas {
             let cta = cta + 1;

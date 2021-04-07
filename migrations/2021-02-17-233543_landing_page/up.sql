@@ -1,7 +1,6 @@
 CREATE TABLE landing_pages (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     account_id VARCHAR(36) NOT NULL,
-    is_pre_landing_page BOOL NOT NULL,
     clearance VARCHAR NOT NULL,
     country VARCHAR NOT NULL,
     name VARCHAR NOT NULL,
@@ -12,6 +11,7 @@ CREATE TABLE landing_pages (
     vertical VARCHAR NOT NULL,
     language VARCHAR NOT NULL,
     notes VARCHAR NOT NULL,
+    weight VARCHAR NOT NULL,
     archived BOOL NOT NULL,
     last_updated BIGINT NOT NULL
 );

@@ -74,7 +74,6 @@ pub enum Msg {
     UpdateUrl(Url),
     UpdateTrackingDomain(Url),
     UpdateNumCTA(InputData),
-    TogglePreSell,
 }
 
 #[derive(Properties, Clone)]
@@ -89,7 +88,6 @@ pub struct CRUDLandingPage {
     pub link: ComponentLink<Self>,
     pub props: Props,
     pub name: String,
-    pub is_pre_landing_page: bool,
     pub country: Country,
     pub tags: Vec<String>,
     pub landing_page_url: Option<Url>,
@@ -120,7 +118,6 @@ impl Component for CRUDLandingPage {
             link,
             props,
             name: "".to_string(),
-            is_pre_landing_page: false,
             country: Country::Global,
             tags: vec![],
             landing_page_url: None,
@@ -150,7 +147,6 @@ impl Component for CRUDLandingPage {
                 }
             }
 
-            Msg::TogglePreSell => self.is_pre_landing_page = !self.is_pre_landing_page,
             Msg::UpdateUrl(url) => self.landing_page_url = Some(url),
             Msg::UpdateTags(tags) => self.tags = tags,
             Msg::UpdateCountry(country) => self.country = country,
@@ -194,7 +190,6 @@ impl Component for CRUDLandingPage {
             self.tags = restored_element.tags.clone();
             self.landing_page_url = Some(restored_element.url.clone());
             self.landing_page_url_tokens = restored_element.url_tokens.clone();
-            self.is_pre_landing_page = restored_element.is_pre_landing_page;
             self.number_of_calls_to_action = restored_element.number_of_calls_to_action.to_string();
         } else {
             self.name = "".to_string();
@@ -202,7 +197,6 @@ impl Component for CRUDLandingPage {
             self.tags = vec![];
             self.landing_page_url = None;
             self.landing_page_url_tokens = vec![];
-            self.is_pre_landing_page = false;
             self.number_of_calls_to_action = 1.to_string();
         }
 
@@ -239,20 +233,6 @@ impl Component for CRUDLandingPage {
 
                         <TagsSelector tags=&self.tags eject=self.link.callback(Msg::UpdateTags) />
 
-                        <div class="uk-margin uk-margin-bottom-large">
-                            {
-                                if self.is_pre_landing_page {
-                            VNode::from(
-                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Pre-Lander "}</label><label><input class="uk-radio" type="radio" name="radio2" onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Lander"}</label></>},
-                            )
-                        } else {
-                            VNode::from(
-                                html! {<><label><input class="uk-radio uk-margin-right-small" type="radio" name="radio2"  onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Pre-Lander "}</label><label><input class="uk-radio" type="radio" name="radio2" checked=true onclick=self.link.callback(|_|Msg::TogglePreSell) />{" Lander"}</label></>},
-                            )
-                        }
-                            }
-                        </div>
-
                         <LanderUrlGenerator url_tokens=&self.landing_page_url_tokens offer_url=&self.landing_page_url eject=self.link.callback(Msg::UpdateUrl) />
 
                         <LanderURLTokenSelector selected=&self.landing_page_url_tokens eject=self.link.callback(Msg::UpdateDataURLTokens) />
@@ -261,7 +241,7 @@ impl Component for CRUDLandingPage {
 
                         <TrackingDomainDropdown state=Rc::clone(&self.props.state) callback=self.link.callback(Msg::UpdateTrackingDomain) />
 
-                        <LandingPageClickURLGenerator number_of_ctas=ctas tracking_domain=&self.tracking_domain is_pre_sell=&self.is_pre_landing_page />
+                        <LandingPageClickURLGenerator number_of_ctas=ctas tracking_domain=&self.tracking_domain  />
 
                         <div class="uk-margin">
                             {label!("Notes")}
@@ -304,11 +284,11 @@ impl CRUDLandingPage {
                     language: Language::Any,
                     clearance: Clearance::Everyone,
                     notes: self.notes.clone(),
+                    weight: 100,
                     archived: false,
                     last_updated: Utc::now(),
                     country: self.country.clone(),
                     vertical: Vertical::Many,
-                    is_pre_landing_page: self.is_pre_landing_page,
                     number_of_calls_to_action: num,
                 }))
             } else {
@@ -335,11 +315,11 @@ impl CRUDLandingPage {
                     language: Language::Any,
                     clearance: Clearance::Everyone,
                     notes: self.notes.clone(),
+                    weight: 100,
                     archived: false,
                     last_updated: Utc::now(),
                     country: self.country.clone(),
                     vertical: Vertical::Many,
-                    is_pre_landing_page: self.is_pre_landing_page,
                     number_of_calls_to_action: num,
                 })])
             };

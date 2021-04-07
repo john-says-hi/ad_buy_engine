@@ -77,7 +77,7 @@ use fancy_regex::Regex;
 use crate::components::page_utilities::crud_element::dropdowns::traffic_source_dropdown::TrafficSourceDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::cost_model_dropdown::CostModelDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::funnel_dropdown::FunnelDropdown;
-use crate::components::page_utilities::crud_element::complex_sub_component::campaign_sequence_builder::CampaignSequenceBuilder;
+// use crate::components::page_utilities::crud_element::complex_sub_component::campaign_sequence_builder::CampaignSequenceBuilder;
 use ad_buy_engine::constant::COLOR_GRAY;
 // use crate::components::page_utilities::crud_element::complex_sub_component::mini_sequence_builder::MiniRHSSequenceBuilder;
 
@@ -476,7 +476,7 @@ impl CRUDCampaign {
             }
 
             CampaignDestinationType::Sequence => VNode::from(html! {
-            <CampaignSequenceBuilder state=rc!(self.props.state) restored_sequence=self.sequence.clone() update_sequence=callback!(self, |seq:Sequence| Msg::UpdateSequence(seq)) />
+            // <CampaignSequenceBuilder state=rc!(self.props.state) restored_sequence=self.sequence.clone() update_sequence=callback!(self, |seq:Sequence| Msg::UpdateSequence(seq)) />
             }),
         }
     }

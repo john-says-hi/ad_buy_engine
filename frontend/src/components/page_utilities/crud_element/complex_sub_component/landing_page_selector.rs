@@ -6,8 +6,8 @@ use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::
 use crate::notify_danger;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType};
-use ad_buy_engine::data::elements::landing_page::{LandingPage, WeightedLandingPage};
-use ad_buy_engine::data::elements::offer::{Offer, WeightedOffer};
+use ad_buy_engine::data::elements::landing_page::LandingPage;
+use ad_buy_engine::data::elements::offer::Offer;
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
 use ad_buy_engine::Country;
 use std::cell::RefCell;
@@ -30,15 +30,15 @@ pub enum Msg {
 #[derive(Properties, Clone)]
 pub struct Props {
     pub state: STATE,
-    pub eject_selected_landing_pages: Callback<Vec<WeightedLandingPage>>,
-    pub landers: Vec<WeightedLandingPage>,
+    pub eject_selected_landing_pages: Callback<Vec<LandingPage>>,
+    pub landers: Vec<LandingPage>,
 }
 
 pub struct LandingPageSelector {
     link: ComponentLink<Self>,
     props: Props,
     weight: String,
-    landing_pages: Vec<WeightedLandingPage>,
+    landing_pages: Vec<LandingPage>,
 }
 
 impl Component for LandingPageSelector {
@@ -70,10 +70,7 @@ impl Component for LandingPageSelector {
             }
 
             Msg::Select(landing_page) => {
-                self.landing_pages.push(WeightedLandingPage {
-                    weight: 100,
-                    landing_page,
-                });
+                self.landing_pages.push(landing_page);
                 self.props
                     .eject_selected_landing_pages
                     .emit(self.landing_pages.clone());
@@ -116,9 +113,9 @@ impl LandingPageSelector {
         let mut nodes = VList::new();
 
         for (idx, landing_page) in self.landing_pages.iter().enumerate() {
-            let name = landing_page.landing_page.name.clone();
+            let name = landing_page.name.clone();
             let weight = landing_page.weight;
-            let num_of_offers_on_lp = landing_page.landing_page.number_of_calls_to_action;
+            let num_of_offers_on_lp = landing_page.number_of_calls_to_action;
 
             nodes.push(html!{
                                 <>

@@ -72,6 +72,7 @@ use crate::components::page_utilities::crud_element::complex_sub_component::lhs_
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view::RHSFunnelView;
 use ad_buy_engine::data::lists::condition::Condition;
 use ad_buy_engine::constant::{COLOR_BLUE, COLOR_GRAY};
+use ad_buy_engine::data::elements::matrix::Matrix;
 
 pub enum Msg {
     Ignore,
@@ -363,10 +364,7 @@ impl Component for CRUDFunnel {
                                     sequence_type: SequenceType::OffersOnly,
                                     redirect_option: RedirectOption::Redirect,
                                     referrer_handling: ReferrerHandling::DoNothing,
-                                    pre_landing_page: None,
-                                    listicle_pairs: vec![],
-                                    landing_pages: vec![],
-                                    offers: vec![],
+                                    matrix: Matrix::source(),
                                     weight_optimization_active: false,
                                     sequence_is_active: true,
                                 })
@@ -385,10 +383,7 @@ impl Component for CRUDFunnel {
                             sequence_type: SequenceType::OffersOnly,
                             redirect_option: RedirectOption::Redirect,
                             referrer_handling: ReferrerHandling::DoNothing,
-                            pre_landing_page: None,
-                            listicle_pairs: vec![],
-                            landing_pages: vec![],
-                            offers: vec![],
+                            matrix: Matrix::source(),
                             weight_optimization_active: false,
                             sequence_is_active: true,
                         });
@@ -498,7 +493,7 @@ impl Component for CRUDFunnel {
 
         html! {
         <div id="funnels" class="uk-flex-top uk-modal-container" uk-modal="bg-close:false;">
-           <div class="uk-modal-dialog uk-margin-auto-vertical">
+           <div class="uk-modal-dialog uk-margin-auto-vertical uk-width-auto">
               <button class="uk-modal-close-default" type="button" uk-close=""></button>
               <div class="uk-modal-header">
                  <h2 class="uk-modal-title uk-text-center">{modal_title}</h2>
@@ -507,25 +502,23 @@ impl Component for CRUDFunnel {
 
                    <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2 uk-grid-divider uk-grid-row-collapse uk-flex uk-flex-top" uk-grid="">
 
-                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1">
-
+                        <div class="uk-margin uk-child-width-auto">
                             <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel))  uk-grid="" >
                                 <div class="uk-width-expand"><h2>{format!("{} - {}", self.country.to_string(), &self.funnel_name)} </h2></div>
                                 <div class="uk-flex-right">{funnel_name_icon}</div>
                             </div>
-
                             <div class="uk-margin-top-large uk-margin-bottom-large uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
                                 <LHSConditionalSequence active_element=&self.active_element conditional_sequences=&self.conditional_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
                             </div>
-
                             <div class="uk-margin-top-large uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
                                 <LHSDefaultSequences active_element=&self.active_element default_sequences=&self.default_sequences create_sequence=self.link.callback(Msg::CreateSequence) set_active_element=self.link.callback(Msg::SetActiveElement) remove_sequence=self.link.callback(Msg::RemoveSequence) update_weight=self.link.callback(Msg::UpdateWeight) toggle_sequence_active=self.link.callback(Msg::ToggleSequenceActive) />
                              </div>
-
                         </div>
 
-                        <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-                            <RHSFunnelView state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
+                        <div class="uk-margin uk-child-width-expand">
+                            <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
+                                <RHSFunnelView state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
+                            </div>
                         </div>
 
                    </div>

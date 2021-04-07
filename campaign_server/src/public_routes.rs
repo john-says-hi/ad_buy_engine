@@ -11,7 +11,6 @@ use crate::api::{
 };
 use crate::management::api::debug;
 use crate::management::api::email::get_email_list;
-use crate::management::api::reset_users_accounts_emls;
 use crate::utils::middleware::auth::Auth as AuthMiddleware;
 use crate::utils::middleware::click_processor::ClickProcessor;
 use actix_files::Files;

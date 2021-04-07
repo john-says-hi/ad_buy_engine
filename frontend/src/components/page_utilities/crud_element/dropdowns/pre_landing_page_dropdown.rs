@@ -67,7 +67,7 @@ impl Component for PreLandingPageDropdown {
 
         let plps = self.props.state.borrow().landing_pages.borrow().clone();
 
-        for item in plps.iter().cloned().filter(|s| s.is_pre_landing_page) {
+        for item in plps.iter().cloned() {
             let name = item.name.clone();
             options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(item.clone())) >{name}</option>});
         }

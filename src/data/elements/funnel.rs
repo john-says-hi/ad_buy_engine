@@ -1,6 +1,7 @@
+use crate::data::elements::campaign::CampaignDestinationType;
 use crate::data::elements::landing_page::LandingPage;
-use crate::data::elements::landing_page::WeightedLandingPage;
-use crate::data::elements::offer::{Offer, WeightedOffer};
+use crate::data::elements::matrix::Matrix;
+use crate::data::elements::offer::Offer;
 use crate::data::lists::click_transition_method::RedirectOption;
 use crate::data::lists::condition::Condition;
 use crate::data::lists::referrer_handling::ReferrerHandling;
@@ -8,10 +9,11 @@ use crate::data::lists::{DataURLToken, Language, Vertical};
 use crate::data::work_space::{Clearance, WorkSpace};
 use crate::{AError, Country};
 use chrono::{DateTime, NaiveDateTime, Utc};
-use strum::IntoEnumIterator;
-
-use crate::data::elements::campaign::CampaignDestinationType;
+use either::Either;
 use std::str::FromStr;
+use strum::IntoEnumIterator;
+use traversal;
+use traversal::DftLongestPaths;
 use url::Url;
 use uuid::Uuid;
 
@@ -55,8 +57,8 @@ pub enum SequenceType {
     OffersOnly,
     #[strum(serialize = "Landing Pages & Offers")]
     LandingPageAndOffers,
-    #[strum(serialize = "Listicle")]
-    Listicle,
+    #[strum(serialize = "Matrix")]
+    Matrix,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -68,6 +70,9 @@ pub struct ConditionalSequence {
     pub conditional_sequence_is_active: bool,
 }
 
+// pub type OfferGroup = Vec<Offer>;
+// pub type OfferGroups = Vec<OfferGroup>;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Sequence {
     pub id: Uuid,
@@ -76,12 +81,77 @@ pub struct Sequence {
     pub sequence_type: SequenceType,
     pub redirect_option: RedirectOption,
     pub referrer_handling: ReferrerHandling,
-    pub pre_landing_page: Option<LandingPage>,
-    pub listicle_pairs: Vec<ListiclePair>,
-    pub landing_pages: Vec<WeightedLandingPage>,
-    pub offers: Vec<Vec<WeightedOffer>>,
+    pub matrix: Matrix,
     pub weight_optimization_active: bool,
     pub sequence_is_active: bool,
+}
+
+impl Sequence {
+    // pub fn equalize_landing_page_groups_for_pre_landing_page(&mut self) {
+    //     let current_len = self.landing_pages.len();
+    //     let highest_len = self.highest_cta_in_pre_landing_page_group();
+    //
+    //     if current_len < highest_len {
+    //         let difference_to_add = highest_len - current_len;
+    //         for new_group in 1..difference_to_add {
+    //             self.landing_pages.push(vec![])
+    //         }
+    //     } else {
+    //         let difference_to_subtract = current_len - highest_len;
+    //         for rm_group in (1..difference_to_subtract).rev() {
+    //             self.landing_pages.remove(rm_group);
+    //         }
+    //     }
+    // }
+    //
+    // pub fn equalize_offer_groups_for_landing_page_group(&mut self, group_pos: usize) {
+    //     let current_len = self.offers.get(group_pos).expect("%Gsdfg").len();
+    //
+    //     let highest_len = self.highest_cta_in_landing_page_group(group_pos);
+    //
+    //     if current_len < highest_len {
+    //         let difference_to_add = highest_len - current_len;
+    //         for new_group in 1..difference_to_add {
+    //             self.offers.get(group_pos).expect("34t").push(vec![]);
+    //         }
+    //     } else {
+    //         let difference_to_subtract = current_len - highest_len;
+    //         for rm_group in (1..difference_to_subtract).rev() {
+    //             self.offers
+    //                 .get(group_pos)
+    //                 .expect("G$%sdfgg")
+    //                 .remove(rm_group);
+    //         }
+    //     }
+    // }
+    //
+    // pub fn highest_cta_in_landing_page_group(&mut self, landing_page_group_pos: usize) -> usize {
+    //     let mut start = 0usize;
+    //
+    //     self.landing_pages
+    //         .get(landing_page_group_pos)
+    //         .expect("G%sdf")
+    //         .iter()
+    //         .map(|s| {
+    //             if s.landing_page.number_of_calls_to_action as usize > start {
+    //                 start = s.landing_page.number_of_calls_to_action as usize;
+    //             }
+    //         });
+    //
+    //     start
+    // }
+    //
+    // pub fn highest_cta_in_pre_landing_page_group(&mut self) -> usize {
+    //     let mut start = 0usize;
+    //
+    //     self.pre_landing_page.iter().map(|s| {
+    //         if s.landing_page.number_of_calls_to_action as usize > start {
+    //             start = s.landing_page.number_of_calls_to_action as usize;
+    //         }
+    //     });
+    //
+    //     start
+    // }
 }
 
 impl Default for Sequence {
@@ -93,18 +163,9 @@ impl Default for Sequence {
             sequence_type: SequenceType::OffersOnly,
             redirect_option: RedirectOption::Redirect,
             referrer_handling: ReferrerHandling::DoNothing,
-            pre_landing_page: None,
-            listicle_pairs: vec![],
-            landing_pages: vec![],
-            offers: vec![vec![]],
+            matrix: Matrix::source(),
             weight_optimization_active: false,
             sequence_is_active: false,
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ListiclePair {
-    pub landing_page: LandingPage,
-    pub offer: Vec<Offer>,
 }
