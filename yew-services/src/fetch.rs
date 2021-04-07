@@ -419,7 +419,7 @@ where
 
     async fn fetch_data_impl(&self, promise: Promise) -> Result<(DATA, WebResponse), Error> {
         let response = self.get_response(promise).await?;
-        let data = self.get_data(&response).await?;
+        let data = self.data(&response).await?;
         Ok((data, response))
     }
 
@@ -458,7 +458,7 @@ where
         }
     }
 
-    async fn get_data(&self, response: &WebResponse) -> Result<DATA, FetchError> {
+    async fn data(&self, response: &WebResponse) -> Result<DATA, FetchError> {
         let data_promise = if self.binary {
             response.array_buffer()
         } else {
