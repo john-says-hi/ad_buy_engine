@@ -8,6 +8,8 @@
 #![allow(non_camel_case_types)]
 
 #[macro_use]
+extern crate ndarray;
+#[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate educe;
@@ -51,6 +53,7 @@ pub use crate::data::iso_language::{LanguageCode, ParseError as ISOLangParseErro
 use boyer_moore_magiclen::BMByte;
 use either::Either;
 pub use ipnet;
+pub use traversal;
 use uuid::Uuid;
 use weighted_rs::{SmoothWeight, Weight};
 

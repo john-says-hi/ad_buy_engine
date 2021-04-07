@@ -12,6 +12,12 @@ use std::string::ToString;
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+pub struct PrimalWhiteListedPostbackIPs {
+    pub ips: [IpAddr; 32],
+    pub ip_nets: [IpNet; 32],
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct WhiteListedPostbackIPs {
     pub ips: Vec<IpAddr>,
@@ -37,6 +43,17 @@ pub struct ConversionCapConfig {
     pub match_language: bool,
     pub match_vertical: bool,
 }
+
+// #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+// pub struct PrimalConversionCapConfig<'a> {
+//     pub daily_cap: u32,
+//     pub time_zone: TimeZone,
+//     pub redirect_offer: [&'a PrimalOffer; 32],
+//     pub auto_send_to_top_performing_offer: bool,
+//     pub match_county: bool,
+//     pub match_language: bool,
+//     pub match_vertical: bool,
+// }
 
 impl Default for ConversionCapConfig {
     fn default() -> Self {
@@ -84,6 +101,14 @@ pub struct ManualPayoutConfig {
     geo_specific_payouts: Vec<ManualGeoPayoutProfile>,
 }
 
+// #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+// pub struct PrimalManualPayoutConfig {
+//     default_currency: Currency,
+//     is_goe_specific: bool,
+//     default_payout: Decimal,
+//     geo_specific_payouts: [ManualGeoPayoutProfile; 32],
+// }
+
 impl Default for ManualPayoutConfig {
     fn default() -> Self {
         Self {
@@ -95,7 +120,7 @@ impl Default for ManualPayoutConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct ManualGeoPayoutProfile {
     country: Country,
     payout: Decimal,

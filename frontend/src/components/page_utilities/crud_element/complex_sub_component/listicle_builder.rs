@@ -5,7 +5,7 @@ use crate::components::page_utilities::crud_element::dropdowns::landing_page_dro
 use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::OfferDropdown;
 use crate::{notify_danger, notify_warning, notify_primary, notify_debug};
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
-use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType, ListiclePair};
+use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType, MatrixPair};
 use ad_buy_engine::data::elements::landing_page::{LandingPage, WeightedLandingPage};
 use ad_buy_engine::data::elements::offer::{Offer, WeightedOffer};
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
@@ -27,51 +27,53 @@ pub struct Props {
     pub state: STATE,
     pub eject_listicle: Callback<Sequence>,
     pub active_sequence: Sequence,
-    pub psp:Option<LandingPage>,
-    pub pairs: Vec<ListiclePair>,
+    pub psp:Vec<WeightedLandingPage>,
+    pub landing_pages:Vec<Vec<WeightedLandingPage>>,
+    pub offers: Vec<Vec<WeightedOffer>>,
+    // pub pairs: Vec<MatrixPair>,
 }
 
-#[derive(Copy, Clone)]
-pub struct OfferPosition {
-    pub     landing_page_group_index: usize,
-    pub index_in_landing_page: usize,
-}
+// #[derive(Copy, Clone)]
+// pub struct OfferPosition {
+//     pub     landing_page_group_index: usize,
+//     pub index_in_landing_page: usize,
+// }
 
 
-pub struct OfferGrouping {
-    pub     landing_page_group_index: usize,
-    pub index_in_landing_page: usize,
-    pub offer: Offer,
-}
+// pub struct OfferGrouping {
+//     pub     landing_page_group_index: usize,
+//     pub index_in_landing_page: usize,
+//     pub offer: Offer,
+// }
 
-pub struct LandingPageGrouping {
-    pub group_index: usize,
-    pub landing_page: LandingPage,
-}
+// pub struct LandingPageGrouping {
+//     pub group_index: usize,
+//     pub landing_page: LandingPage,
+// }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct OptionalPair {
-    pub landing_page: Option<LandingPage>,
-    pub offer: Vec<Option<Offer>>,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct OptionalPair {
+//     pub landing_page: Option<LandingPage>,
+//     pub offer: Vec<Option<Offer>>,
+// }
 
-impl From<OptionalPair> for ListiclePair {
-    fn from(optional_pair:OptionalPair)->Self{
-        Self{
-            landing_page:optional_pair.landing_page.expect("g534s"),
-            offer:optional_pair.offer.iter().map(|s| s.clone().expect("Gr34s")).collect::<Vec<Offer>>(),
-        }
-    }
-}
+// impl From<OptionalPair> for MatrixPair {
+//     fn from(optional_pair:OptionalPair)->Self{
+//         Self{
+//             landing_page:optional_pair.landing_page.expect("g534s"),
+//             offer:optional_pair.offer.iter().map(|s| s.clone().expect("Gr34s")).collect::<Vec<Offer>>(),
+//         }
+//     }
+// }
 
-impl From<ListiclePair> for OptionalPair {
-    fn from(lp:ListiclePair)->Self{
-        Self{
-            landing_page:Some(lp.landing_page),
-            offer: lp.offer.iter().map(|s| Some(s.clone())).collect::<Vec<Option<Offer>>>(),
-        }
-    }
-}
+// impl From<MatrixPair> for OptionalPair {
+//     fn from(lp:MatrixPair)->Self{
+//         Self{
+//             landing_page:Some(lp.landing_page),
+//             offer: lp.offer.iter().map(|s| Some(s.clone())).collect::<Vec<Option<Offer>>>(),
+//         }
+//     }
+// }
 
 pub enum Msg {
     Submit,
@@ -81,14 +83,16 @@ pub enum Msg {
     RemoveOffer(OfferPosition),
 }
 
-pub struct ListicleBuilder {
+pub struct MatrixBuilder {
     link: ComponentLink<Self>,
     props: Props,
-    pre_landing_page:Option<LandingPage>,
-    pairs: Vec<OptionalPair>,
+    pre_landing_page:Vec<WeightedLandingPage>,
+    landing_pages: Vec<Vec<WeightedLandingPage>>,
+    offers: Vec<Vec<WeightedOffer>>,
+    // pairs: Vec<OptionalPair>,
 }
 
-impl Component for ListicleBuilder {
+impl Component for MatrixBuilder {
     type Message = Msg;
     type Properties = Props;
 
@@ -111,7 +115,7 @@ impl Component for ListicleBuilder {
                 if self.all_fields_filled_out() {
                     let mut new_seq = self.props.active_sequence.clone();
                         new_seq.pre_landing_page = self.pre_landing_page.clone();
-                        new_seq.listicle_pairs = self.pairs.iter().map(|s| s.clone().into()).collect::<Vec<ListiclePair>>();
+                        new_seq.listicle_pairs = self.pairs.iter().map(|s| s.clone().into()).collect::<Vec<MatrixPair>>();
                     
                     notify_primary("Saved!");
                     self.props.eject_listicle.emit(new_seq);
@@ -178,7 +182,7 @@ impl Component for ListicleBuilder {
         html! {
         <>
                                 <div class="uk-margin-top uk-margin-bottom-remove">
-                                    {label!("o", "Listicle Setup")}
+                                    {label!("o", "Matrix Setup")}
                                 </div>
                                 {divider!(2)}
 
@@ -188,7 +192,7 @@ impl Component for ListicleBuilder {
     }
 }
 
-impl ListicleBuilder {
+impl MatrixBuilder {
     pub fn render_pre_lander(&self) -> VNode {
     
         let node = if let Some(pre_lander)= &self.pre_landing_page {
@@ -196,7 +200,7 @@ impl ListicleBuilder {
             <>
                                 <div>{label!("g", "Select Pre Landing Page")}<PreLandingPageDropdown state=Rc::clone(&self.props.state) eject=self.link.callback(Msg::SelectPreLandingPage) selected=Some(pre_lander.clone()) /></div>
                                 {divider!()}
-                                {self.render_lander_groups()}
+                                {self.render_lander_pairs()}
             </>
             }
         } else {
@@ -232,7 +236,7 @@ impl ListicleBuilder {
         }
     }
     
-    pub fn render_lander_groups(&self) -> VNode {
+    pub fn render_lander_pairs(&self) -> VNode {
         let mut nodes =VList::new();
     
         let pre_lander = self.pre_landing_page.clone().unwrap();
@@ -252,10 +256,6 @@ impl ListicleBuilder {
                             <div class="uk-margin-small">
                                 {label!("g", format!("Offer {} of {}", offer_pos_in_lander+1,num_of_offers))}
                                 {self.offer_or_drop(option_offer, group_idx, offer_pos_in_lander)}
-                                // <OfferDropdown
-                                // state=Rc::clone(&self.props.state)
-                                // eject=self.link.callback(move |offer:Offer| Msg::SelectOffer(OfferGrouping{landing_page_group_index: group_idx, index_in_landing_page: offer_pos_in_lander, offer}))
-                                // selected=option_offer.clone() />
                             </div>
                         })
                 }

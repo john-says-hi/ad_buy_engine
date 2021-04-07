@@ -17,6 +17,7 @@ CREATE TABLE offers (
     language VARCHAR NOT NULL,
     vertical VARCHAR NOT NULL,
     notes VARCHAR NOT NULL,
+    weight VARCHAR NOT NULL,
     archived BOOL NOT NULL,
     last_updated BIGINT NOT NULL
 );

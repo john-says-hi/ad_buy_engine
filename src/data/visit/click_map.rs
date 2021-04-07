@@ -149,7 +149,7 @@ pub enum ClickMap {
 //                     }
 //                     Either::Right(b) => {
 //                         //MV
-//                         // let mut sw:SmoothWeight<&MultiVectorPath>
+//                         // let mut sw:SmoothWeight<&MatrixPath>
 //                         Err(anyhow::Error::msg("mv not setup"))
 //                     }
 //                 }
