@@ -31,7 +31,6 @@ pub struct MatrixValue {
     pub group_idx: usize,
     pub item_idx: usize,
     pub depth: usize,
-    pub flat_idx: usize,
     pub data: MatrixData,
 }
 
@@ -39,7 +38,6 @@ pub struct MatrixValue {
 pub enum MatrixData {
     Offer(Offer),
     LandingPage(LandingPage),
-    // Matrix(Matrix),
     Source,
     Void,
 }
@@ -310,7 +308,6 @@ impl Matrix {
                 group_idx: 0,
                 item_idx: 0,
                 depth: 0,
-                flat_idx: 0,
                 data: MatrixData::Source,
             },
         };
@@ -323,6 +320,17 @@ impl Matrix {
 
         matrix.children_groups.get_mut(0).map(|s| s.push(child));
         matrix
+    }
+
+    pub fn transform_void(&mut self, new: VoidFiller) {
+        match new {
+            VoidFiller::Offer(o) => self.value.data = MatrixData::Offer(o),
+            VoidFiller::Lander(lp) => {
+                let ctas = lp.number_of_calls_to_action;
+                self.value.data = MatrixData::LandingPage(lp);
+                self.root_synchronize_landing_page_child_groups()
+            }
+        }
     }
 
     pub fn void(
@@ -346,7 +354,10 @@ impl Matrix {
         }
     }
 }
-
+pub enum VoidFiller {
+    Offer(Offer),
+    Lander(LandingPage),
+}
 // impl From<Offer> for Matrix {
 //     fn from(o: Offer) -> Self {
 //         Self {
