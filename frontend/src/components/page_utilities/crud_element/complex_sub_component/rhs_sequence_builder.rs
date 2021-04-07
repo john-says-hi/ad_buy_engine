@@ -286,35 +286,30 @@ impl RHSSequenceBuilder {
                 }
 
                 SequenceType::LandingPageAndOffers => {
-                    // let mut offers = vec![vec![]];
-                    // let mut landers = vec![vec![]];
-
-                    // let offers = sequence
-                    //     .matrix
-                    //     .children_groups
-                    //     .iter().map(|s| s.iter().filter(|s| s.value.data == MatrixData::Offer(offer)))
-                    //
-                    // let mut landers = vec![];
-                    // sequence.matrix.iter().map(|s| {
-                    //     if let Either::Left(lp) = s.value.clone() {
-                    //         landers.push(lp);
-                    //     }
-                    // });
+                    let matrix = self
+                        .return_active_sequence()
+                        .cloned()
+                        .expect("G%5467643252")
+                        .matrix;
+                    let local_matrix = Rc::new(matrix.clone());
+                    let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                    <>
-                        // <LandingPageSelector landers=landers state=Rc::clone(&self.props.state) eject_selected_landing_pages=self.link.callback(Msg::UpdateLandingPages) />
-                        // <OfferSelector offers=offers state=Rc::clone(&self.props.state) eject_selected_offers=self.link.callback(Msg::UpdateOffers) />
-                    </>
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
 
                 SequenceType::Matrix => {
-                    // let psp = sequence.pre_landing_page.clone();
-                    // let pairs = sequence.listicle_pairs.clone();
+                    let matrix = self
+                        .return_active_sequence()
+                        .cloned()
+                        .expect("G%5467643252")
+                        .matrix;
+                    let local_matrix = Rc::new(matrix.clone());
+                    let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                        // <MatrixBuilder psp=psp pairs=pairs state=Rc::clone(&self.props.state) eject_listicle=self.link.callback(Msg::UpdateSequence) active_sequence=sequence.clone() />
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
             }

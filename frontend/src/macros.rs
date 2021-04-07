@@ -79,3 +79,10 @@ macro_rules! rc {
         Rc::clone(&$data)
     }};
 }
+
+#[macro_export]
+macro_rules! new_string {
+    ($data:expr) => {{
+        String::from(&$data)
+    }};
+}

@@ -9,19 +9,21 @@ use ad_buy_engine::data::elements::funnel::SequenceType;
 use ad_buy_engine::data::elements::matrix::{Matrix, MatrixData};
 use std::cell::RefCell;
 use std::rc::Rc;
-use web_sys::Element;
+use web_sys::{Element, set_cross_origin};
 use yew::format::Json;
 use yew::html::Scope;
 use yew::prelude::*;
-use yew::virtual_dom::VNode;
+use yew::virtual_dom::{VNode, VList};
 use yew_services::storage::Area;
 use yew_services::StorageService;
+use serde::de::Unexpected::Seq;
 
 pub type RootMatrix = Rc<RefCell<Matrix>>;
 
 pub enum Msg {
-    RemoveItem(Matrix),
-    AddItem(Matrix),
+    UpdateMatrix(RootMatrix),
+    RemoveChild(Rc<Matrix>),// match seq type to control dynamic child group dropdown/>?
+    AddChild(Rc<Matrix>, usize), // here too
     Ignore,
 }
 
@@ -55,9 +57,13 @@ impl Component for MatrixBuilder {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::RemoveItem(rm) => {
-                let mut porthole = Rc::clone(&self.props.root_matrix);
+            Msg::RemoveChild(rm) => {
             }
+            
+            Msg::AddChild(parent_node, group_pos)=>{
+            
+            }
+            
             Msg::Ignore => {}
             _ => {}
         }
@@ -89,23 +95,45 @@ impl Component for MatrixBuilder {
 
 impl MatrixBuilder {
     pub fn table_body(&self) -> VNode {
-        match (self.props.seq_type, self.props.local_matrix.get_data()) {
+        match (self.props.seq_type, self.props.local_matrix.data()) {
             /// add depth to body of lps offers and child comps below parrent && add to header too, matrix only tho!
-            (SequenceType::OffersOnly, MatrixData::Offer(offer)) => VNode::from(html! {
+            (SequenceType::OffersOnly, MatrixData::Source) => {
+                let offer_children = self.props.local_matrix.children_groups.get(0).unwrap();
+                let mut offer_children_nodes = VList::new();
+                self.props.
+                for child in offer_children {
+                    offer_children_nodes.push(html!{
+                        <MatrixBuilder root_matrix=rc!(self.props.root_matrix) local_matrix=rc!(self.props.local_matrix) state=rc!(self.props.state) seq_type=SequenceType::OffersOnly transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::clone(&self.props.sequence_builder_link) />
+                    })
+                }
+                
+                VNode::from(html! {
                     <tbody>
                         <tr>
                             <td class="uk-text-truncate">{format!("{}", &offer.name)}</td>
                             <td class="uk-text-nowrap">{"Lorem ipsum dolor"}</td>
                         </tr>
                     </tbody>
-            }),
+            })
+            },
+            
+            (SequenceType::OffersOnly, MatrixData::Offer(offer)) => {
+                VNode::from(html! {
+                    // <tbody>
+                        <tr>
+                            <td class="uk-text-truncate">{format!("{}", &offer.name)}</td>
+                            <td class="uk-text-nowrap">{"Lorem ipsum dolor"}</td>
+                        </tr>
+                    // </tbody>
+            })
+            },
 
             _ => VNode::from(html! {}),
         }
     }
 
     pub fn table_head(&self) -> VNode {
-        match (self.props.seq_type, self.props.local_matrix.get_data()) {
+        match (self.props.seq_type, self.props.local_matrix.data()) {
             (SequenceType::OffersOnly, MatrixData::Source) => VNode::from(html! {
                 <thead>
                     <tr>
@@ -153,36 +181,88 @@ impl MatrixBuilder {
         }
     }
 
-    pub fn remove_child(&self, target: Rc<Matrix>) -> Result<Matrix, String> {
-        if let Some(parent_node) = target.get_parent_node() {
-            let target_depth = parent_node.depth;
-            let target_id = parent_node.id.as_ref();
-            let group_index = target.group_idx();
-            let item_index = target.item_idx();
-            let mut root = self.props.root_matrix.borrow_mut();
-
-            let parent_node = Matrix::search_next_depth(
-                root.children_groups.iter_mut().flatten(),
-                target_id,
-                target_depth,
-            );
-            match parent_node {
-                Ok(parent) => {
-                    if let Some(group) = parent.children_groups.get_mut(group_index) {
-                        Ok(group.remove(item_index))
-                    } else {
-                        Err("Invalid gp idx".to_string())
-                    }
-                }
-                Err(e) => Err(e),
+    pub fn remove_child(&self, matrix_child_target: Option<Rc<Matrix>>, landing_page_source_child_target: Option<Matrix>, offer_source_child_target: Option<Matrix>) -> Result<Matrix, String> {
+        match self.props.seq_type {
+        SequenceType::Matrix =>{
+                self.remove_child_for_matrix(matrix_child_target?)
+            }
+        
+        SequenceType::LandingPageAndOffers =>{
+            self.remove_landing_page_child_from_source(landing_page_source_child_target?)
+        }
+    
+        SequenceType::OffersOnly =>{
+            self.remove_offer_child_from_source(offer_source_child_target?)
+        }
+    }
+    }
+    
+    pub fn remove_landing_page_child_from_source(&self, landing_page_source_child_target: Matrix) -> Result<Matrix, String> {
+        let group_idx = landing_page_source_child_target.group_idx();
+        let item_idx=landing_page_source_child_target.item_idx();
+        
+        let mut source = self.props.root_matrix.borrow_mut();
+        if let Some(group)=source.children_groups.get_mut(group_idx) {
+            if let Some(i) = group.get(item_idx) {
+                let res =group.remove(item_idx);
+                source.root_synchronize_landing_page_child_groups();
+                Ok(res)
+            } else {
+                Err(new_string!("item not found"))
             }
         } else {
+            Err(new_string!("group not found"))
+        }
+    }
+    
+    pub fn remove_offer_child_from_source(&self, offer_source_child_target: Matrix) -> Result<Matrix, String> {
+        let mut source = self.props.root_matrix.borrow_mut();
+        let item_index = offer_source_child_target.item_idx();
+        if let Some(g)=source.children_groups.get_mut(0){
+            if let Some(i)=g.get(item_index) {
+                Ok(g.remove(item_index))
+            } else {
+                Err(new_string!("Item index not found"))
+            }
+        } else {
+            Err(new_string!("Group Not Found"))
+        }
+    }
+    
+    pub fn remove_child_for_matrix(&self, child_target: Rc<Matrix>) -> Result<Matrix, String> {
+        if let Some(parent_node) = child_target.get_parent_node() {
+            let parent_child_target_depth = parent_node.depth;
+            let parent_child_target_id = parent_node.id.as_ref();
+            let child_group_index = child_target.group_idx();
+            let child_item_index = child_target.item_idx();
             let mut root = self.props.root_matrix.borrow_mut();
-            let group_index = target.group_idx();
-            let item_index = target.item_idx();
+    
+            let found_parent = Matrix::search_next_depth(
+                root.children_groups.iter_mut().flatten(),
+                parent_child_target_id,
+                parent_child_target_depth,
+            );
+    
+            match found_parent {
+                Ok(parent_target) => {
+                    if let Some(target_group) = parent_target.children_groups.get_mut(child_group_index) {
+                        let res = target_group.remove(child_item_index);
+                        parent_target.synchronize_matrix_child_groups();
+                        Ok(res)
+                    } else {
+                        return Err("Invalid gp idx".to_string());
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+            
+        } else {
+            let mut root = self.props.root_matrix.borrow_mut();
+            let child_group_index = child_target.group_idx();
+            let child_item_index = child_target.item_idx();
 
-            if let Some(group) = root.children_groups.get_mut(group_index) {
-                Ok(group.remove(item_index))
+            if let Some(group) = root.children_groups.get_mut(child_group_index) {
+                Ok(group.remove(child_item_index))
             } else {
                 Err("Invalid group idx".to_string())
             }

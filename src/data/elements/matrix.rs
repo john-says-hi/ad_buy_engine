@@ -39,11 +39,98 @@ pub struct MatrixValue {
 pub enum MatrixData {
     Offer(Offer),
     LandingPage(LandingPage),
+    // Matrix(Matrix),
     Source,
     Void,
 }
 
 impl Matrix {
+    pub fn synchronize_matrix_child_groups(&mut self) -> Result<(), String> {
+        if let MatrixData::LandingPage(lp) = self.data() {
+            let total_child_groups = self.children_groups.len();
+            let num_of_ctas = lp.number_of_calls_to_action;
+            if total_child_groups == num_of_ctas {
+                return Ok(());
+            } else if total_child_groups > num_of_ctas as usize {
+                for i in (num_of_ctas as usize..total_child_groups).rev() {
+                    self.children_groups.remove(i);
+                }
+            } else if total_child_groups < num_of_ctas as usize {
+                for i in total_child_groups..num_of_ctas {
+                    self.children_groups.push(vec![Matrix::void(
+                        Some(Arc::new(self.value.clone())),
+                        i,
+                        0,
+                        self.depth() + 1,
+                    )])
+                }
+            }
+
+            if let MatrixData::LandingPage(lp) = self.data() {
+                if self.children_groups.len() == lp.number_of_calls_to_action {
+                    Ok(())
+                } else {
+                    Err("Synchronize Failed: g54sdfg".to_string())
+                }
+            } else {
+                Err(String::from("Not a landing page"))
+            }
+        } else {
+            Err(String::from("Not a landing page"))
+        }
+    }
+
+    pub fn root_synchronize_landing_page_child_groups(&mut self) -> Result<(), String> {
+        let mut max_num_ctas = 0usize;
+        let mut num_offer_groups = 0usize;
+
+        for item in self.children_groups.get(0).unwrap() {
+            if let MatrixData::LandingPage(lp) = item.data() {
+                if lp.number_of_calls_to_action as usize > max_num_ctas {
+                    max_num_ctas = lp.number_of_calls_to_action as usize;
+                }
+            }
+        }
+
+        num_offer_groups = self.children_groups.len() - 1;
+        if max_num_ctas == num_offer_groups {
+            return Ok(());
+        } else if max_num_ctas > num_offer_groups {
+            let difference_to_add = max_num_ctas - num_offer_groups;
+            for i in 0..difference_to_add {
+                self.children_groups.push(vec![Matrix::void(
+                    Some(Arc::new(self.value.clone())),
+                    i + num_offer_groups,
+                    0,
+                    self.depth() + 1,
+                )])
+            }
+        } else if max_num_ctas < num_offer_groups {
+            for i in (max_num_ctas..num_offer_groups).rev() {
+                self.children_groups.remove(i);
+            }
+        }
+
+        let mut max_num_ctas = 0usize;
+        let mut num_offer_groups = 0usize;
+
+        for item in self.children_groups.get(0).unwrap() {
+            if let MatrixData::LandingPage(lp) = item.data() {
+                if lp.number_of_calls_to_action as usize > max_num_ctas {
+                    max_num_ctas = lp.number_of_calls_to_action as usize;
+                }
+            }
+        }
+
+        num_offer_groups = self.children_groups.len() - 1;
+
+        if num_offer_groups == max_num_ctas {
+            Ok(())
+        } else {
+            Err("Synchronization failed:FV534 ".to_string())
+        }
+    }
+
     pub fn search_next_depth<'a, I>(
         i: I,
         target: &Uuid,
@@ -204,7 +291,7 @@ impl Matrix {
         self.value.id.as_ref()
     }
 
-    pub fn get_data(&self) -> &MatrixData {
+    pub fn data(&self) -> &MatrixData {
         &self.value.data
     }
 
@@ -232,13 +319,7 @@ impl Matrix {
 
         let d = matrix.depth() + 1;
 
-        let child = Matrix::void(
-            Some(parent),
-            0,
-            0,
-            d,
-            matrix.children_groups.iter().flatten().count(),
-        );
+        let child = Matrix::void(Some(parent), 0, 0, d);
 
         matrix.children_groups.get_mut(0).map(|s| s.push(child));
         matrix
@@ -249,7 +330,6 @@ impl Matrix {
         group_idx: usize,
         item_idx: usize,
         depth: usize,
-        flat_idx: usize,
     ) -> Self {
         let id = Arc::new(Uuid::new_v4());
 
@@ -261,7 +341,6 @@ impl Matrix {
                 group_idx,
                 item_idx,
                 depth,
-                flat_idx,
                 data: MatrixData::Void,
             },
         }

@@ -17,7 +17,10 @@ extern crate serde_derive;
 #[macro_use]
 extern crate dotenv_codegen;
 extern crate wee_alloc;
+#[macro_use]
+extern crate ad_buy_engine;
 
+pub use ad_buy_engine;
 use wasm_bindgen::prelude::*;
 #[macro_use]
 pub mod macros;
@@ -28,7 +31,6 @@ pub mod error;
 pub mod prelude;
 pub mod utils;
 
-pub use ad_buy_engine;
 pub use ad_buy_engine::traversal;
 
 use yew_router::prelude::*;
