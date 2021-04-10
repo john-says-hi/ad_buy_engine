@@ -42,7 +42,25 @@ pub enum MatrixData {
     Void,
 }
 
+impl MatrixValue {
+    pub fn child_depth(&self) -> usize {
+        self.depth + 1
+    }
+}
+
 impl Matrix {
+    pub fn new_item_idx(&self, from_group_idx: usize) -> Option<usize> {
+        if let Some(g) = self.children_groups.get(from_group_idx) {
+            Some(g.len())
+        } else {
+            None
+        }
+    }
+
+    pub fn new_group_idx(&self) -> usize {
+        self.children_groups.len()
+    }
+
     pub fn synchronize_matrix_child_groups(&mut self) -> Result<(), String> {
         if let MatrixData::LandingPage(lp) = self.data() {
             let total_child_groups = self.children_groups.len();
@@ -138,11 +156,8 @@ impl Matrix {
         I: Iterator<Item = &'a mut Matrix>,
     {
         let mut cache = vec![];
-        let mut depth_count = 0usize;
 
         for item in i.map(|s| s).collect::<Vec<_>>() {
-            depth_count = item.value.depth;
-
             if item.value.depth == target_depth {
                 if target == item.value.id.as_ref() {
                     return Ok(item);
@@ -165,11 +180,12 @@ impl Matrix {
         }
 
         if iter.is_empty() {
+            let depth_count = target_depth;
             let msg = format!("No more child nodes: {} depth", depth_count);
             return Err(msg);
         }
 
-        Matrix::search_next_depth(iter.into_iter(), target, target_depth)
+        Matrix::search_next_depth(iter.into_iter(), target, target_depth + 1)
     }
 
     pub fn get_mut_depth_target_lock(
@@ -322,10 +338,10 @@ impl Matrix {
         matrix
     }
 
-    pub fn transform_void(&mut self, new: VoidFiller) {
+    pub fn transform_void(&mut self, new: Transform) {
         match new {
-            VoidFiller::Offer(o) => self.value.data = MatrixData::Offer(o),
-            VoidFiller::Lander(lp) => {
+            Transform::Offer(o) => self.value.data = MatrixData::Offer(o),
+            Transform::Lander(lp) => {
                 let ctas = lp.number_of_calls_to_action;
                 self.value.data = MatrixData::LandingPage(lp);
                 self.root_synchronize_landing_page_child_groups()
@@ -354,7 +370,7 @@ impl Matrix {
         }
     }
 }
-pub enum VoidFiller {
+pub enum Transform {
     Offer(Offer),
     Lander(LandingPage),
 }
