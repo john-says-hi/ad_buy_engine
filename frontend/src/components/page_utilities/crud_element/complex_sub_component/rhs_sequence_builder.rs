@@ -38,7 +38,7 @@ pub enum Msg {
     UpdateLandingPages(Vec<LandingPage>),
     UpdateSequence(Sequence),
     OnBlurName,
-    UpdateMatrix(RootMatrix),
+    UpdateRootMatrix(RootMatrix),
 }
 
 #[derive(Properties, Clone)]
@@ -101,7 +101,7 @@ impl Component for RHSSequenceBuilder {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::UpdateMatrix(root_matrix) => {
+            Msg::UpdateRootMatrix(root_matrix) => {
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
                     let matrix = &*root_matrix.borrow_mut();
                     sequence.matrix = matrix.clone();
@@ -281,7 +281,7 @@ impl RHSSequenceBuilder {
                     let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
 
@@ -295,7 +295,7 @@ impl RHSSequenceBuilder {
                     let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
 
@@ -309,7 +309,7 @@ impl RHSSequenceBuilder {
                     let root_matrix = Rc::new(RefCell::new(matrix));
 
                     VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
+                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
                     })
                 }
             }

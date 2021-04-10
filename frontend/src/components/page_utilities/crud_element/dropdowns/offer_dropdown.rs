@@ -27,6 +27,7 @@ pub enum Msg {
 pub struct Props {
     pub state: STATE,
     pub eject: Callback<Offer>,
+    #[prop_or_default]
     pub selected: Option<Offer>,
 }
 
@@ -58,8 +59,6 @@ impl Component for OfferDropdown {
         let mut options = VList::new();
 
         if let Some(selected_offer) = self.props.selected.clone() {
-            // let name = selected_offer.name.clone();
-            // options.push(html!{<option onclick=self.link.callback(move |_| Msg::Select(selected_offer.clone())) >{name}</option>})
         } else {
             options.push(html! {<option >{"Select Offer"}</option>})
         }
