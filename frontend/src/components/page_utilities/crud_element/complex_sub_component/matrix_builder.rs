@@ -578,7 +578,7 @@ impl MatrixBuilder {
                 let source_groups = self.props.local_matrix.children_groups.iter().enumerate();
                 let source_matrix_value = self.props.local_matrix.value.clone();
 
-                let parent_matrix = Some(Arc::new(&self.props.local_matrix.value));
+                let parent_matrix = Some(Arc::new(self.props.local_matrix.value.clone()));
 
                 let source_add_element_cb = self.link.callback(move |_| {
                     Msg::AddChild(Rc::new(Matrix::void(
@@ -627,19 +627,17 @@ impl MatrixBuilder {
                     color_depth_border(depth)
                 );
                 let weight = offer.weight.to_string();
-                let oninput_update_weight_cb =
-                    self.link.callback(|i: InputData| Msg::UpdateWeight(i));
 
-                let onblur_update_weight_cb = self.link.callback(|_| {
-                    Msg::UpdateMatrix(UpdateMatrix::Weight(
-                        rc!(self.props.local_matrix),
-                        self.weight_buff,
-                    ))
+                let oninput_update_weight_cb =
+                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
+
+                let local_matrix = rc!(self.props.local_matrix);
+                let onblur_update_weight_cb = self.link.callback(move |_| {
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(local_matrix, self.weight_buff))
                 });
 
-                let rm_cb = self
-                    .link
-                    .callback(|_| Msg::RemoveChild(rc!(self.props.local_matrix)));
+                let local_matrix = rc!(self.props.local_matrix);
+                let rm_cb = self.link.callback(move |_| Msg::RemoveChild(local_matrix));
 
                 VNode::from(html! {
                                 <tr style=depth_border>
@@ -664,18 +662,15 @@ impl MatrixBuilder {
                 let ctas = lp.number_of_calls_to_action.to_string();
 
                 let oninput_update_weight_cb =
-                    self.link.callback(|i: InputData| Msg::UpdateWeight(i));
+                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
 
+                let local_matrix = rc!(self.props.local_matrix);
                 let onblur_update_weight_cb = self.link.callback(|_| {
-                    Msg::UpdateMatrix(UpdateMatrix::Weight(
-                        rc!(self.props.local_matrix),
-                        self.weight_buff,
-                    ))
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(local_matrix, self.weight_buff))
                 });
 
-                let rm_cb = self
-                    .link
-                    .callback(|_| Msg::RemoveChild(rc!(self.props.local_matrix)));
+                let local_matrix = rc!(self.props.local_matrix);
+                let rm_cb = self.link.callback(move |_| Msg::RemoveChild(local_matrix));
 
                 nodes.push(html! {{divider!(2)}});
                 nodes.push(html! {
