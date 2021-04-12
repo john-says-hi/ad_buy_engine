@@ -28,6 +28,7 @@ pub enum Msg {
 pub struct Props {
     pub state: STATE,
     pub eject: Callback<LandingPage>,
+    #[prop_or_default]
     pub selected: Option<LandingPage>,
 }
 

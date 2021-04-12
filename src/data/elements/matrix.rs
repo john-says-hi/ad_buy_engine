@@ -65,14 +65,14 @@ impl Matrix {
         if let MatrixData::LandingPage(lp) = self.data() {
             let total_child_groups = self.children_groups.len();
             let num_of_ctas = lp.number_of_calls_to_action;
-            if total_child_groups == num_of_ctas {
+            if total_child_groups == num_of_ctas as usize {
                 return Ok(());
             } else if total_child_groups > num_of_ctas as usize {
                 for i in (num_of_ctas as usize..total_child_groups).rev() {
                     self.children_groups.remove(i);
                 }
             } else if total_child_groups < num_of_ctas as usize {
-                for i in total_child_groups..num_of_ctas {
+                for i in total_child_groups..num_of_ctas as usize {
                     self.children_groups.push(vec![Matrix::void(
                         Some(Arc::new(self.value.clone())),
                         i,
@@ -83,7 +83,7 @@ impl Matrix {
             }
 
             if let MatrixData::LandingPage(lp) = self.data() {
-                if self.children_groups.len() == lp.number_of_calls_to_action {
+                if self.children_groups.len() == lp.number_of_calls_to_action as usize {
                     Ok(())
                 } else {
                     Err("Synchronize Failed: g54sdfg".to_string())
@@ -344,7 +344,7 @@ impl Matrix {
             Transform::Lander(lp) => {
                 let ctas = lp.number_of_calls_to_action;
                 self.value.data = MatrixData::LandingPage(lp);
-                self.root_synchronize_landing_page_child_groups()
+                self.root_synchronize_landing_page_child_groups();
             }
         }
     }

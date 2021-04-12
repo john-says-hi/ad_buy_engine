@@ -20,7 +20,6 @@ extern crate wee_alloc;
 #[macro_use]
 extern crate ad_buy_engine;
 
-pub use ad_buy_engine;
 use wasm_bindgen::prelude::*;
 #[macro_use]
 pub mod macros;

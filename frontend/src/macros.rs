@@ -83,6 +83,6 @@ macro_rules! rc {
 #[macro_export]
 macro_rules! new_string {
     ($data:expr) => {{
-        String::from(&$data)
+        String::from($data)
     }};
 }
