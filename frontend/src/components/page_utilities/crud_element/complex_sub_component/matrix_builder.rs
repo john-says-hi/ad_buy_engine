@@ -1,5 +1,5 @@
 use crate::appstate::app_state::{AppState, STATE};
-use crate::components::page_utilities::crud_element::complex_sub_component::rhs_sequence_builder::RHSSequenceBuilder;
+use crate::components::page_utilities::crud_element::complex_sub_component::rhs_sequence_builder::{RHSSequenceBuilder, Msg as SeqMsg};
 use crate::components::page_utilities::crud_element::dropdowns::landing_page_dropdown::LandingPageDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::offer_dropdown::OfferDropdown;
 use crate::notify_danger;
@@ -16,7 +16,7 @@ use serde::de::Unexpected::Seq;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use web_sys::{set_cross_origin, Element};
+use web_sys::Element;
 use yew::format::Json;
 use yew::html::Scope;
 use yew::prelude::*;
@@ -27,7 +27,6 @@ use yew_services::StorageService;
 pub type RootMatrix = Rc<RefCell<Matrix>>;
 
 pub enum Msg {
-    UpdateRootMatrix(RootMatrix),
     UpdateMatrix(UpdateMatrix),
     RemoveChild(Rc<Matrix>),
     AddChild(Rc<Matrix>),
@@ -46,7 +45,7 @@ pub struct Props {
     pub local_matrix: Rc<Matrix>,
     pub state: STATE,
     pub seq_type: SequenceType,
-    pub transmit: Callback<RootMatrix>,
+    // pub transmit: Callback<RootMatrix>,
     pub sequence_builder_link: Rc<Scope<RHSSequenceBuilder>>,
 }
 
@@ -72,6 +71,9 @@ impl Component for MatrixBuilder {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            // Msg::Transmit(root) =>{
+            //
+            // }
             Msg::UpdateWeight(i) => {
                 if let Ok(num) = i.value.parse::<u8>() {
                     self.weight_buff = num;
@@ -162,94 +164,99 @@ impl Component for MatrixBuilder {
                         }
                     },
 
-                    UpdateMatrix::FillVoid(old, new) => {
-                        match self.props.seq_type {
-                            SequenceType::OffersOnly => {
-                                self.props
-                                    .root_matrix
-                                    .borrow_mut()
-                                    .children_groups
-                                    .get_mut(0)
-                                    .map(|s| {
-                                        s.iter_mut()
-                                            .find(|s| s.id() == old.id())
-                                            .map(|s| s.transform_void(new))
-                                    });
-                            }
-                            SequenceType::LandingPageAndOffers => {
-                                self.props
-                                    .root_matrix
-                                    .borrow_mut()
-                                    .children_groups
-                                    .get_mut(old.group_idx())
-                                    .map(|s| {
-                                        s.iter_mut()
-                                            .find(|s| s.id() == old.id())
-                                            .map(|s| s.transform_void(new))
-                                    });
-                            }
-                            SequenceType::Matrix => {
-                                if let Some(parent_node) = old.get_parent_node() {
-                                    let found_parent = Matrix::search_next_depth(
-                                        self.props
-                                            .root_matrix
-                                            .borrow_mut()
-                                            .children_groups
-                                            .iter_mut()
-                                            .flatten(),
-                                        parent_node.id.as_ref(),
-                                        parent_node.depth,
-                                    );
+                    UpdateMatrix::FillVoid(old, new) => match self.props.seq_type {
+                        SequenceType::OffersOnly => {
+                            self.props
+                                .root_matrix
+                                .borrow_mut()
+                                .children_groups
+                                .get_mut(0)
+                                .map(|s| {
+                                    s.iter_mut()
+                                        .find(|s| s.id() == old.id())
+                                        .map(|s| s.transform_void(new))
+                                });
+                        }
+                        SequenceType::LandingPageAndOffers => {
+                            self.props
+                                .root_matrix
+                                .borrow_mut()
+                                .children_groups
+                                .get_mut(old.group_idx())
+                                .map(|s| {
+                                    s.iter_mut()
+                                        .find(|s| s.id() == old.id())
+                                        .map(|s| s.transform_void(new))
+                                });
+                        }
+                        SequenceType::Matrix => {
+                            if let Some(parent_node) = old.get_parent_node() {
+                                let found_parent = Matrix::search_next_depth(
+                                    self.props
+                                        .root_matrix
+                                        .borrow_mut()
+                                        .children_groups
+                                        .iter_mut()
+                                        .flatten(),
+                                    parent_node.id.as_ref(),
+                                    parent_node.depth,
+                                );
 
-                                    found_parent.map(|s| {
-                                        s.children_groups.get_mut(old.group_idx()).map(|s| {
-                                            s.get_mut(old.item_idx()).map(|s| s.transform_void(new))
-                                        })
-                                    });
-                                } else {
-                                    notify_danger("No Parent Node");
-                                    return false;
-
-                                    // self.props
-                                    //     .root_matrix
-                                    //     .borrow_mut()
-                                    //     .children_groups
-                                    //     .get_mut(old.group_idx())
-                                    //     .map(|s| {
-                                    //         s.iter_mut()
-                                    //             .find(|s| s.id() == old.id())
-                                    //             .map(|s| s.transform_void(new))
-                                    //     });
-                                }
+                                found_parent.map(|s| {
+                                    s.children_groups.get_mut(old.group_idx()).map(|s| {
+                                        s.get_mut(old.item_idx()).map(|s| s.transform_void(new))
+                                    })
+                                });
+                            } else {
+                                notify_danger("No Parent Node");
+                                return false;
                             }
                         }
-                    }
+                    },
                 }
-                self.props.transmit.emit(rc!(self.props.root_matrix));
+                self.props
+                    .sequence_builder_link
+                    .send_message(SeqMsg::UpdateRootMatrix(rc!(self.props.root_matrix)));
             }
 
             Msg::RemoveChild(child_to_remove) => {
                 match self.props.seq_type {
-                    SequenceType::Matrix => self.remove_child(Some(child_to_remove), None, None),
+                    SequenceType::Matrix => {
+                        self.remove_child(Some(child_to_remove), None, None)
+                            .map_err(|e| notify_danger(&e));
+                    }
                     SequenceType::OffersOnly => {
                         self.remove_child(None, None, Some(*child_to_remove))
+                            .map_err(|e| notify_danger(&e));
                     }
                     SequenceType::LandingPageAndOffers => {
                         self.remove_child(None, Some(*child_to_remove), None)
+                            .map_err(|e| notify_danger(&e));
                     }
                 }
-                self.props.transmit.emit(rc!(self.props.root_matrix));
+                self.props
+                    .sequence_builder_link
+                    .send_message(SeqMsg::UpdateRootMatrix(rc!(self.props.root_matrix)));
             }
 
             Msg::AddChild(void_child) => {
                 match self.props.seq_type {
-                    SequenceType::Matrix => self.remove_child(Some(void_child), None, None),
-                    SequenceType::OffersOnly => self.remove_child(None, None, Some(*void_child)),
+                    SequenceType::Matrix => {
+                        self.add_child(Some(void_child), None, None)
+                            .map_err(|e| notify_danger(&e));
+                    }
+                    SequenceType::OffersOnly => {
+                        self.add_child(None, None, Some(*void_child))
+                            .map_err(|e| notify_danger(&e));
+                    }
                     SequenceType::LandingPageAndOffers => {
-                        self.remove_child(None, Some(*void_child), None)
+                        self.add_child(None, Some(*void_child), None)
+                            .map_err(|e| notify_danger(&e));
                     }
                 }
-                self.props.transmit.emit(rc!(self.props.root_matrix));
+                self.props
+                    .sequence_builder_link
+                    .send_message(SeqMsg::UpdateRootMatrix(rc!(self.props.root_matrix)));
             }
 
             Msg::Ignore => {}
@@ -286,48 +293,51 @@ impl MatrixBuilder {
         match (self.props.seq_type, self.props.local_matrix.data()) {
             (seq_type, MatrixData::Void) => match seq_type {
                 SequenceType::OffersOnly => {
-                    let transform_to_offer_cb = self.link.callback(|offer: Offer| {
+                    let local_matrix = rc!(self.props.local_matrix);
+
+                    let transform_to_offer_cb = self.link.callback(move |offer: Offer| {
                         Msg::UpdateMatrix(UpdateMatrix::FillVoid(
-                            rc!(self.props.local_matrix),
+                            local_matrix,
                             Transform::Offer(offer),
                         ))
                     });
 
-                    let remove_callback = self
-                        .link
-                        .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let remove_callback =
+                        self.link.callback(move |_| Msg::RemoveChild(local_matrix));
 
                     VNode::from(html! {
                                 <tr>
-                                    <td class="uk-text-truncate"><OfferDropdown state=rc!(state) eject=transform_to_offer_cb /></td>
+                                    <td class="uk-text-truncate"><OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb /></td>
                                     <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
                                 </tr>
                     })
                 }
 
                 SequenceType::LandingPageAndOffers => {
-                    let transform_to_offer_cb = self.link.callback(|offer: Offer| {
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let transform_to_offer_cb = self.link.callback(move |offer: Offer| {
                         Msg::UpdateMatrix(UpdateMatrix::FillVoid(
-                            rc!(self.props.local_matrix),
+                            local_matrix,
                             Transform::Offer(offer),
                         ))
                     });
 
-                    let transform_to_lander_cb = self.link.callback(|lp: LandingPage| {
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let transform_to_lander_cb = self.link.callback(move |lp: LandingPage| {
                         Msg::UpdateMatrix(UpdateMatrix::FillVoid(
-                            rc!(self.props.local_matrix),
+                            local_matrix,
                             Transform::Lander(lp),
                         ))
                     });
 
-                    let remove_callback = self
-                        .link
-                        .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let remove_callback = self.link.callback(|_| Msg::RemoveChild(local_matrix));
 
                     VNode::from(html! {
                                 <tr>
-                                    <td class="uk-text-truncate"><OfferDropdown state=rc!(state) eject=transform_to_offer_cb /></td>
-                                    <td class="uk-text-truncate"><LandingPageDropdown state=rc!(state) eject=transform_to_lander_cb /></td>
+                                    <td class="uk-text-truncate"><OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb /></td>
+                                    <td class="uk-text-truncate"><LandingPageDropdown state=rc!(self.props.state) eject=transform_to_lander_cb /></td>
                                     <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
                                 </tr>
                     })
@@ -340,31 +350,41 @@ impl MatrixBuilder {
                         color_depth_border(depth)
                     );
 
-                    let transform_to_lander_cb = self.link.callback(|lp: LandingPage| {
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let transform_to_lander_cb = self.link.callback(move |lp: LandingPage| {
                         Msg::UpdateMatrix(UpdateMatrix::FillVoid(
-                            rc!(self.props.local_matrix),
+                            local_matrix,
                             Transform::Lander(lp),
                         ))
                     });
 
+                    let local_matrix = rc!(self.props.local_matrix);
                     let transform_to_offer_cb = self.link.callback(|offer: Offer| {
                         Msg::UpdateMatrix(UpdateMatrix::FillVoid(
-                            rc!(self.props.local_matrix),
+                            local_matrix,
                             Transform::Offer(offer),
                         ))
                     });
 
-                    let remove_callback = self
-                        .link
-                        .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
+                    let local_matrix = rc!(self.props.local_matrix);
+                    let remove_callback = self.link.callback(|_| Msg::RemoveChild(local_matrix));
 
-                    VNode::from(html! {
-                                <tr style=depth_border>
-                                    <td class="uk-text-truncate"><OfferDropdown state=rc!(state) eject=transform_to_offer_cb /></td>
-                                    <td class="uk-text-truncate"><LandingPageDropdown state=rc!(state) eject=transform_to_lander_cb /></td>
-                                    <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
-                                </tr>
-                    })
+                    if self.props.local_matrix.depth() < 9 {
+                        VNode::from(html! {
+                                    <tr style=depth_border>
+                                        <td class="uk-text-truncate"><OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb /></td>
+                                        <td class="uk-text-truncate"><LandingPageDropdown state=rc!(self.props.state) eject=transform_to_lander_cb /></td>
+                                        <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
+                                    </tr>
+                        })
+                    } else {
+                        VNode::from(html! {
+                                    <tr style=depth_border>
+                                        <td class="uk-text-truncate"><OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb /></td>
+                                        <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
+                                    </tr>
+                        })
+                    }
                 }
             },
 
@@ -380,10 +400,12 @@ impl MatrixBuilder {
                 });
 
                 for matrix in offer_children {
+                    let local_matrix = Rc::new(matrix.clone());
+
                     offer_children_nodes.push(html! {
                         <MatrixBuilder
                         root_matrix=rc!(self.props.root_matrix)
-                        local_matrix=rc!(matrix.clone())
+                        local_matrix=local_matrix
                         state=rc!(self.props.state)
                         seq_type=SequenceType::OffersOnly
                         sequence_builder_link=Rc::clone(&self.props.sequence_builder_link)
@@ -402,17 +424,18 @@ impl MatrixBuilder {
             }
 
             (SequenceType::OffersOnly, MatrixData::Offer(offer)) => {
-                let blur_update_weight_callback =
-                    self.link
-                        .send_message(Msg::UpdateMatrix(UpdateMatrix::Weight(
-                            rc!(self.props.local_matrix),
-                            self.weight_buff,
-                        )));
-                let update_weight_callback = self.link.callback(Msg::UpdateWeight);
-                let remove_callback = self
-                    .link
-                    .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
-                let weight_val = if let MatrixData::Offer(o) = &self.props.local_matrix.value {
+                let local_matrix = rc!(self.props.local_matrix);
+                let blur_update_weight_callback = self.link.callback(move |_| {
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(local_matrix, self.weight_buff))
+                });
+
+                let update_weight_callback =
+                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
+
+                let local_matrix = rc!(self.props.local_matrix);
+                let remove_callback = self.link.callback(|_| Msg::RemoveChild(local_matrix));
+
+                let weight_val = if let MatrixData::Offer(o) = &self.props.local_matrix.value.data {
                     o.weight.to_string()
                 } else {
                     "".to_string()
@@ -429,12 +452,16 @@ impl MatrixBuilder {
 
             (SequenceType::LandingPageAndOffers, MatrixData::Source) => {
                 let mut nodes = VList::new();
-                let first_group_add_cb = self.link.callback(Msg::AddChild(Rc::new(Matrix::void(
-                    Some(arc!(self.props.local_matrix)),
-                    0,
-                    self.props.local_matrix.new_item_idx(0).expect("54gsFr4fF"),
-                    1,
-                ))));
+                let parent_matrix = self.props.local_matrix.value.parent_matrix.clone();
+
+                let first_group_add_cb = self.link.callback(move |_| {
+                    Msg::AddChild(Rc::new(Matrix::void(
+                        parent_matrix,
+                        0,
+                        self.props.local_matrix.new_item_idx(0).expect("54gsFr4fF"),
+                        1,
+                    )))
+                });
 
                 nodes.push(html!{
                             <tr>
@@ -445,10 +472,12 @@ impl MatrixBuilder {
                 let first_group_nodes = self.props.local_matrix.children_groups.get(0).unwrap();
 
                 for (item_idx, item) in first_group_nodes.iter().enumerate() {
+                    let local_matrix = Rc::new(item.clone());
+
                     nodes.push(html! {
                             <MatrixBuilder
                             root_matrix=rc!(self.props.root_matrix)
-                            local_matrix=rc!(self.props.local_matrix)
+                            local_matrix=local_matrix
                             state=rc!(self.props.state)
                             seq_type=SequenceType::LandingPageAndOffers
                             sequence_builder_link=Rc::clone(&self.props.sequence_builder_link)
@@ -466,26 +495,31 @@ impl MatrixBuilder {
                     .filter(|(group_idx, _)| *group_idx != 0);
 
                 for (group_idx, group) in rest_of_groups {
-                    let add_offer_to_group_cb =
-                        self.link.callback(Msg::AddChild(Rc::new(Matrix::void(
-                            Some(Arc::new(self.props.local_matrix.value.clone())),
+                    let parent_matrix = Some(Arc::new(self.props.local_matrix.value.clone()));
+
+                    let add_offer_to_group_cb = self.link.callback(move |_| {
+                        Msg::AddChild(Rc::new(Matrix::void(
+                            parent_matrix,
                             group_idx,
                             group.len(),
                             1,
-                        ))));
+                        )))
+                    });
 
                     nodes.push(html!{
                             <tr>
-                                <td class="uk-text-nowrap uk-text-center">{"Offer Groups 2 Debug..."}</button></td>
+                                <td class="uk-text-nowrap uk-text-center">{"Offer Groups 2 Debug..."}</td>
                                 <td class="uk-text-nowrap uk-text-center"><button onclick=add_offer_to_group_cb class="uk-button uk-button-large uk-button-primary">{"Add Offer"}</button></td>
                             </tr>
                 });
 
                     for (item_idx, item) in group.iter().enumerate() {
+                        let local_matrix = Rc::new(item.clone());
+
                         nodes.push(html! {
                                 <MatrixBuilder
                                 root_matrix=rc!(self.props.root_matrix)
-                                local_matrix=rc!(self.props.local_matrix)
+                                local_matrix=local_matrix
                                 state=rc!(self.props.state)
                                 seq_type=SequenceType::LandingPageAndOffers
                                 sequence_builder_link=Rc::clone(&self.props.sequence_builder_link)
@@ -498,13 +532,16 @@ impl MatrixBuilder {
             }
 
             (SequenceType::LandingPageAndOffers, matrix_data) => {
-                let rm_cb = self
-                    .link
-                    .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
-                let oninput_update_weight_cb = self.link.callback(Msg::UpdateWeight);
-                let onblur_update_weight_cb = self.link.callback(Msg::UpdateMatrix(
-                    UpdateMatrix::Weight(rc!(self.props.local_matrix), self.weight_buff),
-                ));
+                let local_matrix = rc!(self.props.local_matrix);
+                let rm_cb = self.link.callback(move |_| Msg::RemoveChild(local_matrix));
+
+                let oninput_update_weight_cb =
+                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
+
+                let local_matrix = rc!(self.props.local_matrix);
+                let onblur_update_weight_cb = self.link.callback(|_| {
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(local_matrix, self.weight_buff))
+                });
                 let weight_value = self.weight_buff.to_string();
 
                 match matrix_data {
@@ -530,7 +567,9 @@ impl MatrixBuilder {
                                     <td class="uk-text-nowrap"><button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button></td>
                                 </tr>
                     }),
-                    _ => {}
+                    _ => {
+                        html! {}
+                    }
                 }
             }
 
@@ -538,13 +577,17 @@ impl MatrixBuilder {
                 let mut nodes = VList::new();
                 let source_groups = self.props.local_matrix.children_groups.iter().enumerate();
                 let source_matrix_value = self.props.local_matrix.value.clone();
-                let source_add_element_cb =
-                    self.link.callback(Msg::AddChild(Rc::new(Matrix::void(
-                        Some(Arc::new(source_matrix_value)),
+
+                let parent_matrix = Some(Arc::new(&self.props.local_matrix.value));
+
+                let source_add_element_cb = self.link.callback(move |_| {
+                    Msg::AddChild(Rc::new(Matrix::void(
+                        parent_matrix,
                         self.props.local_matrix.children_groups.len(),
                         0,
                         1,
-                    ))));
+                    )))
+                });
 
                 nodes.push(html! {
                             <tr>
@@ -574,7 +617,7 @@ impl MatrixBuilder {
                     }
                 }
 
-                VNode::from(source_groups)
+                VNode::from(nodes)
             }
 
             (SequenceType::Matrix, MatrixData::Offer(offer)) => {
@@ -584,13 +627,19 @@ impl MatrixBuilder {
                     color_depth_border(depth)
                 );
                 let weight = offer.weight.to_string();
-                let oninput_update_weight_cb = self.link.callback(Msg::UpdateWeight);
-                let onblur_update_weight_cb = self.link.callback(Msg::UpdateMatrix(
-                    UpdateMatrix::Weight(rc!(self.props.local_matrix), self.weight_buff),
-                ));
+                let oninput_update_weight_cb =
+                    self.link.callback(|i: InputData| Msg::UpdateWeight(i));
+
+                let onblur_update_weight_cb = self.link.callback(|_| {
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(
+                        rc!(self.props.local_matrix),
+                        self.weight_buff,
+                    ))
+                });
+
                 let rm_cb = self
                     .link
-                    .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
+                    .callback(|_| Msg::RemoveChild(rc!(self.props.local_matrix)));
 
                 VNode::from(html! {
                                 <tr style=depth_border>
@@ -611,22 +660,29 @@ impl MatrixBuilder {
                     "border-left-style:solid;border-left-color:{};",
                     color_depth_border(depth)
                 );
-                let weight = offer.weight.to_string();
+                let weight = lp.weight.to_string();
                 let ctas = lp.number_of_calls_to_action.to_string();
-                let oninput_update_weight_cb = self.link.callback(Msg::UpdateWeight);
-                let onblur_update_weight_cb = self.link.callback(Msg::UpdateMatrix(
-                    UpdateMatrix::Weight(rc!(self.props.local_matrix), self.weight_buff),
-                ));
+
+                let oninput_update_weight_cb =
+                    self.link.callback(|i: InputData| Msg::UpdateWeight(i));
+
+                let onblur_update_weight_cb = self.link.callback(|_| {
+                    Msg::UpdateMatrix(UpdateMatrix::Weight(
+                        rc!(self.props.local_matrix),
+                        self.weight_buff,
+                    ))
+                });
+
                 let rm_cb = self
                     .link
-                    .callback(Msg::RemoveChild(rc!(self.props.local_matrix)));
+                    .callback(|_| Msg::RemoveChild(rc!(self.props.local_matrix)));
 
                 nodes.push(html! {{divider!(2)}});
                 nodes.push(html! {
                                 <tr style=depth_border>
-                                    <td style= class="uk-text-nowrap">{depth}</td>
+                                    <td class="uk-text-nowrap">{depth}</td>
                                     <td class="uk-text-nowrap">{"Lander"}</td>
-                                    <td class="uk-text-truncate">{format!("{}", &offer.name)}</td>
+                                    <td class="uk-text-truncate">{format!("{}", &lp.name)}</td>
                                     <td class="uk-text-nowrap"><input type="number" oninput=oninput_update_weight_cb value=weight onblur=onblur_update_weight_cb class="uk-input" placeholder="Weight" /></td>
                                     <td class="uk-text-nowrap">{"NA"}</td>
                                     <td class="uk-text-nowrap"><button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button></td>
@@ -687,7 +743,7 @@ impl MatrixBuilder {
             (SequenceType::Matrix, MatrixData::Source) => VNode::from(html! {
                 <thead>
                     <tr>
-                        <th class="uk-table-shrink uk-text-nowrap">{format!("Depth}")}</th>
+                        <th class="uk-table-shrink uk-text-nowrap">{format!("Depth")}</th>
                         <th class="uk-table-shrink uk-text-nowrap">{"Type"}</th>
                         <th class="uk-table-shrink uk-text-nowrap">{"Name"}</th>
                         <th class="uk-table-shrink uk-text-nowrap">{"Weight"}</th>
@@ -708,15 +764,17 @@ impl MatrixBuilder {
         offer_source_child_target_to_add: Option<Matrix>,
     ) -> Result<usize, String> {
         match self.props.seq_type {
-            SequenceType::Matrix => self.add_child_to_matrix(matrix_child_target_to_add?),
-
-            SequenceType::LandingPageAndOffers => {
-                self.add_landing_page_child_to_source(landing_page_source_child_target_to_add?)
+            SequenceType::Matrix => {
+                self.add_child_to_matrix(matrix_child_target_to_add.expect("F453sdF"))
             }
 
-            SequenceType::OffersOnly => {
-                self.add_child_to_offer_source(offer_source_child_target_to_add?)
-            }
+            SequenceType::LandingPageAndOffers => self.add_landing_page_child_to_source(
+                landing_page_source_child_target_to_add.expect("5gfgDF43d"),
+            ),
+
+            SequenceType::OffersOnly => self.add_child_to_offer_source(
+                offer_source_child_target_to_add.expect("%gfr$4rfdg54FR"),
+            ),
         }
     }
 
@@ -805,14 +863,16 @@ impl MatrixBuilder {
         offer_source_child_target: Option<Matrix>,
     ) -> Result<Matrix, String> {
         match self.props.seq_type {
-            SequenceType::Matrix => self.remove_child_for_matrix(matrix_child_target?),
-
-            SequenceType::LandingPageAndOffers => {
-                self.remove_landing_page_child_from_source(landing_page_source_child_target?)
+            SequenceType::Matrix => {
+                self.remove_child_for_matrix(matrix_child_target.expect("G%sfdg5f"))
             }
 
+            SequenceType::LandingPageAndOffers => self.remove_landing_page_child_from_source(
+                landing_page_source_child_target.expect("54Gf54FG"),
+            ),
+
             SequenceType::OffersOnly => {
-                self.remove_offer_child_from_source(offer_source_child_target?)
+                self.remove_offer_child_from_source(offer_source_child_target.expect("G5gFrr$f"))
             }
         }
     }
