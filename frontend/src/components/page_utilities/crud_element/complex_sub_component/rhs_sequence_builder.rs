@@ -25,8 +25,9 @@ use yew::virtual_dom::{VList, VNode};
 use crate::components::page_utilities::crud_element::complex_sub_component::matrix_builder::{
     MatrixBuilder, RootMatrix,
 };
-use ad_buy_engine::data::elements::matrix::MatrixData;
+use ad_buy_engine::data::elements::matrix::{Matrix, MatrixData};
 use either::Either;
+use std::sync::{Arc, RwLock};
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -34,11 +35,9 @@ pub enum Msg {
     UpdateSequenceName(InputData),
     UpdateSequenceReferrerHandling(ReferrerHandling),
     UpdateSequenceType(SequenceType),
-    UpdateOffers(Vec<Vec<Offer>>),
-    UpdateLandingPages(Vec<LandingPage>),
     UpdateSequence(Sequence),
     OnBlurName,
-    UpdateRootMatrix(RootMatrix),
+    UpdateRootMatrix(Arc<RwLock<Matrix>>),
 }
 
 #[derive(Properties, Clone)]
@@ -103,8 +102,7 @@ impl Component for RHSSequenceBuilder {
         match msg {
             Msg::UpdateRootMatrix(root_matrix) => {
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
-                    let matrix = &*root_matrix.borrow_mut();
-                    sequence.matrix = matrix.clone();
+                    sequence.matrix = arc!(root_matrix);
                     self.props.update_sequence.emit(sequence);
                 } else {
                     notify_danger("Err: Could not extract active sequence")
@@ -112,49 +110,6 @@ impl Component for RHSSequenceBuilder {
             }
 
             Msg::UpdateSequence(seq) => self.props.update_sequence.emit(seq),
-
-            Msg::UpdateLandingPages(lps) => {
-                if let Some(mut sequence) = self.return_active_sequence().cloned() {
-                    // sequence.landing_pages = lps; //todo
-                    // sequence.equalize_offer_groups();
-                    self.props.update_sequence.emit(sequence);
-                } else {
-                    notify_danger("Err: Could not extract active sequence")
-                }
-            }
-
-            Msg::UpdateOffers(offers) => {
-                if let Some(mut sequence) = self.return_active_sequence().cloned() {
-                    match sequence.sequence_type {
-                        SequenceType::OffersOnly => {
-                            // sequence.matrix = offers
-                            //     .iter()
-                            //     .flatten()
-                            //     .map(|s| s.clone().into())
-                            //     .collect::<Vec<Matrix>>();
-                        }
-
-                        SequenceType::LandingPageAndOffers => {
-                            // sequence.matrix.iter_mut().map(|s| {
-                            //     s.child_group.iter_mut().enumerate().map(|(idx, s)| {
-                            //         let offer_group = offers
-                            //             .get(idx)
-                            //             .expect("54sdfKKg")
-                            //             .iter()
-                            //             .map(|s| s.clone().into())
-                            //             .collect::<Vec<Matrix>>();
-                            //         *s = offer_group;
-                            //     })
-                            // });
-                        }
-                        _ => {}
-                    }
-
-                    self.props.update_sequence.emit(sequence);
-                } else {
-                    notify_danger("Err: Could not extract active sequence")
-                }
-            }
 
             Msg::UpdateSequenceType(seq_type) => self.props.update_sequence_type.emit(seq_type),
 
@@ -170,6 +125,53 @@ impl Component for RHSSequenceBuilder {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        match &props.active_element {
+            ActiveElement::DefaultSequence(id) => {
+                if let Some(new_seq) = props.default_sequences.iter().find(|s| &s.id == id) {
+                    if let Some(old_seq) = self.props.default_sequences.iter().find(|s| &s.id == id)
+                    {
+                        if new_seq.sequence_type != old_seq.sequence_type {
+                            let arc_matrix = arc!(new_seq.matrix);
+                            let mut matrix = arc_matrix.write().expect("G%Rf");
+                            matrix.children_groups.clear();
+                            matrix
+                                .children_groups
+                                .push(vec![Arc::new(RwLock::new(Matrix::void(
+                                    Some(arc!(arc_matrix)),
+                                    0,
+                                    0,
+                                    1,
+                                )))]);
+                        }
+                    }
+                }
+            }
+            ActiveElement::ConditionalSequence((cid, Some(id))) => {
+                if let Some(found_c) = props.conditional_sequences.iter().find(|s| &s.id == cid) {
+                    if let Some(new_seq) = found_c.sequences.iter().find(|s| &s.id == id) {
+                        if let Some(old_c) = self
+                            .props
+                            .conditional_sequences
+                            .iter()
+                            .find(|s| &s.id == cid)
+                        {
+                            if let Some(old_seq) = old_c.sequences.iter().find(|s| &s.id == id) {
+                                if new_seq.sequence_type != old_seq.sequence_type {
+                                    let arc_matrix = arc!(new_seq.matrix);
+                                    let mut matrix = arc_matrix.write().expect("G%Rf");
+                                    matrix.children_groups.clear();
+                                    matrix.children_groups.push(vec![Arc::new(RwLock::new(
+                                        Matrix::void(Some(arc!(arc_matrix)), 0, 0, 1),
+                                    ))]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
         match props.active_element {
             ActiveElement::DefaultSequence(id) => {
                 self.name = props
@@ -270,49 +272,35 @@ impl RHSSequenceBuilder {
 
     pub fn render_view(&self) -> VNode {
         if let Some(sequence) = self.return_active_sequence() {
-            match sequence.sequence_type {
-                SequenceType::OffersOnly => {
-                    let matrix = self
-                        .return_active_sequence()
-                        .cloned()
-                        .expect("G%5467643252")
-                        .matrix;
-                    let local_matrix = Rc::new(matrix.clone());
-                    let root_matrix = Rc::new(RefCell::new(matrix));
+            let local_matrix = arc!(sequence.matrix);
+            let root_matrix = arc!(sequence.matrix);
 
-                    VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
-                    })
-                }
-
-                SequenceType::LandingPageAndOffers => {
-                    let matrix = self
-                        .return_active_sequence()
-                        .cloned()
-                        .expect("G%5467643252")
-                        .matrix;
-                    let local_matrix = Rc::new(matrix.clone());
-                    let root_matrix = Rc::new(RefCell::new(matrix));
-
-                    VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
-                    })
-                }
-
-                SequenceType::Matrix => {
-                    let matrix = self
-                        .return_active_sequence()
-                        .cloned()
-                        .expect("G%5467643252")
-                        .matrix;
-                    let local_matrix = Rc::new(matrix.clone());
-                    let root_matrix = Rc::new(RefCell::new(matrix));
-
-                    VNode::from(html! {
-                        <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type transmit=self.link.callback(Msg::UpdateRootMatrix) sequence_builder_link=Rc::new(self.link.clone()) />
-                    })
-                }
-            }
+            VNode::from(html! {
+                <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type sequence_builder_link=Rc::new(self.link.clone()) />
+            })
+            // match sequence.sequence_type {
+            //     SequenceType::OffersOnly => {
+            //         let local_matrix = arc!(self.stored_offers_only.unwrap());
+            //         let root_matrix = arc!(self.stored_offers_only.unwrap());
+            //         VNode::from(html! {
+            //             <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type sequence_builder_link=Rc::new(self.link.clone()) />
+            //         })
+            //     }
+            //     SequenceType::LandingPageAndOffers => {
+            //         let local_matrix = arc!(self.stored_landers_and_offers.unwrap());
+            //         let root_matrix = arc!(self.stored_landers_and_offers.unwrap());
+            //         VNode::from(html! {
+            //             <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type sequence_builder_link=Rc::new(self.link.clone()) />
+            //         })
+            //     }
+            //     SequenceType::Matrix => {
+            //         let local_matrix = arc!(self.stored_matrix.unwrap());
+            //         let root_matrix = arc!(self.stored_matrix.unwrap());
+            //         VNode::from(html! {
+            //             <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type sequence_builder_link=Rc::new(self.link.clone()) />
+            //         })
+            //     }
+            // }
         } else {
             VNode::from(html! {})
         }

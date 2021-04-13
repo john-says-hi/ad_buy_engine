@@ -11,6 +11,7 @@ use crate::{AError, Country};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use either::Either;
 use std::str::FromStr;
+use std::sync::{Arc, RwLock};
 use strum::IntoEnumIterator;
 use traversal;
 use traversal::DftLongestPaths;
@@ -81,7 +82,7 @@ pub struct Sequence {
     pub sequence_type: SequenceType,
     pub redirect_option: RedirectOption,
     pub referrer_handling: ReferrerHandling,
-    pub matrix: Matrix,
+    pub matrix: Arc<RwLock<Matrix>>,
     pub weight_optimization_active: bool,
     pub sequence_is_active: bool,
 }
