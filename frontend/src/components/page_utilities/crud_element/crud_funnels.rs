@@ -12,7 +12,9 @@ use crate::components::page_utilities::crud_element::whitelist_postback_ips::Whi
 use crate::components::primitives::text_area::TextArea;
 use crate::components::primitives::TextInput;
 use crate::components::tab_state::ActivatedTab;
-use crate::utils::javascript::js_bindings::{hide_uk_modal, toggle_uk_dropdown};
+use crate::utils::javascript::js_bindings::{
+    add_class_name, hide_uk_modal, remove_class_name, toggle_uk_dropdown,
+};
 use crate::utils::routes::AppRoute;
 use crate::{notify_danger, notify_debug, notify_primary, RootComponent};
 use ad_buy_engine::constant::apis::private::API_CRUD_ELEMENT;
@@ -92,6 +94,7 @@ pub enum Msg {
     FetchFailed,
     DeserializationFailed,
     UpdateSequenceConditions(Vec<Condition>),
+    ToggleRHSExpand,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -121,6 +124,9 @@ pub struct CRUDFunnel {
     pub fetch_task: Option<FetchTask>,
     pub active_element: ActiveElement,
     pub tt: Box<dyn Bridge<TickTock>>,
+    pub main_container: NodeRef,
+    pub lhs_container: NodeRef,
+    pub expand_rhs: bool,
 }
 
 impl Component for CRUDFunnel {
@@ -129,21 +135,6 @@ impl Component for CRUDFunnel {
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let tt = TickTock::bridge(link.callback(|_| Msg::Ignore));
-        // let init_default_seq = Sequence {
-        //     id: Uuid::new_v4(),
-        //     name: "New Default Sequence".to_string(),
-        //     weight: 100,
-        //     sequence_type: SequenceType::OffersOnly,
-        //     redirect_option: RedirectOption::Redirect,
-        //     referrer_handling: ReferrerHandling::DoNothing,
-        //     pre_landing_page: None,
-        //     listicle_pairs: vec![],
-        //     landing_pages: vec![],
-        //     offers: vec![],
-        //     weight_optimization_active: false,
-        //     sequence_is_active: true,
-        // };
-
         Self {
             link,
             props,
@@ -156,11 +147,30 @@ impl Component for CRUDFunnel {
             fetch_task: None,
             active_element: ActiveElement::Funnel,
             tt,
+            main_container: NodeRef::default(),
+            lhs_container: NodeRef::default(),
+            expand_rhs: false,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ToggleRHSExpand => {
+                let mc = self.main_container.cast::<Element>().expect("%GfFSD");
+                let lhsc = self.lhs_container.cast::<Element>().expect("%GfFSD");
+                self.expand_rhs = !self.expand_rhs;
+
+                if self.expand_rhs {
+                    add_class_name(lhsc, "uk-hidden");
+                    remove_class_name(mc.clone(), "uk-child-width-1-2");
+                    add_class_name(mc, "uk-child-width-1-1");
+                } else {
+                    remove_class_name(mc.clone(), "uk-child-width-1-1");
+                    add_class_name(mc, "uk-child-width-1-2");
+                    remove_class_name(lhsc, "uk-hidden");
+                }
+            }
+
             Msg::UpdateSequenceConditions(conditions) => {
                 if let ActiveElement::ConditionalSequence((condi_id, None)) = self.active_element {
                     self.conditional_sequences
@@ -202,28 +212,32 @@ impl Component for CRUDFunnel {
                 _ => {}
             },
 
-            Msg::UpdateSequenceType(seq_type) => match self.active_element {
-                ActiveElement::DefaultSequence(seq_id) => {
-                    self.default_sequences
-                        .iter_mut()
-                        .find(|s| s.id == seq_id)
-                        .map(|s| s.sequence_type = seq_type);
-                }
+            Msg::UpdateSequenceType(seq_type) => {
+                self.expand_rhs = false;
 
-                ActiveElement::ConditionalSequence((condi_id, Some(seq_id))) => {
-                    self.conditional_sequences
-                        .iter_mut()
-                        .find(|s| s.id == condi_id)
-                        .map(|s| {
-                            s.sequences
-                                .iter_mut()
-                                .find(|s| s.id == seq_id)
-                                .map(|s| s.sequence_type = seq_type)
-                        });
-                }
+                match self.active_element {
+                    ActiveElement::DefaultSequence(seq_id) => {
+                        self.default_sequences
+                            .iter_mut()
+                            .find(|s| s.id == seq_id)
+                            .map(|s| s.sequence_type = seq_type);
+                    }
 
-                _ => {}
-            },
+                    ActiveElement::ConditionalSequence((condi_id, Some(seq_id))) => {
+                        self.conditional_sequences
+                            .iter_mut()
+                            .find(|s| s.id == condi_id)
+                            .map(|s| {
+                                s.sequences
+                                    .iter_mut()
+                                    .find(|s| s.id == seq_id)
+                                    .map(|s| s.sequence_type = seq_type)
+                            });
+                    }
+
+                    _ => {}
+                }
+            }
 
             Msg::UpdateReferrerHandling(ref_handling) => match self.active_element {
                 ActiveElement::Funnel => self.default_referrer_handling = ref_handling,
@@ -500,9 +514,9 @@ impl Component for CRUDFunnel {
               </div>
               <div class="uk-modal-body" >
 
-                   <div class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2 uk-grid-divider uk-grid-row-collapse uk-flex uk-flex-top" uk-grid="">
+                   <div ref=self.main_container.clone() class="uk-grid-column-collapse uk-grid-collapse uk-child-width-1-2 uk-grid-divider uk-grid-row-collapse uk-flex uk-flex-top" uk-grid="">
 
-                        <div class="uk-margin uk-child-width-auto">
+                        <div ref=self.lhs_container.clone() class="uk-margin uk-child-width-auto">
                             <div class="uk-margin-top-large uk-margin-bottom-large" onclick=self.link.callback(|_| Msg::SetActiveElement(ActiveElement::Funnel))  uk-grid="" >
                                 <div class="uk-width-expand"><h2>{format!("{} - {}", self.country.to_string(), &self.funnel_name)} </h2></div>
                                 <div class="uk-flex-right">{funnel_name_icon}</div>
@@ -517,7 +531,7 @@ impl Component for CRUDFunnel {
 
                         <div class="uk-margin uk-child-width-expand">
                             <div class="uk-margin uk-grid-column-collapse uk-grid-collapse uk-child-width-1-1" uk-grid="">
-                                <RHSFunnelView state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
+                                <RHSFunnelView expand=self.expand_rhs funnel_link=self.link.clone() state=Rc::clone(&self.props.state) default_sequences=&self.default_sequences conditional_sequences=&self.conditional_sequences funnel_name=&self.funnel_name funnel_country=&self.country default_referrer_handling=&self.default_referrer_handling notes=&self.notes active_element=&self.active_element update_sequence=self.link.callback(Msg::UpdateSequence) update_sequence_conditions=self.link.callback(Msg::UpdateSequenceConditions) update_name=self.link.callback(Msg::UpdateName) update_country=self.link.callback(Msg::UpdateFunnelCountry) update_referrer_handling=self.link.callback(Msg::UpdateReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) update_notes=self.link.callback(Msg::UpdateNotes) />
                             </div>
                         </div>
 

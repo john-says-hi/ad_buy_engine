@@ -2,7 +2,7 @@ use crate::appstate::app_state::{AppState, STATE};
 use crate::components::page_utilities::crud_element::complex_sub_component::condition_view::ConditionView;
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_sequence_builder::RHSSequenceBuilder;
-use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
+use crate::components::page_utilities::crud_element::crud_funnels::{ActiveElement, CRUDFunnel};
 use crate::notify_danger;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType};
@@ -17,6 +17,7 @@ use yew::format::Json;
 use yew::prelude::*;
 use yew::virtual_dom::{VList, VNode};
 
+use yew::html::Scope;
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -47,6 +48,8 @@ pub struct Props {
     pub update_referrer_handling: Callback<ReferrerHandling>,
     pub update_sequence_type: Callback<SequenceType>,
     pub update_notes: Callback<InputData>,
+    pub funnel_link: Scope<CRUDFunnel>,
+    pub expand: bool,
 }
 
 pub struct RHSFunnelView {
@@ -106,11 +109,11 @@ impl RHSFunnelView {
             }),
 
             ActiveElement::DefaultSequence(seq_id) => VNode::from(html! {
-                <RHSSequenceBuilder state=Rc::clone(&self.props.state) active_element=active_element conditional_sequences=conditional_sequences update_sequence=self.link.callback(Msg::UpdateSequence) update_name=self.link.callback(Msg::UpdateName) update_referrer_handling=self.link.callback(Msg::UpdateDefaultReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) default_sequences=&self.props.default_sequences />
+                <RHSSequenceBuilder expand=self.props.expand funnel_link=self.props.funnel_link.clone() state=Rc::clone(&self.props.state) active_element=active_element conditional_sequences=conditional_sequences update_sequence=self.link.callback(Msg::UpdateSequence) update_name=self.link.callback(Msg::UpdateName) update_referrer_handling=self.link.callback(Msg::UpdateDefaultReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) default_sequences=&self.props.default_sequences />
             }),
 
             ActiveElement::ConditionalSequence((condi_id, Some(seq_id))) => VNode::from(html! {
-                <RHSSequenceBuilder state=Rc::clone(&self.props.state) active_element=active_element conditional_sequences=conditional_sequences update_sequence=self.link.callback(Msg::UpdateSequence) update_name=self.link.callback(Msg::UpdateName) update_referrer_handling=self.link.callback(Msg::UpdateDefaultReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) default_sequences=&self.props.default_sequences />
+                <RHSSequenceBuilder expand=self.props.expand funnel_link=self.props.funnel_link.clone() state=Rc::clone(&self.props.state) active_element=active_element conditional_sequences=conditional_sequences update_sequence=self.link.callback(Msg::UpdateSequence) update_name=self.link.callback(Msg::UpdateName) update_referrer_handling=self.link.callback(Msg::UpdateDefaultReferrerHandling) update_sequence_type=self.link.callback(Msg::UpdateSequenceType) default_sequences=&self.props.default_sequences />
             }),
 
             ActiveElement::ConditionalSequence((condi_id, None)) => {

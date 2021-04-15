@@ -38,4 +38,10 @@ extern "C" {
 
     #[wasm_bindgen(js_name = "copy_to_clipboard")]
     pub fn copy_to_clipboard(id: &str);
+
+    #[wasm_bindgen(js_name = "add_class_name")]
+    pub fn add_class_name(element: Element, class_name: &str);
+
+    #[wasm_bindgen(js_name = "remove_class_name")]
+    pub fn remove_class_name(element: Element, class_name: &str);
 }

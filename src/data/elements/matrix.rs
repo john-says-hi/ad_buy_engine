@@ -138,6 +138,18 @@ impl Matrix {
         }
     }
 
+    pub fn highest_cta(target_group: &Vec<Arc<RwLock<Matrix>>>) -> usize {
+        let mut highest = 0usize;
+        for i in target_group {
+            if let MatrixData::LandingPage(lp) = &i.read().unwrap().value.data {
+                if lp.number_of_calls_to_action as usize > highest {
+                    highest = lp.number_of_calls_to_action as usize;
+                }
+            }
+        }
+        highest
+    }
+
     pub fn root_synchronize_landing_page_child_groups(
         target: Arc<RwLock<Matrix>>,
     ) -> Result<(), String> {
@@ -158,45 +170,47 @@ impl Matrix {
             }
         }
 
-        num_offer_groups = matrix_handle.children_groups.len() - 1;
-        if max_num_ctas == num_offer_groups {
-            return Ok(());
-        } else if max_num_ctas > num_offer_groups {
-            let difference_to_add = max_num_ctas - num_offer_groups;
-            for i in 0..difference_to_add {
-                matrix_handle
-                    .children_groups
-                    .push(vec![Arc::new(RwLock::new(Matrix::void(
-                        Some(arc!(parent_node)),
-                        i + num_offer_groups,
-                        0,
-                        next_depth,
-                    )))]);
-            }
-        } else if max_num_ctas < num_offer_groups {
-            for i in (max_num_ctas..num_offer_groups).rev() {
-                matrix_handle.children_groups.remove(i);
-            }
-        }
-
-        let mut max_num_ctas = 0usize;
-        let mut num_offer_groups = 0usize;
-
-        for item in matrix_handle.children_groups.get(0).unwrap() {
-            if let MatrixData::LandingPage(lp) = item.read().expect("H^gGdf").data() {
-                if lp.number_of_calls_to_action as usize > max_num_ctas {
-                    max_num_ctas = lp.number_of_calls_to_action as usize;
-                }
-            }
-        }
-
-        num_offer_groups = matrix_handle.children_groups.len() - 1;
-
-        if num_offer_groups == max_num_ctas {
-            Ok(())
-        } else {
-            Err("Synchronization failed:FV534 ".to_string())
-        }
+        Ok(())
+        //
+        // num_offer_groups = matrix_handle.children_groups.len() - 1;
+        // if max_num_ctas == num_offer_groups {
+        //     return Ok(());
+        // } else if max_num_ctas > num_offer_groups {
+        //     let difference_to_add = max_num_ctas - num_offer_groups;
+        //     for i in 0..difference_to_add {
+        //         matrix_handle
+        //             .children_groups
+        //             .push(vec![Arc::new(RwLock::new(Matrix::void(
+        //                 Some(arc!(parent_node)),
+        //                 i + num_offer_groups,
+        //                 0,
+        //                 next_depth,
+        //             )))]);
+        //     }
+        // } else if max_num_ctas < num_offer_groups {
+        //     for i in (max_num_ctas..num_offer_groups).rev() {
+        //         matrix_handle.children_groups.remove(i);
+        //     }
+        // }
+        //
+        // let mut max_num_ctas = 0usize;
+        // let mut num_offer_groups = 0usize;
+        //
+        // for item in matrix_handle.children_groups.get(0).unwrap() {
+        //     if let MatrixData::LandingPage(lp) = item.read().expect("H^gGdf").data() {
+        //         if lp.number_of_calls_to_action as usize > max_num_ctas {
+        //             max_num_ctas = lp.number_of_calls_to_action as usize;
+        //         }
+        //     }
+        // }
+        //
+        // num_offer_groups = matrix_handle.children_groups.len() - 1;
+        //
+        // if num_offer_groups == max_num_ctas {
+        //     Ok(())
+        // } else {
+        //     Err("Synchronization failed:FV534 ".to_string())
+        // }
     }
 
     // pub fn search_next_depth<'a, I>(
