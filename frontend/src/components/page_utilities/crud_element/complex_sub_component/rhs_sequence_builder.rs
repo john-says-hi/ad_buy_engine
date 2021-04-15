@@ -1,33 +1,34 @@
 use crate::appstate::app_state::{AppState, STATE};
 use crate::components::page_utilities::crud_element::complex_sub_component::landing_page_selector::LandingPageSelector;
 // use crate::components::page_utilities::crud_element::complex_sub_component::listicle_builder::MatrixBuilder;
+use super::super::crud_funnels::Msg as FunnelMsg;
+use crate::components::page_utilities::crud_element::complex_sub_component::matrix_builder::{
+    MatrixBuilder, RootMatrix,
+};
 use crate::components::page_utilities::crud_element::complex_sub_component::offer_selector::OfferSelector;
 use crate::components::page_utilities::crud_element::complex_sub_component::rhs_funnel_view_basic::RHSFunnelViewBasic;
-use crate::components::page_utilities::crud_element::crud_funnels::ActiveElement;
+use crate::components::page_utilities::crud_element::crud_funnels::{ActiveElement, CRUDFunnel};
 use crate::components::page_utilities::crud_element::dropdowns::referrer_handling_dropdown::ReferrerHandlingDropdown;
 use crate::components::page_utilities::crud_element::dropdowns::sequence_type_dropdown::SequenceTypeDropdown;
 use crate::notify_danger;
 use crate::utils::javascript::js_bindings::toggle_uk_dropdown;
 use ad_buy_engine::data::elements::funnel::{ConditionalSequence, Sequence, SequenceType};
 use ad_buy_engine::data::elements::landing_page::LandingPage;
+use ad_buy_engine::data::elements::matrix::{Matrix, MatrixData};
 use ad_buy_engine::data::elements::offer::Offer;
 use ad_buy_engine::data::lists::referrer_handling::ReferrerHandling;
 use ad_buy_engine::Country;
+use either::Either;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 use web_sys::Element;
 use yew::format::Json;
+use yew::html::Scope;
 use yew::prelude::*;
 use yew::virtual_dom::{VList, VNode};
-
-use crate::components::page_utilities::crud_element::complex_sub_component::matrix_builder::{
-    MatrixBuilder, RootMatrix,
-};
-use ad_buy_engine::data::elements::matrix::{Matrix, MatrixData};
-use either::Either;
-use std::sync::{Arc, RwLock};
 use yew_services::storage::Area;
 use yew_services::StorageService;
 
@@ -38,6 +39,7 @@ pub enum Msg {
     UpdateSequence(Sequence),
     OnBlurName,
     UpdateRootMatrix(Arc<RwLock<Matrix>>),
+    ToggleRHSExpand,
 }
 
 #[derive(Properties, Clone)]
@@ -50,6 +52,8 @@ pub struct Props {
     pub update_name: Callback<String>,
     pub update_referrer_handling: Callback<ReferrerHandling>,
     pub update_sequence_type: Callback<SequenceType>,
+    pub funnel_link: Scope<CRUDFunnel>,
+    pub expand: bool,
 }
 
 pub struct RHSSequenceBuilder {
@@ -100,7 +104,20 @@ impl Component for RHSSequenceBuilder {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::ToggleRHSExpand => self
+                .props
+                .funnel_link
+                .send_message(FunnelMsg::ToggleRHSExpand),
+
             Msg::UpdateRootMatrix(root_matrix) => {
+                notify_danger(
+                    format!(
+                        "from SeqBuilder; Root matrix Children: {}",
+                        &root_matrix.read().unwrap().children_groups.len()
+                    )
+                    .as_str(),
+                );
+
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
                     sequence.matrix = arc!(root_matrix);
                     self.props.update_sequence.emit(sequence);
@@ -224,6 +241,10 @@ impl Component for RHSSequenceBuilder {
 
         html! {
         <>
+                                <div class="uk-margin uk-flex uk-flex-right">
+                                    <span onclick=callback!(self, |_| Msg::ToggleRHSExpand) class=format!("{}", if self.props.expand {"fa fa-compress-arrows-alt fa-lg"} else {"fa fa-expand-arrows-alt fa-lg"})></span>
+                                </div>
+
                                 <div class="uk-margin">
                                     {label!("Sequence Name")}
                                     <input type="text" class="uk-input" oninput=self.link.callback(Msg::UpdateSequenceName) value=&self.name onblur=callback!(self, |_| Msg::OnBlurName) />
@@ -273,7 +294,7 @@ impl RHSSequenceBuilder {
     pub fn render_view(&self) -> VNode {
         if let Some(sequence) = self.return_active_sequence() {
             let local_matrix = arc!(sequence.matrix);
-            let root_matrix = arc!(sequence.matrix);
+            let root_matrix = arc!(local_matrix);
 
             VNode::from(html! {
                 <MatrixBuilder root_matrix=root_matrix local_matrix=local_matrix state=Rc::clone(&self.props.state) seq_type=sequence.sequence_type sequence_builder_link=Rc::new(self.link.clone()) />
