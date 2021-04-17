@@ -14,6 +14,7 @@ pub mod payout_type_handler;
 pub mod plus_button;
 // pub mod pre_landing_page_selector;
 pub mod matrix_builder;
+pub mod matrix_builder_utils;
 pub mod rhs_funnel_view;
 pub mod rhs_funnel_view_basic;
 pub mod rhs_sequence_builder;
