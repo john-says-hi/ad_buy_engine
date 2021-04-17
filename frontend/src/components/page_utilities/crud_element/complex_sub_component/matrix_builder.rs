@@ -52,10 +52,10 @@ pub struct Props {
 }
 
 pub struct MatrixBuilder {
-    link: ComponentLink<Self>,
-    props: Props,
-    children_hidden: bool,
-    weight_buff: u8,
+    pub link: ComponentLink<Self>,
+    pub props: Props,
+    pub children_hidden: bool,
+    pub weight_buff: u8,
 }
 
 impl Component for MatrixBuilder {
@@ -121,7 +121,27 @@ impl Component for MatrixBuilder {
                                 self.props.local_matrix.write().expect("G53greg").value.data =
                                     MatrixData::LandingPage(lp);
                             } else {
-                                // handle matrix landing page addon
+                                let local_group_idx =
+                                    self.props.local_matrix.read().unwrap().value.group_idx;
+                                let ctas = lp.number_of_calls_to_action as usize;
+                                self.props.local_matrix.write().expect("G53greg").value.data =
+                                    MatrixData::LandingPage(lp);
+                                for i in 0..ctas {
+                                    let new_group_idx = i + 1;
+                                    let depth =
+                                        self.props.local_matrix.read().unwrap().value.depth + 1;
+                                    self.props
+                                        .local_matrix
+                                        .write()
+                                        .unwrap()
+                                        .children_groups
+                                        .push(vec![Arc::new(RwLock::new(Matrix::void(
+                                            Some(arc!(self.props.local_matrix)),
+                                            new_group_idx,
+                                            0,
+                                            depth,
+                                        )))])
+                                }
                             }
                         }
                     },
@@ -534,7 +554,7 @@ impl MatrixBuilder {
 
                     nodes.push(VNode::from(html! {
                         <>
-                            {top_divider}
+                            // {top_divider}
                             {group_headline}
                             <button onclick=add_cb class="uk-button uk-button-small uk-button-primary">{btn_txt}</button>
                             <div class="uk-overflow-auto">
@@ -612,43 +632,22 @@ impl MatrixBuilder {
             (SequenceType::Matrix, MatrixData::Source) => {
                 let mut matrices = VList::new();
                 let matrix_handle = self.props.local_matrix.read().expect("GTsfdg");
-                let source_groups = matrix_handle.children_groups.iter().enumerate();
 
-                for (group_idx, source_group) in source_groups {
-                    let mut group = VList::new();
-
-                    for (item_idx, item) in source_group.iter().enumerate() {
-                        let local_matrix = arc!(item);
-
-                        group.push(html! {
+                for (idx, source_matrix) in matrix_handle.children_groups.iter().enumerate() {
+                    if let Some(local_matrix) = source_matrix.get(0) {
+                        matrices.push(VNode::from(html! {
+                    <div class="uk-margin-top">
+                              {label!(&format!("Matrix #{}", idx + 1))}
                                 <MatrixBuilder
                                 root_matrix=arc!(self.props.root_matrix)
-                                local_matrix=local_matrix
+                                local_matrix=arc!(local_matrix)
                                 state=rc!(self.props.state)
                                 seq_type=SequenceType::Matrix
                                 sequence_builder_link=Rc::clone(&self.props.sequence_builder_link)
                                 />
-                    });
-                    }
-
-                    let add_cb = self
-                        .link
-                        .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Add(group_idx)));
-                    matrices.push(VNode::from(html! {
-                    <div class="uk-margin-top">
-                        {divider!(2)}
-                        <h4>{format!("Matrix: {}", group_idx + 1)}</h4>
-                        <button onclick=add_cb class="uk-button uk-button-small uk-button-primary">{"Add Element"}</button>
-                        <div class="uk-overflow-auto">
-                            <table class="uk-table uk-table-hover uk-table-middle uk-table-divider">
-                                {self.table_head()}
-                                        <tbody>
-                                            {group}
-                                        </tbody>
-                            </table>
-                        </div>
                     </div>
-                    }))
+                    }));
+                    }
                 }
 
                 let new_group_idx = matrix_handle.children_groups.len();
@@ -663,93 +662,15 @@ impl MatrixBuilder {
                 })
             }
 
-            (SequenceType::Matrix, MatrixData::Offer(offer)) => {
-                let matrix = self.props.local_matrix.read().expect("tgfgF45F");
-                let depth = matrix.depth();
-                let depth_border = format!(
-                    "border-left-style:solid;border-left-color:{};",
-                    color_depth_border(depth)
-                );
-                let weight = offer.weight.to_string();
-
-                let oninput_update_weight_cb =
-                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
-
-                let local_matrix = arc!(self.props.local_matrix);
-                let onblur_update_weight_cb = self
-                    .link
-                    .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Weight));
-
-                let local_matrix = arc!(self.props.local_matrix);
-                let rm_cb = self
-                    .link
-                    .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Remove));
-
-                VNode::from(html! {
-                                <tr style=depth_border>
-                                    <td class="uk-text-nowrap">{depth}</td>
-                                    <td class="uk-text-nowrap">{"Offer"}</td>
-                                    <td class="uk-text-truncate" uk-tooltip={format!("title:{};", &offer.name)}>{format!("{}", &offer.name)}</td>
-                                    <td class="uk-text-nowrap"><input type="number" oninput=oninput_update_weight_cb value=weight onblur=onblur_update_weight_cb class="uk-input" placeholder="Weight" /></td>
-                                    <td class="uk-text-nowrap">{"NA"}</td>
-                                    <td class="uk-text-nowrap"><button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button></td>
-                                </tr>
-                })
-            }
-
             (SequenceType::Matrix, MatrixData::LandingPage(lp)) => {
-                let mut nodes = VList::new();
-                let local_matrix = self.props.local_matrix.read().expect("tgfgF45F");
-                let depth = local_matrix.depth();
-                let depth_border = format!(
-                    "border-left-style:solid;border-left-color:{};",
-                    color_depth_border(depth)
-                );
-                let weight = lp.weight.to_string();
-                let ctas = lp.number_of_calls_to_action.to_string();
-                let oninput_update_weight_cb =
-                    self.link.callback(move |i: InputData| Msg::UpdateWeight(i));
-                let onblur_update_weight_cb = self
-                    .link
-                    .callback(|_| Msg::UpdateMatrix(UpdateMatrix::Weight));
-                let rm_cb = self
-                    .link
-                    .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Remove));
-
-                nodes.push(html! {<tr>{divider!(2)}</tr>}); //todo
-
-                nodes.push(html! {
-                                <tr style=depth_border>
-                                    <td class="uk-text-nowrap">{depth}</td>
-                                    <td class="uk-text-nowrap">{"Lander"}</td>
-                                    <td class="uk-text-truncate" uk-tooltip={format!("title:{};", &lp.name)}>{format!("{}", &lp.name)}</td>
-                                    <td class="uk-text-nowrap"><input type="number" oninput=oninput_update_weight_cb value=weight onblur=onblur_update_weight_cb class="uk-input" placeholder="Weight" /></td>
-                                    <td class="uk-text-nowrap">{"NA"}</td>
-                                    <td class="uk-text-nowrap"><button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button></td>
-                                </tr>
-                });
-
-                for (group_idx, group) in local_matrix.children_groups.iter().enumerate() {
-                    nodes.push(html! {<tr>{divider!(2)}</tr>}); //todo
-
-                    for (item_idx, item) in group.iter().enumerate() {
-                        let local_matrix = arc!(item);
-
-                        nodes.push(html! {
-                                <MatrixBuilder
-                                root_matrix=arc!(self.props.root_matrix)
-                                local_matrix=local_matrix
-                                state=rc!(self.props.state)
-                                seq_type=SequenceType::Matrix
-                                sequence_builder_link=Rc::clone(&self.props.sequence_builder_link)
-                                />
-                    });
-                    }
+                html! {
+                    {self.matrix_lander_base(lp)}
                 }
-                nodes.push(html! {<tr>{divider!(2)}</tr>}); //todo
-
-                VNode::from(nodes)
             }
+
+            (SequenceType::Matrix, MatrixData::Offer(offer)) => VNode::from(html! {
+                {self.matrix_offer_row(offer)}
+            }),
 
             _ => VNode::from(html! {}),
         }
@@ -783,16 +704,30 @@ impl MatrixBuilder {
             }),
 
             (SequenceType::Matrix, MatrixData::Source) => VNode::from(html! {
-                <thead>
-                    <tr>
-                        <th class="uk-table-shrink uk-text-nowrap">{format!("Depth")}</th>
-                        <th class="uk-table-shrink uk-text-nowrap">{"Type"}</th>
-                        <th class="uk-table-shrink uk-text-nowrap">{"Name"}</th>
-                        <th class="uk-table-shrink">{"Weight"}</th>
-                        <th class="uk-table-shrink uk-text-nowrap">{"CTA's"}</th>
-                        <th class="uk-table-shrink uk-text-nowrap">{"Remove"}</th>
-                    </tr>
-                </thead>
+                            <div class="uk-grid-column-small uk-grid-row-small uk-child-width-1-6 uk-no-wrap uk-text-center" uk-grid="">
+                                // <div>
+                            // {"Step"}
+                            //     </div>
+                                <div>
+                            {"Depth"}
+                                </div>
+                                <div>
+                            {"Type"}
+                                </div>
+                                <div>
+                            {"Name"}
+                                </div>
+                                <div>
+                            {"Weight"}
+                                </div>
+                                <div>
+                            {"CTAs"}
+                                </div>
+                                <div>
+                            {"Remove"}
+                                </div>
+                            </div>
+
             }),
 
             _ => VNode::from(html! {}),
@@ -821,5 +756,21 @@ pub fn color_depth_border(depth: usize) -> &'static str {
         8 => DEPTH_8,
         9 => DEPTH_9,
         _ => DEPTH_0,
+    }
+}
+
+pub fn margin_depth_indent(depth: usize) -> i32 {
+    match depth {
+        0 => 0,
+        1 => 0,
+        2 => 5,
+        3 => 10,
+        4 => 20,
+        5 => 25,
+        6 => 30,
+        7 => 35,
+        8 => 40,
+        9 => 45,
+        _ => 50,
     }
 }
