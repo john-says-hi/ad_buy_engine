@@ -127,9 +127,10 @@ impl Component for MatrixBuilder {
                                 self.props.local_matrix.write().expect("G53greg").value.data =
                                     MatrixData::LandingPage(lp);
                                 for i in 0..ctas {
-                                    let new_group_idx = i + 1;
+                                    let new_group_idx = i;
                                     let depth =
                                         self.props.local_matrix.read().unwrap().value.depth + 1;
+
                                     self.props
                                         .local_matrix
                                         .write()
@@ -387,8 +388,9 @@ impl MatrixBuilder {
                 SequenceType::Matrix => {
                     let depth = self.props.local_matrix.read().expect("%GSDF").depth();
                     let depth_border = format!(
-                        "border-left-style:solid;border-left-color:{};background:#ffcccb;",
-                        color_depth_border(depth)
+                        "background:#ffcccb;",
+                        // "border-left-style:solid;border-left-color:{};background:#ffcccb;",
+                        // color_depth_border(depth)
                     );
 
                     let transform_to_lander_cb = self.link.callback(move |lp: LandingPage| {
@@ -403,36 +405,60 @@ impl MatrixBuilder {
                         .link
                         .callback(|_| Msg::UpdateMatrix(UpdateMatrix::Remove));
 
+                    let group_idx = self.props.local_matrix.read().unwrap().value.group_idx;
+                    let offers_in_group = self
+                        .props
+                        .local_matrix
+                        .read()
+                        .unwrap()
+                        .value
+                        .parent_matrix
+                        .as_ref()
+                        .unwrap()
+                        .read()
+                        .unwrap()
+                        .children_groups
+                        .get(group_idx)
+                        .unwrap()
+                        .len();
+
                     if self.props.local_matrix.read().expect("5gsdfg").depth() < 9 {
                         VNode::from(html! {
-                                    <tr style=depth_border uk-tooltip="title:Please Fill Out;">
-                                        <td class="uk-text-expand">
-                                            {label!("Offer")}
-                                            <OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb />
-                                        </td>
-                                        <td class="uk-text-expand">
-                                            {label!("Lander")}
-                                            <LandingPageDropdown state=rc!(self.props.state) eject=transform_to_lander_cb />
-                                        </td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
-                                    </tr>
-                        })
+                        <div style=depth_border uk-tooltip="title:Please Fill Out;" class="uk-grid-column-small uk-grid-row-small uk-child-width-auto uk-no-wrap uk-text-center" uk-grid="">
+
+                            <div uk-tooltip="title:Select Offer">
+                                <OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb />
+                            </div>
+
+                            <div uk-tooltip="title:Select Lander">
+                                <LandingPageDropdown state=rc!(self.props.state) eject=transform_to_lander_cb />
+                            </div>
+
+                            {
+                                if offers_in_group > 1 {html!{
+                            <div>
+                                    <button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button>
+                            </div>
+                            }} else {html!{}}
+                            }
+                        </div>
+                                        })
                     } else {
                         VNode::from(html! {
-                                    <tr style=depth_border uk-tooltip="title:Please Fill Out;">
-                                        <td class="uk-text-expand">
-                                            {label!("Offer")}
-                                            <OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb />
-                                        </td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td class="uk-text-nowrap"><button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button></td>
-                                    </tr>
+                        <div style=depth_border uk-tooltip="title:Please Fill Out;" class="uk-grid-column-small uk-grid-row-small uk-child-width-auto uk-no-wrap uk-text-center" uk-grid="">
+
+                            <div uk-tooltip="title:Select Offer">
+                                <OfferDropdown state=rc!(self.props.state) eject=transform_to_offer_cb />
+                            </div>
+
+                            {
+                                if offers_in_group > 1 {html!{
+                            <div>
+                                    <button onclick=remove_callback class="uk-button uk-button-small">{"Remove"}</button>
+                            </div>
+                            }} else {html!{}}
+                            }
+                        </div>
                         })
                     }
                 }
