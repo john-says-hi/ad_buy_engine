@@ -452,7 +452,7 @@ impl Matrix {
         let id = Uuid::new_v4();
 
         Self {
-            children_groups: vec![vec![]],
+            children_groups: vec![],
             value: MatrixValue {
                 id,
                 parent_matrix,

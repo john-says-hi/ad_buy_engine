@@ -1,4 +1,6 @@
 use super::matrix_builder::*;
+use crate::notify_danger;
+use ad_buy_engine::constant::{COLOR_BLUE, COLOR_GRAY, MONEY_GREEN};
 use ad_buy_engine::data::elements::funnel::SequenceType;
 use ad_buy_engine::data::elements::landing_page::LandingPage;
 use ad_buy_engine::data::elements::matrix::Matrix;
@@ -10,13 +12,23 @@ use yew::virtual_dom::{VList, VNode};
 
 impl MatrixBuilder {
     pub fn matrix_lander_base(&self, lander: &LandingPage) -> VNode {
-        // let x = lander;
+        // let children = if self.children_hidden {
+        //     html! {}
+        // } else {
+        //     html! {
+        //         <>
+        //             {divider!(2)}
+        //             {self.entry_point_cta_groups()}
+        //         </>
+        //     }
+        // };
+
         VNode::from(html! {
         <div class="uk-overflow-auto uk-card uk-card-default uk-card-body">
             <div class="uk-grid-column-small uk-grid-row-small uk-child-width-1-1" uk-grid="">
                 {self.matrix_lander_row(lander)}
-                {divider!(2)}
-                {self.entry_point_cta_groups()}
+                    // {divider!(2)}
+                    {self.entry_point_cta_groups()}
             </div>
         </div>
             })
@@ -30,21 +42,28 @@ impl MatrixBuilder {
         let rm_cb = self
             .link
             .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Remove));
+        let depth = self.props.local_matrix.read().expect("%GSDF").depth();
+        let depth_border = format!("border-bottom: 2px solid {}", color_depth_border(depth));
 
         VNode::from(html! {
-        <div class="uk-grid-column-small uk-grid-row-small uk-child-width-1-5 uk-no-wrap uk-text-center" uk-grid="">
-            <div>
-                {"SHOW/HIDE"}
+        <div style=depth_border class="uk-grid-column-small uk-grid-row-small uk-child-width-auto uk-no-wrap uk-text-center" uk-grid="">
+
+            <div uk-tooltip="title:Click to Toggle Matrix Children as Visible or Not">
+                <span class="fa fa-eye"></span>
             </div>
+
             <div>
-                {format!("Entry -> {} Exits", lander.number_of_calls_to_action)}
+                <span class="fa fa-door-open" style=format!("color:{};", color_depth_border(depth))></span><span>{format!(" {} CTAs - Depth {} Lander:", lander.number_of_calls_to_action, depth)}</span>
             </div>
-            <div class="uk-text-truncate">
+
+            <div class="uk-text-truncate" uk-tooltip="title:Name">
                 {&lander.name}
             </div>
-            <div>
-                <input type="number" oninput=oi_weight_cb value=format!("{}",&lander.weight) onblur=ob_weight_cb class="uk-input" placeholder="Weight" />
+
+            <div uk-tooltip="title:Weight">
+                <input type="number" oninput=oi_weight_cb value=format!("{}",&lander.weight) onblur=ob_weight_cb class="uk-input uk-form-width-small uk-form-small" placeholder="Weight" />
             </div>
+
             <div>
                 <button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button>
             </div>
@@ -60,18 +79,25 @@ impl MatrixBuilder {
         let rm_cb = self
             .link
             .callback(move |_| Msg::UpdateMatrix(UpdateMatrix::Remove));
+        let depth = self.props.local_matrix.read().expect("%GSDF").depth();
+        // let depth_border = format!(
+        //     "border-left-style:solid;border-left-color:{};",
+        //     color_depth_border(depth)
+        // );
 
         VNode::from(html! {
-        <div class="uk-grid-column-small uk-grid-row-small uk-child-width-1-4 uk-no-wrap uk-text-center" uk-grid="">
+        <div class="uk-grid-column-small uk-grid-row-small uk-child-width-auto uk-no-wrap uk-text-center" uk-grid="">
             <div>
-                {" ^Exit"}
+                <span class="fa fa-money-bill-alt" style=format!("color:{};", color_depth_border(depth))><span>{format!(" Depth {} Offer:", depth)}</span></span>
             </div>
-            <div class="uk-text-truncate">
+
+            <div class="uk-text-truncate" uk-tooltip="title:Name;">
                 {&offer.name}
             </div>
-            <div>
-                <input type="number" oninput=oi_weight_cb value=format!("{}",&offer.weight) onblur=ob_weight_cb class="uk-input" placeholder="Weight" />
+            <div uk-tooltip="title:Weight;">
+                <input type="number" oninput=oi_weight_cb value=format!("{}",&offer.weight) onblur=ob_weight_cb class="uk-input uk-form-width-small uk-form-small" placeholder="Weight" />
             </div>
+
             <div>
                 <button onclick=rm_cb class="uk-button uk-button-small">{"Remove"}</button>
             </div>
@@ -86,6 +112,12 @@ impl MatrixBuilder {
         group: &Vec<Arc<RwLock<Matrix>>>,
     ) -> VNode {
         let group_style = format!("border-style: dotted;");
+        let depth = self.props.local_matrix.read().unwrap().value.depth;
+        // let style= format!("  border-style: dashed;border-width: 2px;")
+        let style = format!("border:2px dashed {}", color_depth_border(depth));
+        let add_cb = callback!(self, move |_| Msg::UpdateMatrix(UpdateMatrix::Add(
+            group_idx
+        )));
 
         let mut items = VList::new();
         for (idx, item) in group.iter().enumerate() {
@@ -101,8 +133,8 @@ impl MatrixBuilder {
         }
 
         VNode::from(html! {
-        <div class="uk-margin">
-            {label!(format!("CTA Group {} of {}", &group_idx, total_groups))}
+        <div class="uk-margin" style=style >
+            {label!(format!("CTA Group {} of {}", &group_idx + 1, total_groups))} <button onclick=add_cb class="uk-button uk-button-small uk-margin-left-large">{"Add Variant"}</button>
             <div>
                 {items}
             </div>

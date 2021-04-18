@@ -110,14 +110,6 @@ impl Component for RHSSequenceBuilder {
                 .send_message(FunnelMsg::ToggleRHSExpand),
 
             Msg::UpdateRootMatrix(root_matrix) => {
-                notify_danger(
-                    format!(
-                        "from SeqBuilder; Root matrix Children: {}",
-                        &root_matrix.read().unwrap().children_groups.len()
-                    )
-                    .as_str(),
-                );
-
                 if let Some(mut sequence) = self.return_active_sequence().cloned() {
                     sequence.matrix = arc!(root_matrix);
                     self.props.update_sequence.emit(sequence);
