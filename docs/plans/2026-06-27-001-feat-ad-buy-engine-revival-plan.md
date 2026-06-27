@@ -273,7 +273,7 @@ The first developer experience should include a local serve script, a local seed
 - ClickHouse is the right default analytics target for high-volume append-heavy click and conversion data.
 - SQLite is acceptable as an edge spool and local demo store, not as the long-term analytics engine for millions of events.
 - The first public release can be single-operator first, with team features deferred.
-- The private `abe_private_ops` repo remains the place for John's private deployment notes, private scripts, and non-public operating context.
+- The private workspace root remains the place for John's private deployment notes, private scripts, and non-public operating context.
 
 ### Outstanding Questions
 
