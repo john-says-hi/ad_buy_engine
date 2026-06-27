@@ -7,5 +7,4 @@ pub const CLICK_SERVER_IP_PORT_TERSE: &'static str = "127.0.0.1:33441";
 pub const MAIN_SERVER_IP: &'static str = "127.0.0.1";
 pub const CAMPAIGN_SERVER_IP_PORT_TERSE: &'static str = "0.0.0.0:8088";
 pub const CLICK_SERVER_IP: &'static str = "127.0.0.1";
-pub const DNS_LINODE_API_TOKEN: &'static str =
-    "***REMOVED_SECRET***";
+pub const DNS_LINODE_API_TOKEN_ENV: &'static str = "DNS_LINODE_API_TOKEN";
