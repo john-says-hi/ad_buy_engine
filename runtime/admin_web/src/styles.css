@@ -1,0 +1,375 @@
+:root {
+  color: #17211d;
+  background: #f4f6f2;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.appShell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.topbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin: 0 auto 24px;
+  max-width: 1180px;
+}
+
+.brandMark {
+  align-items: center;
+  background: #17463c;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.topbar strong,
+.topbar span {
+  display: block;
+}
+
+.topbar span {
+  color: #63716a;
+  font-size: 0.88rem;
+}
+
+.errorBanner {
+  background: #fff0ed;
+  border: 1px solid #d8533f;
+  border-radius: 8px;
+  color: #8d2b1d;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+  padding: 12px 14px;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+}
+
+.eyebrow {
+  color: #6f5d12;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+}
+
+h2 {
+  font-size: 1.05rem;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 8px;
+}
+
+.iconButton {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #c9d3ce;
+  border-radius: 8px;
+  color: #1d2f29;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.dangerButton {
+  color: #a23625;
+}
+
+.primaryButton {
+  align-items: center;
+  background: #17463c;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.primaryButton:disabled {
+  background: #7b8a84;
+  cursor: wait;
+}
+
+.centerPanel,
+.campaignForm,
+.campaignTableShell,
+.metricTile {
+  background: #ffffff;
+  border: 1px solid #d9e1dc;
+  border-radius: 8px;
+  box-shadow: 0 12px 35px rgb(35 49 43 / 8%);
+}
+
+.centerPanel {
+  margin: 10vh auto 0;
+  max-width: 560px;
+  padding: 28px;
+}
+
+.compactPanel {
+  max-width: 420px;
+}
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.panelHeader svg {
+  color: #1d6b5c;
+}
+
+.formGrid,
+.campaignForm {
+  display: grid;
+  gap: 14px;
+}
+
+label {
+  color: #46534e;
+  display: grid;
+  font-size: 0.9rem;
+  gap: 6px;
+}
+
+input {
+  background: #fbfcfa;
+  border: 1px solid #c8d2cd;
+  border-radius: 8px;
+  color: #17211d;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+input:focus {
+  border-color: #1d6b5c;
+  outline: 3px solid rgb(29 107 92 / 18%);
+}
+
+.toggleRow {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.toggleRow input {
+  min-height: auto;
+}
+
+.statusGrid,
+.workspaceGrid {
+  display: grid;
+  gap: 16px;
+  margin: 0 auto 18px;
+  max-width: 1180px;
+}
+
+.statusGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metricTile {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px;
+}
+
+.metricTile span {
+  color: #63716a;
+  font-size: 0.9rem;
+}
+
+.metricTile strong {
+  font-size: 1.65rem;
+  overflow-wrap: anywhere;
+}
+
+.metricIcon {
+  align-items: center;
+  background: #eef7f4;
+  border-radius: 8px;
+  color: #1d6b5c;
+  display: flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.workspaceGrid {
+  align-items: start;
+  grid-template-columns: 360px minmax(0, 1fr);
+}
+
+.campaignForm,
+.campaignTableShell {
+  padding: 18px;
+}
+
+.tableHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tableHeader span {
+  background: #ece3bb;
+  border-radius: 999px;
+  color: #6f5d12;
+  font-weight: 800;
+  min-width: 34px;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.campaignTable {
+  border: 1px solid #e0e7e3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.campaignRow {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.25fr 1.35fr 90px 64px;
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.campaignRow + .campaignRow {
+  border-top: 1px solid #e0e7e3;
+}
+
+.tableHead {
+  background: #f7f3e2;
+  color: #6f5d12;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 44px;
+  text-transform: uppercase;
+}
+
+.linkButton {
+  background: none;
+  border: 0;
+  color: #17463c;
+  font-weight: 800;
+  padding: 0;
+  text-align: left;
+}
+
+.campaignRow a {
+  align-items: center;
+  color: #2b5f95;
+  display: inline-flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.statusActive,
+.statusPaused {
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 5px 9px;
+  text-align: center;
+}
+
+.statusActive {
+  background: #def2e9;
+  color: #126246;
+}
+
+.statusPaused {
+  background: #f4ded6;
+  color: #8d2b1d;
+}
+
+.emptyState {
+  color: #63716a;
+  padding: 22px;
+}
+
+@media (max-width: 880px) {
+  .appShell {
+    padding: 16px;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .statusGrid,
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .campaignRow {
+    grid-template-columns: 1fr;
+  }
+
+  .tableHead {
+    display: none;
+  }
+}
