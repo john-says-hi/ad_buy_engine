@@ -1,9 +1,14 @@
 /target
 #Cargo.lock
+.env
+.env.*
+!.env.example
 
 **/target
 .idea
 **/Cargo.lock
+bin/
+*.wasm
 **/main_server/static/private_server/static/pkg/.gitignore
 dist
 node_modules
