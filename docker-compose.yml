@@ -25,7 +25,7 @@ services:
       - campaign_db
     build: .
     env_file:
-      - .env
+      - ${AD_BUY_ENGINE_ENV_FILE:-.env}
     environment:
       - HOST=0.0.0.0
       - PORT=80

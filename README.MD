@@ -20,6 +20,23 @@ Before deploying anything from this repo:
 Copy `.env.example` to `.env` and replace the placeholder values before running
 the server locally. The `.env` file is intentionally ignored by git.
 
+If you are using the recommended local workspace layout, keep real private
+configuration in the sibling `../abe_private_ops` directory instead of this public
+repository.
+
+```text
+ad_buy_engine_workspace/
+  ad_buy_engine/   # public GitHub repository
+  abe_private_ops/ # private GitHub repository for operating files
+```
+
+For Docker Compose from this workspace layout, pass the private env file
+explicitly:
+
+```shell
+AD_BUY_ENGINE_ENV_FILE=../abe_private_ops/.env docker compose --env-file ../abe_private_ops/.env config --quiet
+```
+
 ## Docker
 
 ```shell
