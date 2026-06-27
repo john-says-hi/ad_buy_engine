@@ -1,11 +1,11 @@
 [package]
 name = "campaign_server"
 version = "0.1.0"
-authors = ["johnwaltonvi <johnwalton@protonmail.com>"]
+authors = ["John Walton"]
 edition = "2018"
 
 [dependencies]
-ad_buy_engine = { version = "0.2.0", path = "../", feature=["backend"] }
+ad_buy_engine = { version = "0.2.0", path = "../", features = ["backend"] }
 actix = "0.10.0"
 actix-cors = "0.3.0"
 actix-files = "0.3.0"

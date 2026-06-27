@@ -1,7 +1,7 @@
 [package]
 name = "frontend"
 version = "0.2.0"
-authors = ["John W. <johnwalton@protonmail.com>"]
+authors = ["John Walton"]
 edition = "2018"
 
 [dependencies]
