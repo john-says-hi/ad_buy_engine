@@ -11,6 +11,7 @@ use tower_sessions::Session;
 use crate::error::ServerResult;
 use crate::services::authentication::require_session;
 use crate::storage::entities;
+use crate::storage::settings::effective_tracking_base_url;
 use crate::web::date_filter::DateFilterQuery;
 use crate::web::router::AppState;
 
@@ -294,7 +295,9 @@ pub async fn create_campaign(
     Json(draft): Json<CampaignDraft>,
 ) -> ServerResult<Json<Campaign>> {
     require_session(&state.pool, &session, false).await?;
-    entities::create_campaign(&state.pool, &state.public_base_url, draft)
+    let tracking_base_url =
+        effective_tracking_base_url(&state.pool, &state.base_url_overrides).await?;
+    entities::create_campaign(&state.pool, &tracking_base_url, draft)
         .await
         .map(Json)
 }
@@ -315,7 +318,9 @@ pub async fn update_campaign(
     Json(draft): Json<CampaignDraft>,
 ) -> ServerResult<Json<Campaign>> {
     require_session(&state.pool, &session, false).await?;
-    entities::update_campaign(&state.pool, &state.public_base_url, &id, draft)
+    let tracking_base_url =
+        effective_tracking_base_url(&state.pool, &state.base_url_overrides).await?;
+    entities::update_campaign(&state.pool, &tracking_base_url, &id, draft)
         .await
         .map(Json)
 }

@@ -31,13 +31,13 @@ struct SelectedRoute {
 
 pub async fn process_campaign_click(
     pool: &SqlitePool,
-    public_base_url: &str,
     campaign_id: &str,
     headers: &HeaderMap,
     raw_query: Option<&str>,
     geoip: &SharedGeoIpService,
 ) -> ServerResult<RedirectOutcome> {
     let campaign = get_campaign(pool, campaign_id).await?;
+    let tracking_base_url = campaign_tracking_base_url(&campaign);
     let query_params = parse_query(raw_query.unwrap_or_default());
     let (mut context, enrichment) =
         click_context(pool, &campaign, headers, &query_params, geoip).await?;
@@ -49,7 +49,7 @@ pub async fn process_campaign_click(
         if let Some(landing_page_id) = selected_route.landing_page_id.as_deref() {
             let landing_page = get_landing_page(pool, landing_page_id).await?;
             let click_map = lander_click_map(
-                public_base_url,
+                &tracking_base_url,
                 &visit_id,
                 &campaign,
                 &offer,
@@ -60,7 +60,7 @@ pub async fn process_campaign_click(
                 substitute_url(
                     &landing_page.url,
                     UrlSubstitution {
-                        public_base_url,
+                        tracking_base_url: &tracking_base_url,
                         visit_id: &visit_id,
                         campaign: &campaign,
                         landing_page: Some(&landing_page),
@@ -76,7 +76,7 @@ pub async fn process_campaign_click(
                 substitute_url(
                     &offer.url,
                     UrlSubstitution {
-                        public_base_url,
+                        tracking_base_url: &tracking_base_url,
                         visit_id: &visit_id,
                         campaign: &campaign,
                         landing_page: None,
@@ -358,7 +358,7 @@ fn weighted_index(weights: impl Iterator<Item = u32>, seed: i64) -> Option<usize
 }
 
 fn lander_click_map(
-    public_base_url: &str,
+    tracking_base_url: &str,
     visit_id: &str,
     campaign: &Campaign,
     offer: &Offer,
@@ -372,7 +372,7 @@ fn lander_click_map(
             target_url: substitute_url(
                 &offer.url,
                 UrlSubstitution {
-                    public_base_url,
+                    tracking_base_url,
                     visit_id,
                     campaign,
                     landing_page: Some(landing_page),
@@ -385,8 +385,17 @@ fn lander_click_map(
         .collect()
 }
 
+fn campaign_tracking_base_url(campaign: &Campaign) -> String {
+    let campaign_path = format!("/c/{}", campaign.id);
+    campaign
+        .tracking_url
+        .strip_suffix(&campaign_path)
+        .unwrap_or_else(|| campaign.tracking_url.trim_end_matches('/'))
+        .to_string()
+}
+
 struct UrlSubstitution<'a> {
-    public_base_url: &'a str,
+    tracking_base_url: &'a str,
     visit_id: &'a str,
     campaign: &'a Campaign,
     landing_page: Option<&'a LandingPage>,
@@ -422,7 +431,7 @@ fn substitute_url(url: &str, context: UrlSubstitution<'_>) -> String {
             &format!("{{click_url_{}}}", entry.slot),
             &format!(
                 "{}/go/{}/{}",
-                context.public_base_url.trim_end_matches('/'),
+                context.tracking_base_url.trim_end_matches('/'),
                 context.visit_id,
                 entry.slot
             ),
@@ -480,7 +489,7 @@ mod tests {
         let result = substitute_url(
             "https://lander.test/?cid={campaign_id}&go={click_url_1}",
             UrlSubstitution {
-                public_base_url: "http://127.0.0.1:8088",
+                tracking_base_url: "http://127.0.0.1:8088",
                 visit_id: "visit-1",
                 campaign: &campaign,
                 landing_page: None,

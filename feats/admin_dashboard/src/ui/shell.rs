@@ -13,7 +13,7 @@ use crate::ui::create_modal::CreateModal;
 use crate::ui::navigation_bar::NavigationBar;
 use crate::ui::report_table::ReportTable;
 use crate::ui::report_toolbar::ReportToolbar;
-use crate::ui::settings_page::GeolocationSettingsPage;
+use crate::ui::settings_page::{DomainSettingsPage, GeolocationSettingsPage};
 use crate::ui::top_bar::TopBar;
 
 #[derive(Clone, Debug, PartialEq, Properties)]
@@ -173,13 +173,13 @@ pub fn shell(props: &ShellProps) -> Html {
         let first_grouping = first_grouping.clone();
         let navigator = navigator.clone();
         Callback::from(move |dimension| {
-            if let Some(target_route) = Route::from_report_dimension(dimension) {
-                if target_route != route {
-                    if let Some(navigator) = navigator.as_ref() {
-                        navigator.push(&target_route);
-                    }
-                    return;
+            if let Some(target_route) = Route::from_report_dimension(dimension)
+                && target_route != route
+            {
+                if let Some(navigator) = navigator.as_ref() {
+                    navigator.push(&target_route);
                 }
+                return;
             }
             first_grouping.set(dimension);
         })
@@ -193,6 +193,8 @@ pub fn shell(props: &ShellProps) -> Html {
             {
                 if route.is_dashboard() {
                     html! { <DashboardPage /> }
+                } else if route == Route::DomainSettings {
+                    html! { <DomainSettingsPage /> }
                 } else if route == Route::GeolocationSettings {
                     html! { <GeolocationSettingsPage /> }
                 } else {

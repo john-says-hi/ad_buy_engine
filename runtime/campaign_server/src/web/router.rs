@@ -8,7 +8,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
-use crate::config::ServerConfig;
+use crate::config::{BaseUrlOverrides, ServerConfig};
 use crate::services::geoip::{GeoIpService, SharedGeoIpService};
 use crate::storage::settings::load_geolocation_settings;
 use crate::web::auth::{credentials, login, logout, session};
@@ -27,13 +27,14 @@ use crate::web::reports::{
     list_operating_systems, list_report_dimensions,
 };
 use crate::web::settings::{
-    download_geolite_databases, get_geolocation_settings, put_geolocation_settings,
+    download_geolite_databases, get_domain_settings, get_geolocation_settings, put_domain_settings,
+    put_geolocation_settings,
 };
 
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub pool: SqlitePool,
-    pub public_base_url: String,
+    pub base_url_overrides: BaseUrlOverrides,
     pub dashboard_dist: PathBuf,
     pub app_version: String,
     pub geoip: SharedGeoIpService,
@@ -44,7 +45,7 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
     let geoip = GeoIpService::shared(&geolocation_settings.geoip_settings())?;
     let state = AppState {
         pool,
-        public_base_url: config.public_base_url,
+        base_url_overrides: config.base_url_overrides(),
         dashboard_dist: config.dashboard_dist,
         app_version: config.app_version,
         geoip,
@@ -62,6 +63,10 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route(
             "/api/settings/geolocation",
             get(get_geolocation_settings).put(put_geolocation_settings),
+        )
+        .route(
+            "/api/settings/domain",
+            get(get_domain_settings).put(put_domain_settings),
         )
         .route(
             "/api/settings/geolocation/download",

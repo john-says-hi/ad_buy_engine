@@ -585,7 +585,7 @@ pub async fn archive_funnel(pool: &SqlitePool, id: &str) -> ServerResult<()> {
 
 pub async fn create_campaign(
     pool: &SqlitePool,
-    public_base_url: &str,
+    tracking_base_url: &str,
     draft: CampaignDraft,
 ) -> ServerResult<Campaign> {
     ensure_valid(&draft)?;
@@ -593,7 +593,7 @@ pub async fn create_campaign(
     let traffic_source = get_traffic_source(pool, &draft.traffic_source_id).await?;
     let id = new_id();
     let now = now_millis()?;
-    let tracking_url = tracking_url(public_base_url, &id);
+    let tracking_url = tracking_url(tracking_base_url, &id);
     let traffic_source_query_template = traffic_query_template(&traffic_source.draft);
     sqlx::query(
         "INSERT INTO campaigns
@@ -623,7 +623,7 @@ pub async fn create_campaign(
 
 pub async fn update_campaign(
     pool: &SqlitePool,
-    public_base_url: &str,
+    tracking_base_url: &str,
     id: &str,
     draft: CampaignDraft,
 ) -> ServerResult<Campaign> {
@@ -631,7 +631,7 @@ pub async fn update_campaign(
     ensure_campaign_references(pool, &draft).await?;
     let traffic_source = get_traffic_source(pool, &draft.traffic_source_id).await?;
     let now = now_millis()?;
-    let tracking_url = tracking_url(public_base_url, id);
+    let tracking_url = tracking_url(tracking_base_url, id);
     let traffic_source_query_template = traffic_query_template(&traffic_source.draft);
     let result = sqlx::query(
         "UPDATE campaigns SET
@@ -1037,10 +1037,10 @@ fn destination_type_from_str(value: String) -> ServerResult<DestinationType> {
     }
 }
 
-fn tracking_url(public_base_url: &str, campaign_id: &str) -> String {
+fn tracking_url(tracking_base_url: &str, campaign_id: &str) -> String {
     format!(
         "{}/c/{}",
-        public_base_url.trim_end_matches('/'),
+        tracking_base_url.trim_end_matches('/'),
         campaign_id
     )
 }

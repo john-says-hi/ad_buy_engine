@@ -1,6 +1,7 @@
 use ad_buy_engine_domain::{
-    CampaignDraft, ConditionRule, DestinationType, FunnelDraft, FunnelSequence, LandingPageDraft,
-    OfferDraft, OfferSourceDraft, TrafficSourceDraft, UrlToken, ValidateDraft,
+    CampaignDraft, ConditionRule, DestinationType, DomainSettingsResponse, DomainSettingsUpdate,
+    DomainSetupStatus, FunnelDraft, FunnelSequence, LandingPageDraft, OfferDraft, OfferSourceDraft,
+    TrafficSourceDraft, UrlToken, ValidateDraft,
 };
 
 #[test]
@@ -130,5 +131,74 @@ fn every_create_dto_has_validation_and_serialization() -> Result<(), Box<dyn std
     serde_json::to_string(&landing_page)?;
     serde_json::to_string(&traffic_source)?;
     serde_json::to_string(&funnel)?;
+    Ok(())
+}
+
+#[test]
+fn domain_settings_accepts_hostname_and_normalizes_base_urls() {
+    let update = DomainSettingsUpdate::from_primary_domain("Track.Example.Com".to_string());
+
+    assert!(update.validate().is_empty());
+    assert_eq!(
+        update.normalized_primary_tracking_domain(),
+        "track.example.com"
+    );
+    assert_eq!(update.tracking_base_url(), "https://track.example.com");
+    assert_eq!(
+        update.admin_dashboard_base_url(),
+        "https://track.example.com"
+    );
+}
+
+#[test]
+fn domain_settings_rejects_scheme_path_and_port() {
+    let update =
+        DomainSettingsUpdate::from_primary_domain("https://track.example.com/path".to_string());
+
+    let errors = update.validate();
+
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.field == "primary_tracking_domain")
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.field == "admin_dashboard_domain")
+    );
+}
+
+#[test]
+fn domain_settings_rejects_empty_or_space_containing_domains() {
+    let empty = DomainSettingsUpdate::from_primary_domain(String::new());
+    let spaced = DomainSettingsUpdate::from_primary_domain("track example.com".to_string());
+
+    assert_eq!(empty.validate().len(), 2);
+    assert_eq!(spaced.validate().len(), 2);
+}
+
+#[test]
+fn domain_settings_response_serializes_admin_and_tracking_roles_separately()
+-> Result<(), Box<dyn std::error::Error>> {
+    let response = DomainSettingsResponse {
+        primary_tracking_domain: "track.example.com".to_string(),
+        tracking_base_url: "https://track.example.com".to_string(),
+        admin_dashboard_domain: "admin.example.com".to_string(),
+        admin_dashboard_base_url: "https://admin.example.com".to_string(),
+        domain_setup_status: DomainSetupStatus::Configured,
+        updated_at_millis: 42,
+    };
+
+    let json = serde_json::to_value(response)?;
+
+    assert_eq!(json["primary_tracking_domain"], "track.example.com");
+    assert_eq!(json["tracking_base_url"], "https://track.example.com");
+    assert_eq!(json["admin_dashboard_domain"], "admin.example.com");
+    assert_eq!(
+        json["admin_dashboard_base_url"],
+        "https://admin.example.com"
+    );
+    assert_eq!(json["domain_setup_status"], "configured");
     Ok(())
 }

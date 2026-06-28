@@ -1,4 +1,7 @@
-use ad_buy_engine_domain::{EntityRow, ReportDimensionKey};
+use ad_buy_engine_domain::{
+    DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus, EntityRow, ReportDimensionKey,
+};
+use admin_dashboard::client::{domain_update_from_primary_domain, primary_domain_from_settings};
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
 use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
@@ -33,6 +36,7 @@ fn navigation_labels_match_initial_shell_scope() {
             "OS",
             "Date",
             "Day Parting",
+            "Domain Settings",
             "Geo Settings",
         ]
     );
@@ -135,7 +139,9 @@ fn non_creatable_report_routes_do_not_have_forms() {
     assert_eq!(Route::Conversions.create_button_label(), None);
     assert_eq!(CreateFormDefinition::for_route(Route::Conversions), None);
     assert_eq!(Route::Conversions.report_rows_endpoint(), None);
+    assert_eq!(Route::DomainSettings.report_rows_endpoint(), None);
     assert_eq!(Route::GeolocationSettings.report_rows_endpoint(), None);
+    assert!(!Route::DomainSettings.is_report());
     assert!(!Route::GeolocationSettings.is_report());
     for (route, endpoint) in [
         (Route::Connection, "/api/reports/connection"),
@@ -149,6 +155,57 @@ fn non_creatable_report_routes_do_not_have_forms() {
         assert_eq!(CreateFormDefinition::for_route(route), None);
         assert_eq!(route.report_rows_endpoint(), Some(endpoint));
     }
+}
+
+#[test]
+fn settings_routes_are_not_report_routes() {
+    for route in [Route::DomainSettings, Route::GeolocationSettings] {
+        assert!(!route.is_report());
+        assert_eq!(route.create_button_label(), None);
+        assert_eq!(route.report_rows_endpoint(), None);
+        assert_eq!(CreateFormDefinition::for_route(route), None);
+    }
+}
+
+#[test]
+fn domain_settings_payload_maps_primary_domain_to_both_roles() {
+    let update = domain_update_from_primary_domain("track.example.com".to_string());
+
+    assert_eq!(update.primary_tracking_domain, "track.example.com");
+    assert_eq!(update.admin_dashboard_domain, "track.example.com");
+    assert_eq!(update.tracking_base_url(), "https://track.example.com");
+    assert_eq!(
+        update.admin_dashboard_base_url(),
+        "https://track.example.com"
+    );
+}
+
+#[test]
+fn invalid_domain_settings_payload_returns_validation_error_details() {
+    let update =
+        DomainSettingsUpdate::from_primary_domain("https://track.example.com/path".to_string());
+    let fields: Vec<String> = update
+        .validate()
+        .into_iter()
+        .map(|error| error.field)
+        .collect();
+
+    assert!(fields.contains(&"primary_tracking_domain".to_string()));
+    assert!(fields.contains(&"admin_dashboard_domain".to_string()));
+}
+
+#[test]
+fn saved_domain_settings_reload_into_primary_domain_form_value() {
+    let settings = DomainSettingsResponse {
+        primary_tracking_domain: "track.example.com".to_string(),
+        tracking_base_url: "https://track.example.com".to_string(),
+        admin_dashboard_domain: "track.example.com".to_string(),
+        admin_dashboard_base_url: "https://track.example.com".to_string(),
+        domain_setup_status: DomainSetupStatus::Configured,
+        updated_at_millis: 100,
+    };
+
+    assert_eq!(primary_domain_from_settings(&settings), "track.example.com");
 }
 
 #[test]

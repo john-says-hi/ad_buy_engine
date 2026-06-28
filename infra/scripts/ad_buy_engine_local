@@ -63,7 +63,7 @@ main() {
   run mkdir -p "${REPO_ROOT}/runtime/data"
   build_dashboard
 
-  echo "Ad Buy Engine dashboard: ${ABE_PUBLIC_BASE_URL}"
+  echo "Ad Buy Engine dashboard: ${ABE_ADMIN_BASE_URL:-${ABE_PUBLIC_BASE_URL}}"
   run cargo run -p campaign_server
 }
 

@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS operator_credentials (
 CREATE TABLE IF NOT EXISTS app_settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     public_base_url TEXT NOT NULL,
+    primary_tracking_domain TEXT NOT NULL DEFAULT '',
+    tracking_base_url TEXT NOT NULL DEFAULT '',
+    admin_dashboard_domain TEXT NOT NULL DEFAULT '',
+    admin_dashboard_base_url TEXT NOT NULL DEFAULT '',
+    domain_setup_status TEXT NOT NULL DEFAULT 'not_configured',
     session_key_generated_at_millis INTEGER NOT NULL,
     schema_version INTEGER NOT NULL,
     app_version TEXT NOT NULL,

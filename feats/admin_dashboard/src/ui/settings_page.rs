@@ -1,11 +1,93 @@
 use ad_buy_engine_domain::{
-    GeolocationDatabaseStatus, GeolocationSettingsResponse, GeolocationSettingsUpdate,
+    DomainSettingsResponse, GeolocationDatabaseStatus, GeolocationSettingsResponse,
+    GeolocationSettingsUpdate,
 };
 use web_sys::HtmlInputElement;
 use yew::platform::spawn_local;
 use yew::prelude::*;
 
 use crate::client;
+
+#[function_component(DomainSettingsPage)]
+pub fn domain_settings_page() -> Html {
+    let settings = use_state(|| None::<DomainSettingsResponse>);
+    let primary_domain = use_state(String::new);
+    let loading = use_state(|| true);
+    let saving = use_state(|| false);
+    let message = use_state(|| None::<String>);
+
+    {
+        let settings = settings.clone();
+        let primary_domain = primary_domain.clone();
+        let loading = loading.clone();
+        let message = message.clone();
+        use_effect_with((), move |_| {
+            spawn_local(async move {
+                match client::get_domain_settings().await {
+                    Ok(response) => {
+                        primary_domain.set(client::primary_domain_from_settings(&response));
+                        settings.set(Some(response));
+                    }
+                    Err(error) => message.set(Some(error)),
+                }
+                loading.set(false);
+            });
+            || ()
+        });
+    }
+
+    let on_save = {
+        let primary_domain = primary_domain.clone();
+        let settings = settings.clone();
+        let saving = saving.clone();
+        let message = message.clone();
+        Callback::from(move |event: SubmitEvent| {
+            event.prevent_default();
+            saving.set(true);
+            message.set(None);
+            let update = client::domain_update_from_primary_domain((*primary_domain).clone());
+            let primary_domain = primary_domain.clone();
+            let settings = settings.clone();
+            let saving = saving.clone();
+            let message = message.clone();
+            spawn_local(async move {
+                match client::save_domain_settings(update).await {
+                    Ok(response) => {
+                        primary_domain.set(client::primary_domain_from_settings(&response));
+                        settings.set(Some(response));
+                        message.set(Some("Saved".to_string()));
+                    }
+                    Err(error) => message.set(Some(error)),
+                }
+                saving.set(false);
+            });
+        })
+    };
+
+    html! {
+        <main class="abe-report">
+            <section class="abe-settings-panel">
+                <h1>{ "Domain Settings" }</h1>
+                {
+                    if *loading {
+                        html! { <p>{ "Loading..." }</p> }
+                    } else {
+                        html! {
+                            <form class="abe-settings-form" onsubmit={on_save}>
+                                { settings_message(&message) }
+                                { text_input("Primary Domain", &primary_domain, false) }
+                                <div class="abe-settings-actions">
+                                    <button class="uk-button uk-button-primary" type="submit" disabled={*saving}>{ "Save" }</button>
+                                </div>
+                            </form>
+                        }
+                    }
+                }
+                { settings.as_ref().map(domain_status_table).unwrap_or_default() }
+            </section>
+        </main>
+    }
+}
 
 #[function_component(GeolocationSettingsPage)]
 pub fn geolocation_settings_page() -> Html {
@@ -168,6 +250,34 @@ fn settings_message(message: &UseStateHandle<Option<String>>) -> Html {
         .as_ref()
         .map(|message| html! { <p class="abe-inline-error">{ message }</p> })
         .unwrap_or_default()
+}
+
+fn domain_status_table(settings: &DomainSettingsResponse) -> Html {
+    html! {
+        <table class="uk-table uk-table-divider uk-table-small abe-table abe-settings-status">
+            <thead>
+                <tr>
+                    <th>{ "Role" }</th>
+                    <th>{ "Domain" }</th>
+                    <th>{ "Base URL" }</th>
+                </tr>
+            </thead>
+            <tbody>
+                { domain_status_row("Tracking", &settings.primary_tracking_domain, &settings.tracking_base_url) }
+                { domain_status_row("Dashboard", &settings.admin_dashboard_domain, &settings.admin_dashboard_base_url) }
+            </tbody>
+        </table>
+    }
+}
+
+fn domain_status_row(label: &'static str, domain: &str, base_url: &str) -> Html {
+    html! {
+        <tr>
+            <td>{ label }</td>
+            <td>{ domain }</td>
+            <td>{ base_url }</td>
+        </tr>
+    }
 }
 
 fn license_key_status(settings: Option<&GeolocationSettingsResponse>) -> Html {
