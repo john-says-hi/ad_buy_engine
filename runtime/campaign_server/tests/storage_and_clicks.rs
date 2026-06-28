@@ -4,7 +4,8 @@ use ad_buy_engine_domain::{
     CampaignDraft, DestinationType, FunnelDraft, FunnelPath, FunnelSequence, LandingPageDraft,
     OfferDraft, OfferSourceDraft, SequenceType, TrafficSourceDraft, UrlToken, WeightedReference,
 };
-use axum::http::HeaderMap;
+use axum::body::Body;
+use axum::http::{HeaderMap, Request, StatusCode};
 use campaign_server::config::ServerConfig;
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
 use campaign_server::storage::database::connect_database;
@@ -12,7 +13,9 @@ use campaign_server::storage::entities::{
     create_campaign, create_funnel, create_landing_page, create_offer, create_offer_source,
     create_traffic_source, list_campaign_rows,
 };
+use campaign_server::web::router::build_router;
 use tempfile::tempdir;
+use tower::ServiceExt;
 
 #[tokio::test]
 async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std::error::Error>> {
@@ -152,6 +155,22 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
         "?subid={external_id}&cost={cost}"
     );
 
+    let app = build_router(config.clone(), pool.clone()).await?;
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/c/{}", campaign.id))
+                .body(Body::empty())?,
+        )
+        .await?;
+    assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
+    let location = response
+        .headers()
+        .get("location")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    assert!(location.starts_with("https://lander.test/"));
+
     let headers = HeaderMap::new();
     let outcome = process_campaign_click(
         &pool,
@@ -164,7 +183,7 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
     assert!(outcome.target.starts_with("https://lander.test/"));
 
     let rows = list_campaign_rows(&pool).await?;
-    assert_eq!(rows.first().map(|row| row.visits), Some(1));
+    assert_eq!(rows.first().map(|row| row.visits), Some(2));
 
     let visit_id = outcome
         .target

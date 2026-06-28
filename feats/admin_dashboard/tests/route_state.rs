@@ -1,5 +1,6 @@
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
+use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
 use admin_dashboard::state::report::ReportState;
 
 #[test]
@@ -137,4 +138,31 @@ fn non_creatable_report_routes_do_not_have_forms() {
         assert_eq!(route.create_button_label(), None);
         assert_eq!(CreateFormDefinition::for_route(route), None);
     }
+}
+
+#[test]
+fn money_fields_accept_decimal_values() {
+    assert_eq!(
+        field_type(EntityKind::Campaign, "cost_value"),
+        Some(FieldType::Decimal)
+    );
+    assert_eq!(
+        field_type(EntityKind::Offer, "payout_value"),
+        Some(FieldType::Decimal)
+    );
+    assert_eq!(
+        field_type(EntityKind::LandingPage, "cta_count"),
+        Some(FieldType::Number)
+    );
+    assert_eq!(
+        field_type(EntityKind::Offer, "weight"),
+        Some(FieldType::Number)
+    );
+}
+
+fn field_type(kind: EntityKind, key: &str) -> Option<FieldType> {
+    form_fields(kind)
+        .into_iter()
+        .find(|field| field.key == key)
+        .map(|field| field.field_type)
 }

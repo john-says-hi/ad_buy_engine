@@ -1,22 +1,19 @@
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
 use axum::response::Redirect;
-use serde::Deserialize;
+use std::collections::HashMap;
 
 use crate::error::{ServerError, ServerResult};
 use crate::services::click_processor::{process_campaign_click, process_lander_click};
 use crate::web::router::AppState;
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct RawQuery(std::collections::HashMap<String, String>);
-
 pub async fn campaign_click(
     State(state): State<AppState>,
     Path(campaign_id): Path<String>,
     headers: HeaderMap,
-    Query(query): Query<RawQuery>,
+    Query(query): Query<HashMap<String, String>>,
 ) -> ServerResult<Redirect> {
-    let raw_query = serde_urlencoded(query.0)?;
+    let raw_query = serde_urlencoded(query);
     let outcome = process_campaign_click(
         &state.pool,
         &state.public_base_url,
@@ -44,10 +41,10 @@ fn redirect(target: &str) -> ServerResult<Redirect> {
     }
 }
 
-fn serde_urlencoded(query: std::collections::HashMap<String, String>) -> ServerResult<String> {
+fn serde_urlencoded(query: HashMap<String, String>) -> String {
     let mut pairs: Vec<(String, String)> = query.into_iter().collect();
     pairs.sort_by(|left, right| left.0.cmp(&right.0));
-    let encoded = pairs
+    pairs
         .into_iter()
         .map(|(key, value)| {
             format!(
@@ -57,6 +54,5 @@ fn serde_urlencoded(query: std::collections::HashMap<String, String>) -> ServerR
             )
         })
         .collect::<Vec<_>>()
-        .join("&");
-    Ok(encoded)
+        .join("&")
 }

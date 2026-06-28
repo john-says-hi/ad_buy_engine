@@ -178,7 +178,8 @@ fn render_field(
 ) -> Html {
     match field.field_type {
         FieldType::Text => render_text_input("text", field, values),
-        FieldType::Number => render_text_input("number", field, values),
+        FieldType::Number => render_number_input(field, values, "1"),
+        FieldType::Decimal => render_number_input(field, values, "0.01"),
         FieldType::TextArea => {
             let key = field.key.to_string();
             let value = values.text(field.key);
@@ -235,6 +236,28 @@ fn render_text_input(
         <label class={field_classes(field.wide)}>
             { render_field_label(field.label) }
             <input class="uk-input" type={input_type} value={value} {oninput} />
+        </label>
+    }
+}
+
+fn render_number_input(
+    field: &crate::state::entity_form::FormFieldSpec,
+    values: &UseStateHandle<FormValues>,
+    step: &'static str,
+) -> Html {
+    let key = field.key.to_string();
+    let value = values.text(field.key);
+    let values = values.clone();
+    let oninput = Callback::from(move |event: InputEvent| {
+        let input: web_sys::HtmlInputElement = event.target_unchecked_into();
+        let mut next = (*values).clone();
+        next.set_text(&key, input.value());
+        values.set(next);
+    });
+    html! {
+        <label class={field_classes(field.wide)}>
+            { render_field_label(field.label) }
+            <input class="uk-input" type="number" step={step} value={value} {oninput} />
         </label>
     }
 }

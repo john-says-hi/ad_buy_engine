@@ -45,6 +45,7 @@ pub struct FormFieldSpec {
 pub enum FieldType {
     Text,
     Number,
+    Decimal,
     TextArea,
     Toggle,
     Select(SelectSource),
@@ -199,7 +200,7 @@ pub fn form_fields(kind: EntityKind) -> Vec<FormFieldSpec> {
                 SelectSource::Static(PAYOUT_MODELS),
                 false,
             ),
-            number("payout_value", "Payout Value", false),
+            decimal("payout_value", "Payout Value", false),
             select(
                 "currency",
                 "Payout Currency",
@@ -280,7 +281,7 @@ pub fn form_fields(kind: EntityKind) -> Vec<FormFieldSpec> {
                 SelectSource::Static(COST_MODELS),
                 false,
             ),
-            number("cost_value", "Cost Value", false),
+            decimal("cost_value", "Cost Value", false),
             select(
                 "destination_type",
                 "Destination Type",
@@ -559,6 +560,10 @@ fn text(key: &'static str, label: &'static str, wide: bool) -> FormFieldSpec {
 
 fn number(key: &'static str, label: &'static str, wide: bool) -> FormFieldSpec {
     field(key, label, FieldType::Number, wide)
+}
+
+fn decimal(key: &'static str, label: &'static str, wide: bool) -> FormFieldSpec {
+    field(key, label, FieldType::Decimal, wide)
 }
 
 fn text_area(key: &'static str, label: &'static str, wide: bool) -> FormFieldSpec {
