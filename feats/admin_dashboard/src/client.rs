@@ -1,6 +1,6 @@
 use ad_buy_engine_domain::{
-    DomainSettingsResponse, DomainSettingsUpdate, EntityRecord, EntityRow,
-    GeolocationDownloadResponse, GeolocationSettingsResponse, GeolocationSettingsUpdate,
+    DashboardSummaryResponse, DomainSettingsResponse, DomainSettingsUpdate, EntityRecord,
+    EntityRow, GeolocationDownloadResponse, GeolocationSettingsResponse, GeolocationSettingsUpdate,
     ReportDimensionKey, SessionResponse, UpdateStatusResponse,
 };
 
@@ -93,6 +93,12 @@ mod wasm {
         let response: ListResponse<EntityRow> =
             get_json(&url_with_date_range(&endpoint, date_range)).await?;
         Ok(response.items)
+    }
+
+    pub async fn get_dashboard_summary(
+        date_range: ReportDateRange,
+    ) -> Result<DashboardSummaryResponse, String> {
+        get_json(&url_with_date_range("/api/dashboard/summary", date_range)).await
     }
 
     pub async fn get_geolocation_settings() -> Result<GeolocationSettingsResponse, String> {
@@ -445,6 +451,12 @@ mod native {
         _dimension: ReportDimensionKey,
         _date_range: ReportDateRange,
     ) -> Result<Vec<EntityRow>, String> {
+        Err(native_error())
+    }
+
+    pub async fn get_dashboard_summary(
+        _date_range: ReportDateRange,
+    ) -> Result<DashboardSummaryResponse, String> {
         Err(native_error())
     }
 

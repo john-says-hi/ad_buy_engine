@@ -36,6 +36,127 @@ pub struct ListResponse<T> {
     pub items: Vec<T>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardSummaryResponse {
+    pub generated_at_millis: i64,
+    pub current_window: DashboardDateWindow,
+    pub comparison_window: Option<DashboardDateWindow>,
+    pub kpis: Vec<DashboardKpi>,
+    pub performance: Vec<DashboardPerformancePoint>,
+    pub decision_feed: Vec<DashboardDecision>,
+    pub top_movers: Vec<DashboardTopMover>,
+    pub conversion_path: Vec<DashboardConversionPathStep>,
+    pub traffic_mix: Vec<DashboardTrafficMix>,
+    pub recent_events: Vec<DashboardRecentEvent>,
+    pub setup_health: Vec<DashboardSetupHealthItem>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DashboardDateWindow {
+    pub label: String,
+    pub start_at_millis: Option<i64>,
+    pub end_at_millis: Option<i64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DashboardMetricUnit {
+    Count,
+    Currency,
+    Percentage,
+    Ratio,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DashboardTone {
+    Neutral,
+    Positive,
+    Warning,
+    Critical,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardKpi {
+    pub key: String,
+    pub label: String,
+    pub value: f64,
+    pub previous_value: Option<f64>,
+    pub delta_percent: Option<f64>,
+    pub unit: DashboardMetricUnit,
+    pub tone: DashboardTone,
+    pub estimated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardPerformancePoint {
+    pub label: String,
+    pub start_at_millis: i64,
+    pub visits: i64,
+    pub revenue: f64,
+    pub cost: f64,
+    pub profit: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardDecision {
+    pub title: String,
+    pub detail: String,
+    pub tone: DashboardTone,
+    pub action_label: String,
+    pub route_path: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardTopMover {
+    pub category: String,
+    pub name: String,
+    pub detail: String,
+    pub route_path: Option<String>,
+    pub visits: i64,
+    pub conversions: i64,
+    pub revenue: f64,
+    pub cost: f64,
+    pub profit: f64,
+    pub roi: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardConversionPathStep {
+    pub label: String,
+    pub count: i64,
+    pub rate_from_previous: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardTrafficMix {
+    pub dimension: String,
+    pub segments: Vec<DashboardTrafficSegment>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DashboardTrafficSegment {
+    pub label: String,
+    pub visits: i64,
+    pub share_percent: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DashboardRecentEvent {
+    pub label: String,
+    pub detail: String,
+    pub occurred_at_millis: i64,
+    pub tone: DashboardTone,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DashboardSetupHealthItem {
+    pub label: String,
+    pub detail: String,
+    pub tone: DashboardTone,
+    pub route_path: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityRow {
     pub id: String,

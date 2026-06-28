@@ -25,6 +25,7 @@ use crate::web::crud::{
     update_conversion_event_type, update_funnel, update_landing_page, update_offer,
     update_offer_source, update_traffic_source,
 };
+use crate::web::dashboard::summary as dashboard_summary;
 use crate::web::health::health;
 use crate::web::reports::{
     list_browsers, list_connections, list_dates, list_day_parts, list_devices, list_dimension,
@@ -67,6 +68,7 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route("/api/auth/logout", post(logout))
         .route("/api/auth/session", get(session))
         .route("/api/auth/credentials", put(credentials))
+        .route("/api/dashboard/summary", get(dashboard_summary))
         .route("/api/updates/status", get(update_status))
         .route("/api/updates/check", post(check_updates))
         .route("/api/updates/start", post(start_update))

@@ -1,7 +1,11 @@
 use ad_buy_engine_domain::{
-    CampaignDraft, ConditionRule, DestinationType, DomainSettingsResponse, DomainSettingsUpdate,
-    DomainSetupStatus, FunnelDraft, FunnelSequence, LandingPageDraft, LandingPageRole, OfferDraft,
-    OfferSourceDraft, TrafficSourceDraft, UrlToken, ValidateDraft,
+    CampaignDraft, ConditionRule, DashboardConversionPathStep, DashboardDateWindow,
+    DashboardDecision, DashboardKpi, DashboardMetricUnit, DashboardPerformancePoint,
+    DashboardRecentEvent, DashboardSetupHealthItem, DashboardSummaryResponse, DashboardTone,
+    DashboardTopMover, DashboardTrafficMix, DashboardTrafficSegment, DestinationType,
+    DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus, FunnelDraft, FunnelSequence,
+    LandingPageDraft, LandingPageRole, OfferDraft, OfferSourceDraft, TrafficSourceDraft, UrlToken,
+    ValidateDraft,
 };
 
 #[test]
@@ -202,5 +206,93 @@ fn domain_settings_response_serializes_admin_and_tracking_roles_separately()
         "https://admin.example.com"
     );
     assert_eq!(json["domain_setup_status"], "configured");
+    Ok(())
+}
+
+#[test]
+fn dashboard_summary_contract_serializes_full_overview() -> Result<(), Box<dyn std::error::Error>> {
+    let response = DashboardSummaryResponse {
+        generated_at_millis: 100,
+        current_window: DashboardDateWindow {
+            label: "Today".to_string(),
+            start_at_millis: Some(10),
+            end_at_millis: Some(20),
+        },
+        comparison_window: Some(DashboardDateWindow {
+            label: "Previous period".to_string(),
+            start_at_millis: Some(0),
+            end_at_millis: Some(10),
+        }),
+        kpis: vec![DashboardKpi {
+            key: "profit".to_string(),
+            label: "Profit".to_string(),
+            value: 42.5,
+            previous_value: Some(30.0),
+            delta_percent: Some(41.66666666666667),
+            unit: DashboardMetricUnit::Currency,
+            tone: DashboardTone::Positive,
+            estimated: true,
+        }],
+        performance: vec![DashboardPerformancePoint {
+            label: "2026-06-28".to_string(),
+            start_at_millis: 10,
+            visits: 12,
+            revenue: 70.0,
+            cost: 27.5,
+            profit: 42.5,
+        }],
+        decision_feed: vec![DashboardDecision {
+            title: "Scale winner".to_string(),
+            detail: "Campaign is profitable".to_string(),
+            tone: DashboardTone::Positive,
+            action_label: "Open campaign".to_string(),
+            route_path: Some("/campaigns".to_string()),
+        }],
+        top_movers: vec![DashboardTopMover {
+            category: "Campaign".to_string(),
+            name: "Demo".to_string(),
+            detail: "Traffic Source".to_string(),
+            route_path: Some("/campaigns".to_string()),
+            visits: 12,
+            conversions: 3,
+            revenue: 70.0,
+            cost: 27.5,
+            profit: 42.5,
+            roi: 154.54545454545453,
+        }],
+        conversion_path: vec![DashboardConversionPathStep {
+            label: "Visits".to_string(),
+            count: 12,
+            rate_from_previous: None,
+        }],
+        traffic_mix: vec![DashboardTrafficMix {
+            dimension: "Device".to_string(),
+            segments: vec![DashboardTrafficSegment {
+                label: "Desktop".to_string(),
+                visits: 9,
+                share_percent: 75.0,
+            }],
+        }],
+        recent_events: vec![DashboardRecentEvent {
+            label: "Conversion".to_string(),
+            detail: "Lead tracked".to_string(),
+            occurred_at_millis: 18,
+            tone: DashboardTone::Positive,
+        }],
+        setup_health: vec![DashboardSetupHealthItem {
+            label: "Tracking domain".to_string(),
+            detail: "Configured".to_string(),
+            tone: DashboardTone::Positive,
+            route_path: Some("/settings/domain".to_string()),
+        }],
+    };
+
+    let json = serde_json::to_value(response)?;
+
+    assert_eq!(json["kpis"][0]["unit"], "currency");
+    assert_eq!(json["kpis"][0]["tone"], "positive");
+    assert_eq!(json["decision_feed"][0]["route_path"], "/campaigns");
+    assert_eq!(json["traffic_mix"][0]["segments"][0]["share_percent"], 75.0);
+    assert_eq!(json["setup_health"][0]["tone"], "positive");
     Ok(())
 }

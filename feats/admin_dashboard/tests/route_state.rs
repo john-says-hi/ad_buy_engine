@@ -1,6 +1,7 @@
 use ad_buy_engine_domain::{
-    DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus, EntityRow, ReportDimensionKey,
-    RollbackEligibility, SequenceType, UpdatePhase, UpdateStatusResponse,
+    DashboardMetricUnit, DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus,
+    EntityRow, ReportDimensionKey, RollbackEligibility, SequenceType, UpdatePhase,
+    UpdateStatusResponse,
 };
 use admin_dashboard::app::initial_login_password;
 use admin_dashboard::client::{domain_update_from_primary_domain, primary_domain_from_settings};
@@ -12,6 +13,7 @@ use admin_dashboard::state::entity_form::{
 use admin_dashboard::state::report::{
     DATE_RANGE_OPTIONS, ReportDateRange, ReportState, ReportTotals, filter_rows_by_search,
 };
+use admin_dashboard::ui::dashboard_page::{dashboard_delta_text, dashboard_metric_text};
 use admin_dashboard::ui::update_settings_page::{can_install, can_rollback, phase_label};
 
 #[test]
@@ -81,6 +83,42 @@ fn dashboard_is_not_a_report_page() {
     assert!(!Route::Dashboard.is_report());
     assert_eq!(Route::Dashboard.create_button_label(), None);
     assert_eq!(CreateFormDefinition::for_route(Route::Dashboard), None);
+}
+
+#[test]
+fn dashboard_metric_formatting_matches_dashboard_units() {
+    assert_eq!(
+        dashboard_metric_text(1234.49, DashboardMetricUnit::Count),
+        "1234"
+    );
+    assert_eq!(
+        dashboard_metric_text(42.5, DashboardMetricUnit::Currency),
+        "$42.50"
+    );
+    assert_eq!(
+        dashboard_metric_text(-42.5, DashboardMetricUnit::Currency),
+        "-$42.50"
+    );
+    assert_eq!(
+        dashboard_metric_text(-0.0, DashboardMetricUnit::Currency),
+        "$0.00"
+    );
+    assert_eq!(
+        dashboard_metric_text(17.234, DashboardMetricUnit::Percentage),
+        "17.2%"
+    );
+    assert_eq!(
+        dashboard_metric_text(1.234, DashboardMetricUnit::Ratio),
+        "1.23"
+    );
+}
+
+#[test]
+fn dashboard_delta_formatting_labels_comparisons() {
+    assert_eq!(dashboard_delta_text(Some(8.25)), "+8.2%");
+    assert_eq!(dashboard_delta_text(Some(-3.0)), "-3.0%");
+    assert_eq!(dashboard_delta_text(Some(0.0)), "0.0%");
+    assert_eq!(dashboard_delta_text(None), "No comparison");
 }
 
 #[test]

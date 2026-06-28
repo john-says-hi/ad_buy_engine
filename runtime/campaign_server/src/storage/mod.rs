@@ -1,7 +1,9 @@
 pub mod conversions;
+pub mod dashboard;
 pub mod database;
 pub mod date_filter;
 pub mod entities;
 pub mod reports;
 pub mod settings;
+pub mod visit_identity;
 pub mod visits;
