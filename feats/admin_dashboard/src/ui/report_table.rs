@@ -1,19 +1,21 @@
 use ad_buy_engine_domain::EntityRow;
 use yew::prelude::*;
 
-use crate::state::report::ReportState;
+use crate::state::report::{ReportState, ReportTotals};
 
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ReportTableProps {
     pub report: ReportState,
     pub rows: Vec<EntityRow>,
     pub loading: bool,
+    pub actions_enabled: bool,
     pub on_edit: Callback<String>,
     pub on_archive: Callback<String>,
 }
 
 #[function_component(ReportTable)]
 pub fn report_table(props: &ReportTableProps) -> Html {
+    let totals = ReportTotals::from_rows(&props.rows);
     html! {
         <div class="abe-table-wrap">
             <table class="uk-table uk-table-divider uk-table-striped uk-table-hover uk-table-small abe-table">
@@ -31,8 +33,8 @@ pub fn report_table(props: &ReportTableProps) -> Html {
                 <tfoot class="uk-margin-top-large">
                     <tr>
                         <td colspan="2">{ "Totals:" }</td>
-                        <td>{ props.report.visit_total }</td>
-                        <td>{ props.report.unique_total }</td>
+                        <td>{ totals.visit_total }</td>
+                        <td>{ totals.unique_total }</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -61,12 +63,22 @@ pub fn report_table(props: &ReportTableProps) -> Html {
 }
 
 fn render_row(row: &EntityRow, props: &ReportTableProps) -> Html {
-    let edit_id = row.id.clone();
-    let archive_id = row.id.clone();
-    let on_edit = props.on_edit.clone();
-    let on_archive = props.on_archive.clone();
-    let edit = Callback::from(move |_| on_edit.emit(edit_id.clone()));
-    let archive = Callback::from(move |_| on_archive.emit(archive_id.clone()));
+    let action_cell = if props.actions_enabled {
+        let edit_id = row.id.clone();
+        let archive_id = row.id.clone();
+        let on_edit = props.on_edit.clone();
+        let on_archive = props.on_archive.clone();
+        let edit = Callback::from(move |_| on_edit.emit(edit_id.clone()));
+        let archive = Callback::from(move |_| on_archive.emit(archive_id.clone()));
+        html! {
+            <td class="abe-row-actions">
+                <button class="uk-button uk-button-default uk-button-small" type="button" onclick={edit}>{ "Edit" }</button>
+                <button class="uk-button uk-button-danger uk-button-small" type="button" onclick={archive}>{ "Archive" }</button>
+            </td>
+        }
+    } else {
+        html! { <td></td> }
+    };
 
     html! {
         <tr>
@@ -82,10 +94,7 @@ fn render_row(row: &EntityRow, props: &ReportTableProps) -> Html {
             </td>
             <td>{ row.visits }</td>
             <td>{ row.unique_visits }</td>
-            <td class="abe-row-actions">
-                <button class="uk-button uk-button-default uk-button-small" type="button" onclick={edit}>{ "Edit" }</button>
-                <button class="uk-button uk-button-danger uk-button-small" type="button" onclick={archive}>{ "Archive" }</button>
-            </td>
+            { action_cell }
         </tr>
     }
 }

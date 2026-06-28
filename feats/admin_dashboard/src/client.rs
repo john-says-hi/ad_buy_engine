@@ -1,5 +1,6 @@
 use ad_buy_engine_domain::{EntityRecord, EntityRow, SessionResponse};
 
+use crate::route::Route;
 use crate::state::entity_form::{EntityKind, FormOptionLists, SaveDraft};
 
 #[cfg(target_arch = "wasm32")]
@@ -51,6 +52,14 @@ mod wasm {
 
     pub async fn list_rows(kind: EntityKind) -> Result<Vec<EntityRow>, String> {
         let response: ListResponse<EntityRow> = get_json(kind.endpoint()).await?;
+        Ok(response.items)
+    }
+
+    pub async fn list_report_rows(route: Route) -> Result<Vec<EntityRow>, String> {
+        let endpoint = route
+            .report_rows_endpoint()
+            .ok_or_else(|| "This report does not have a data source yet".to_string())?;
+        let response: ListResponse<EntityRow> = get_json(endpoint).await?;
         Ok(response.items)
     }
 
@@ -255,6 +264,10 @@ mod native {
     }
 
     pub async fn list_rows(_kind: EntityKind) -> Result<Vec<EntityRow>, String> {
+        Err(native_error())
+    }
+
+    pub async fn list_report_rows(_route: Route) -> Result<Vec<EntityRow>, String> {
         Err(native_error())
     }
 

@@ -9,6 +9,7 @@ use url::form_urlencoded;
 
 use crate::error::{ServerError, ServerResult};
 use crate::services::conditions::evaluate_all;
+use crate::services::user_agent::{detect_browser, detect_device_type, detect_operating_system};
 use crate::storage::entities::{get_campaign, get_funnel, get_landing_page, get_offer};
 use crate::storage::visits::{
     NewVisit, get_visit, insert_event, insert_visit_with_event, is_unique_visit, new_visit_id,
@@ -424,49 +425,6 @@ fn referrer_domain(referrer: &str) -> Option<String> {
     url::Url::parse(referrer)
         .ok()
         .and_then(|url| url.host_str().map(ToOwned::to_owned))
-}
-
-fn detect_browser(user_agent: &str) -> String {
-    if user_agent.contains("Firefox") {
-        "Firefox".to_string()
-    } else if user_agent.contains("Edg/") {
-        "Edge".to_string()
-    } else if user_agent.contains("Chrome") {
-        "Chrome".to_string()
-    } else if user_agent.contains("Safari") {
-        "Safari".to_string()
-    } else {
-        "Other".to_string()
-    }
-}
-
-fn detect_operating_system(user_agent: &str) -> String {
-    if user_agent.contains("Windows") {
-        "Windows".to_string()
-    } else if user_agent.contains("Mac OS X") {
-        "macOS".to_string()
-    } else if user_agent.contains("Android") {
-        "Android".to_string()
-    } else if user_agent.contains("Linux") {
-        "Linux".to_string()
-    } else if user_agent.contains("iPhone") || user_agent.contains("iPad") {
-        "iOS".to_string()
-    } else {
-        "Other".to_string()
-    }
-}
-
-fn detect_device_type(user_agent: &str) -> String {
-    if user_agent.contains("Mobile")
-        || user_agent.contains("iPhone")
-        || user_agent.contains("Android")
-    {
-        "Mobile".to_string()
-    } else if user_agent.contains("Tablet") || user_agent.contains("iPad") {
-        "Tablet".to_string()
-    } else {
-        "Desktop".to_string()
-    }
 }
 
 #[cfg(test)]

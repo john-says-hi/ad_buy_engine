@@ -20,6 +20,10 @@ use crate::web::crud::{
     update_funnel, update_landing_page, update_offer, update_offer_source, update_traffic_source,
 };
 use crate::web::health::health;
+use crate::web::reports::{
+    list_browsers, list_connections, list_dates, list_day_parts, list_devices,
+    list_operating_systems,
+};
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -93,6 +97,12 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
                 .put(update_campaign)
                 .delete(archive_campaign),
         )
+        .route("/api/reports/browsers", get(list_browsers))
+        .route("/api/reports/connection", get(list_connections))
+        .route("/api/reports/date", get(list_dates))
+        .route("/api/reports/day-parting", get(list_day_parts))
+        .route("/api/reports/device", get(list_devices))
+        .route("/api/reports/os", get(list_operating_systems))
         .route("/api/options/{name}", get(get_options))
         .route("/api/{*path}", any(api_not_found))
         .route("/c/{campaign_id}", get(campaign_click))

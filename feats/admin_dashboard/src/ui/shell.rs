@@ -44,8 +44,20 @@ pub fn shell(props: &ShellProps) -> Html {
                     }
                     loading_rows.set(false);
                 });
+            } else if route.report_rows_endpoint().is_some() {
+                loading_rows.set(true);
+                row_error.set(None);
+                spawn_local(async move {
+                    match client::list_report_rows(route).await {
+                        Ok(loaded_rows) => rows.set(loaded_rows),
+                        Err(message) => row_error.set(Some(message)),
+                    }
+                    loading_rows.set(false);
+                });
             } else {
                 rows.set(Vec::new());
+                loading_rows.set(false);
+                row_error.set(None);
             }
             || ()
         });
@@ -120,6 +132,7 @@ pub fn shell(props: &ShellProps) -> Html {
                                 report={report}
                                 rows={(*rows).clone()}
                                 loading={*loading_rows}
+                                actions_enabled={EntityKind::from_route(route).is_some()}
                                 on_edit={on_edit}
                                 on_archive={on_archive}
                             />

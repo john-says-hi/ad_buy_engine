@@ -1,7 +1,8 @@
+use ad_buy_engine_domain::EntityRow;
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
 use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
-use admin_dashboard::state::report::ReportState;
+use admin_dashboard::state::report::{ReportState, ReportTotals};
 
 #[test]
 fn default_route_is_dashboard() {
@@ -126,17 +127,20 @@ fn creatable_routes_have_legacy_modal_metadata() -> Result<(), String> {
 
 #[test]
 fn non_creatable_report_routes_do_not_have_forms() {
-    for route in [
-        Route::Conversions,
-        Route::Connection,
-        Route::Browsers,
-        Route::Device,
-        Route::Os,
-        Route::Date,
-        Route::DayParting,
+    assert_eq!(Route::Conversions.create_button_label(), None);
+    assert_eq!(CreateFormDefinition::for_route(Route::Conversions), None);
+    assert_eq!(Route::Conversions.report_rows_endpoint(), None);
+    for (route, endpoint) in [
+        (Route::Connection, "/api/reports/connection"),
+        (Route::Browsers, "/api/reports/browsers"),
+        (Route::Device, "/api/reports/device"),
+        (Route::Os, "/api/reports/os"),
+        (Route::Date, "/api/reports/date"),
+        (Route::DayParting, "/api/reports/day-parting"),
     ] {
         assert_eq!(route.create_button_label(), None);
         assert_eq!(CreateFormDefinition::for_route(route), None);
+        assert_eq!(route.report_rows_endpoint(), Some(endpoint));
     }
 }
 
@@ -160,9 +164,30 @@ fn money_fields_accept_decimal_values() {
     );
 }
 
+#[test]
+fn report_totals_sum_loaded_rows() {
+    let totals = ReportTotals::from_rows(&[entity_row("one", 3, 1), entity_row("two", 5, 2)]);
+
+    assert_eq!(totals.name_total, 2);
+    assert_eq!(totals.visit_total, 8);
+    assert_eq!(totals.unique_total, 3);
+}
+
 fn field_type(kind: EntityKind, key: &str) -> Option<FieldType> {
     form_fields(kind)
         .into_iter()
         .find(|field| field.key == key)
         .map(|field| field.field_type)
+}
+
+fn entity_row(name: &str, visits: i64, unique_visits: i64) -> EntityRow {
+    EntityRow {
+        id: name.to_string(),
+        name: name.to_string(),
+        detail: String::new(),
+        visits,
+        unique_visits,
+        updated_at_millis: 0,
+        tracking_url: None,
+    }
 }

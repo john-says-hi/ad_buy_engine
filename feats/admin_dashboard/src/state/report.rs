@@ -1,3 +1,5 @@
+use ad_buy_engine_domain::EntityRow;
+
 use crate::route::Route;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +27,23 @@ impl ReportState {
             name_total: 0,
             visit_total: 0,
             unique_total: 0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReportTotals {
+    pub name_total: i64,
+    pub visit_total: i64,
+    pub unique_total: i64,
+}
+
+impl ReportTotals {
+    pub fn from_rows(rows: &[EntityRow]) -> Self {
+        Self {
+            name_total: i64::try_from(rows.len()).unwrap_or(i64::MAX),
+            visit_total: rows.iter().map(|row| row.visits).sum(),
+            unique_total: rows.iter().map(|row| row.unique_visits).sum(),
         }
     }
 }

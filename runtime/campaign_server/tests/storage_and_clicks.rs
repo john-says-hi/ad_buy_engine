@@ -1,17 +1,24 @@
 use std::path::PathBuf;
 
 use ad_buy_engine_domain::{
-    CampaignDraft, DestinationType, FunnelDraft, FunnelPath, FunnelSequence, LandingPageDraft,
-    OfferDraft, OfferSourceDraft, SequenceType, TrafficSourceDraft, UrlToken, WeightedReference,
+    CampaignDraft, DestinationType, EntityRow, FunnelDraft, FunnelPath, FunnelSequence,
+    LandingPageDraft, OfferDraft, OfferSourceDraft, SequenceType, TrafficSourceDraft, UrlToken,
+    WeightedReference,
 };
 use axum::body::Body;
-use axum::http::{HeaderMap, Request, StatusCode};
+use axum::http::header::USER_AGENT;
+use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use campaign_server::config::ServerConfig;
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
 use campaign_server::storage::database::connect_database;
 use campaign_server::storage::entities::{
     create_campaign, create_funnel, create_landing_page, create_offer, create_offer_source,
-    create_traffic_source, list_campaign_rows,
+    create_traffic_source, list_campaign_rows, list_funnel_rows, list_landing_page_rows,
+    list_offer_rows, list_offer_source_rows, list_traffic_source_rows,
+};
+use campaign_server::storage::reports::{
+    list_browser_rows, list_connection_rows, list_date_rows, list_day_parting_rows,
+    list_device_rows, list_os_rows,
 };
 use campaign_server::web::router::build_router;
 use tempfile::tempdir;
@@ -171,7 +178,14 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
         .unwrap_or_default();
     assert!(location.starts_with("https://lander.test/"));
 
-    let headers = HeaderMap::new();
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
+            (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        ),
+    );
     let outcome = process_campaign_click(
         &pool,
         &config.public_base_url,
@@ -183,7 +197,25 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
     assert!(outcome.target.starts_with("https://lander.test/"));
 
     let rows = list_campaign_rows(&pool).await?;
-    assert_eq!(rows.first().map(|row| row.visits), Some(2));
+    assert_row_counts(&rows, "Campaign", 2, 2);
+    assert_row_counts(&list_offer_rows(&pool).await?, "Offer", 2, 2);
+    assert_row_counts(&list_offer_source_rows(&pool).await?, "Network", 2, 2);
+    assert_row_counts(&list_landing_page_rows(&pool).await?, "Lander", 2, 2);
+    assert_row_counts(&list_traffic_source_rows(&pool).await?, "Traffic", 2, 2);
+    assert_row_counts(&list_funnel_rows(&pool).await?, "Funnel", 2, 2);
+
+    let browser_rows = list_browser_rows(&pool).await?;
+    assert_row_counts(&browser_rows, "Chrome", 1, 1);
+    assert_eq!(sum_visits(&browser_rows), 2);
+    let device_rows = list_device_rows(&pool).await?;
+    assert_row_counts(&device_rows, "Desktop", 1, 1);
+    assert_eq!(sum_visits(&device_rows), 2);
+    let os_rows = list_os_rows(&pool).await?;
+    assert_row_counts(&os_rows, "Linux", 1, 1);
+    assert_eq!(sum_visits(&os_rows), 2);
+    assert_row_counts(&list_connection_rows(&pool).await?, "Unknown", 2, 2);
+    assert_eq!(sum_visits(&list_date_rows(&pool).await?), 2);
+    assert_eq!(sum_visits(&list_day_parting_rows(&pool).await?), 2);
 
     let visit_id = outcome
         .target
@@ -202,4 +234,16 @@ fn default_tokens() -> Vec<UrlToken> {
         name: "clickid".to_string(),
         token: "{clickid}".to_string(),
     }]
+}
+
+fn assert_row_counts(rows: &[EntityRow], name: &str, visits: i64, unique_visits: i64) {
+    let counts = rows
+        .iter()
+        .find(|row| row.name == name)
+        .map(|row| (row.visits, row.unique_visits));
+    assert_eq!(counts, Some((visits, unique_visits)));
+}
+
+fn sum_visits(rows: &[EntityRow]) -> i64 {
+    rows.iter().map(|row| row.visits).sum()
 }
