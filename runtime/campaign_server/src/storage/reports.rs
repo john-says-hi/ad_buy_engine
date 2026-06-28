@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use ad_buy_engine_domain::EntityRow;
+use ad_buy_engine_domain::{EntityRow, ReportDimensionKey, VisitEnrichment};
 use chrono::{Datelike, TimeZone, Timelike, Utc};
 use sqlx::{Row, SqlitePool};
 
@@ -13,6 +13,7 @@ struct VisitFact {
     id: String,
     ip_address: Option<String>,
     user_agent: Option<String>,
+    enrichment: VisitEnrichment,
     created_at_millis: i64,
 }
 
@@ -29,58 +30,28 @@ pub async fn list_browser_rows(
     pool: &SqlitePool,
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, date_filter, |visit| {
-        let name = visit
-            .user_agent
-            .as_deref()
-            .map(detect_browser)
-            .unwrap_or_else(|| "Unknown".to_string());
-        (name, "Derived from user agent".to_string())
-    })
-    .await
+    list_dimension_rows(pool, date_filter, ReportDimensionKey::Browsers).await
 }
 
 pub async fn list_device_rows(
     pool: &SqlitePool,
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, date_filter, |visit| {
-        let name = visit
-            .user_agent
-            .as_deref()
-            .map(detect_device_type)
-            .unwrap_or_else(|| "Unknown".to_string());
-        (name, "Derived from user agent".to_string())
-    })
-    .await
+    list_dimension_rows(pool, date_filter, ReportDimensionKey::DeviceTypes).await
 }
 
 pub async fn list_os_rows(
     pool: &SqlitePool,
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, date_filter, |visit| {
-        let name = visit
-            .user_agent
-            .as_deref()
-            .map(detect_operating_system)
-            .unwrap_or_else(|| "Unknown".to_string());
-        (name, "Derived from user agent".to_string())
-    })
-    .await
+    list_dimension_rows(pool, date_filter, ReportDimensionKey::OperatingSystems).await
 }
 
 pub async fn list_connection_rows(
     pool: &SqlitePool,
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, date_filter, |_| {
-        (
-            "Unknown".to_string(),
-            "Connection provider not configured".to_string(),
-        )
-    })
-    .await
+    list_dimension_rows(pool, date_filter, ReportDimensionKey::ConnectionTypes).await
 }
 
 pub async fn list_date_rows(
@@ -105,6 +76,18 @@ pub async fn list_date_rows(
         }
     })
     .await
+}
+
+pub async fn list_dimension_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+    dimension: ReportDimensionKey,
+) -> ServerResult<Vec<EntityRow>> {
+    match dimension {
+        ReportDimensionKey::Dates => list_date_rows(pool, date_filter).await,
+        ReportDimensionKey::DayParting => list_day_parting_rows(pool, date_filter).await,
+        _ => list_derived_rows(pool, date_filter, |visit| label_dimension(visit, dimension)).await,
+    }
 }
 
 pub async fn list_day_parting_rows(
@@ -143,7 +126,10 @@ async fn visit_facts(
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<VisitFact>> {
     let rows = sqlx::query(
-        "SELECT id, ip_address, user_agent, created_at_millis
+        "SELECT id, ip_address, user_agent, country, region, city, timezone, postal_code,
+                metro_code, asn, asn_organization, isp, connection_type, proxy_type, carrier,
+                browser, browser_version, operating_system, operating_system_version,
+                device_type, device_brand, device_model, created_at_millis
          FROM visits
          WHERE (? IS NULL OR created_at_millis >= ?)
             AND (? IS NULL OR created_at_millis < ?)
@@ -162,10 +148,144 @@ async fn visit_facts(
                 id: row.try_get("id")?,
                 ip_address: row.try_get("ip_address")?,
                 user_agent: row.try_get("user_agent")?,
+                enrichment: VisitEnrichment {
+                    country: row.try_get("country")?,
+                    region: row.try_get("region")?,
+                    city: row.try_get("city")?,
+                    timezone: row.try_get("timezone")?,
+                    postal_code: row.try_get("postal_code")?,
+                    metro_code: row.try_get("metro_code")?,
+                    asn: row.try_get("asn")?,
+                    asn_organization: row.try_get("asn_organization")?,
+                    isp: row.try_get("isp")?,
+                    connection_type: row.try_get("connection_type")?,
+                    proxy_type: row.try_get("proxy_type")?,
+                    carrier: row.try_get("carrier")?,
+                    browser: row.try_get("browser")?,
+                    browser_version: row.try_get("browser_version")?,
+                    operating_system: row.try_get("operating_system")?,
+                    operating_system_version: row.try_get("operating_system_version")?,
+                    device_type: row.try_get("device_type")?,
+                    device_brand: row.try_get("device_brand")?,
+                    device_model: row.try_get("device_model")?,
+                },
                 created_at_millis: row.try_get("created_at_millis")?,
             })
         })
         .collect()
+}
+
+fn label_dimension(visit: &VisitFact, dimension: ReportDimensionKey) -> (String, String) {
+    match dimension {
+        ReportDimensionKey::Browsers => label_with_user_agent_fallback(
+            visit.enrichment.browser.as_deref(),
+            visit.user_agent.as_deref(),
+            detect_browser,
+            "Browser",
+        ),
+        ReportDimensionKey::BrowserVersions => label_optional(
+            visit.enrichment.browser_version.as_deref(),
+            "Browser version",
+        ),
+        ReportDimensionKey::OperatingSystems => label_with_user_agent_fallback(
+            visit.enrichment.operating_system.as_deref(),
+            visit.user_agent.as_deref(),
+            detect_operating_system,
+            "Operating system",
+        ),
+        ReportDimensionKey::OperatingSystemVersions => label_optional(
+            visit.enrichment.operating_system_version.as_deref(),
+            "Operating system version",
+        ),
+        ReportDimensionKey::DeviceTypes => label_with_user_agent_fallback(
+            visit.enrichment.device_type.as_deref(),
+            visit.user_agent.as_deref(),
+            detect_device_type,
+            "Device type",
+        ),
+        ReportDimensionKey::DeviceBrands => {
+            label_optional(visit.enrichment.device_brand.as_deref(), "Device brand")
+        }
+        ReportDimensionKey::DeviceModels => {
+            label_optional(visit.enrichment.device_model.as_deref(), "Device model")
+        }
+        ReportDimensionKey::Countries => {
+            label_optional(visit.enrichment.country.as_deref(), "Country")
+        }
+        ReportDimensionKey::Regions => {
+            label_optional(visit.enrichment.region.as_deref(), "Region / state")
+        }
+        ReportDimensionKey::Cities => label_optional(visit.enrichment.city.as_deref(), "City"),
+        ReportDimensionKey::Timezones => {
+            label_optional(visit.enrichment.timezone.as_deref(), "Timezone")
+        }
+        ReportDimensionKey::PostalCodes => {
+            label_optional(visit.enrichment.postal_code.as_deref(), "Postal code")
+        }
+        ReportDimensionKey::MetroCodes => {
+            label_optional(visit.enrichment.metro_code.as_deref(), "Metro code")
+        }
+        ReportDimensionKey::Asns => label_optional(visit.enrichment.asn.as_deref(), "ASN"),
+        ReportDimensionKey::AsnOrganizations => label_optional(
+            visit.enrichment.asn_organization.as_deref(),
+            "ASN organization",
+        ),
+        ReportDimensionKey::ConnectionTypes => label_optional(
+            visit.enrichment.connection_type.as_deref(),
+            "Connection type provider not configured",
+        ),
+        ReportDimensionKey::IspCarriers => label_optional(
+            visit
+                .enrichment
+                .isp
+                .as_deref()
+                .or(visit.enrichment.carrier.as_deref()),
+            "ISP / carrier provider not configured",
+        ),
+        ReportDimensionKey::MobileCarriers => label_optional(
+            visit.enrichment.carrier.as_deref(),
+            "Mobile carrier provider not configured",
+        ),
+        ReportDimensionKey::Proxies => label_optional(
+            visit.enrichment.proxy_type.as_deref(),
+            "Proxy provider not configured",
+        ),
+        _ => (
+            "Unknown".to_string(),
+            "Dimension not visit-backed".to_string(),
+        ),
+    }
+}
+
+fn label_with_user_agent_fallback(
+    persisted_value: Option<&str>,
+    user_agent: Option<&str>,
+    fallback: impl Fn(&str) -> String,
+    detail: &str,
+) -> (String, String) {
+    if let Some(value) = normalized_label(persisted_value) {
+        return (value, detail.to_string());
+    }
+    let value = user_agent
+        .map(fallback)
+        .unwrap_or_else(|| "Unknown".to_string());
+    (value, "Derived from user agent".to_string())
+}
+
+fn label_optional(value: Option<&str>, detail: &str) -> (String, String) {
+    (
+        normalized_label(value).unwrap_or_else(|| "Unknown".to_string()),
+        detail.to_string(),
+    )
+}
+
+fn normalized_label(value: Option<&str>) -> Option<String> {
+    let value = value?.trim();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
 }
 
 fn rows_by_label(

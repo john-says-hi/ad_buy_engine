@@ -2,14 +2,15 @@ use std::fs;
 
 use ad_buy_engine_domain::{
     CampaignDraft, DestinationType, EntityRow, FunnelDraft, FunnelPath, FunnelSequence,
-    LandingPageDraft, OfferDraft, OfferSourceDraft, SequenceType, TrafficSourceDraft, UrlToken,
-    WeightedReference,
+    LandingPageDraft, OfferDraft, OfferSourceDraft, ReportDimensionKey, SequenceType,
+    TrafficSourceDraft, UrlToken, WeightedReference,
 };
 use axum::body::Body;
 use axum::http::header::USER_AGENT;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use campaign_server::config::ServerConfig;
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
+use campaign_server::services::geoip::GeoIpService;
 use campaign_server::storage::database::connect_database;
 use campaign_server::storage::date_filter::VisitDateFilter;
 use campaign_server::storage::entities::{
@@ -19,8 +20,9 @@ use campaign_server::storage::entities::{
 };
 use campaign_server::storage::reports::{
     list_browser_rows, list_connection_rows, list_date_rows, list_day_parting_rows,
-    list_device_rows, list_os_rows,
+    list_device_rows, list_dimension_rows, list_os_rows,
 };
+use campaign_server::storage::settings::load_geolocation_settings;
 use campaign_server::web::router::build_router;
 use tempfile::tempdir;
 use tower::ServiceExt;
@@ -38,8 +40,27 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
         listen_address: "127.0.0.1:0".to_string(),
         dashboard_dist,
         app_version: "test".to_string(),
+        maxmind_account_id: String::new(),
+        maxmind_license_key: String::new(),
+        geolite_city_database_path: tempdir
+            .path()
+            .join("GeoLite2-City.mmdb")
+            .display()
+            .to_string(),
+        geolite_country_database_path: tempdir
+            .path()
+            .join("GeoLite2-Country.mmdb")
+            .display()
+            .to_string(),
+        geolite_asn_database_path: tempdir
+            .path()
+            .join("GeoLite2-ASN.mmdb")
+            .display()
+            .to_string(),
     };
     let pool = connect_database(&config).await?;
+    let geolocation_settings = load_geolocation_settings(&pool).await?;
+    let geoip = GeoIpService::shared(&geolocation_settings.geoip_settings())?;
 
     let offer_source = create_offer_source(
         &pool,
@@ -202,6 +223,7 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
         &campaign.id,
         &headers,
         Some("src=paid"),
+        &geoip,
     )
     .await?;
     assert!(outcome.target.starts_with("https://lander.test/"));
@@ -237,6 +259,12 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
     let browser_rows = list_browser_rows(&pool, all_time).await?;
     assert_row_counts(&browser_rows, "Chrome", 1, 1);
     assert_eq!(sum_visits(&browser_rows), 2);
+    assert_row_counts(
+        &list_dimension_rows(&pool, all_time, ReportDimensionKey::BrowserVersions).await?,
+        "125.0.0.0",
+        1,
+        1,
+    );
     let device_rows = list_device_rows(&pool, all_time).await?;
     assert_row_counts(&device_rows, "Desktop", 1, 1);
     assert_eq!(sum_visits(&device_rows), 2);
@@ -253,6 +281,36 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
     assert_eq!(
         sum_visits(&list_day_parting_rows(&pool, all_time).await?),
         2
+    );
+    sqlx::query(
+        "UPDATE visits SET country = 'US', region = 'California', city = 'San Francisco',
+            asn = 'AS15169', asn_organization = 'Google LLC'",
+    )
+    .execute(&pool)
+    .await?;
+    assert_row_counts(
+        &list_dimension_rows(&pool, all_time, ReportDimensionKey::Countries).await?,
+        "US",
+        2,
+        2,
+    );
+    assert_row_counts(
+        &list_dimension_rows(&pool, all_time, ReportDimensionKey::Regions).await?,
+        "California",
+        2,
+        2,
+    );
+    assert_row_counts(
+        &list_dimension_rows(&pool, all_time, ReportDimensionKey::Cities).await?,
+        "San Francisco",
+        2,
+        2,
+    );
+    assert_row_counts(
+        &list_dimension_rows(&pool, all_time, ReportDimensionKey::AsnOrganizations).await?,
+        "Google LLC",
+        2,
+        2,
     );
 
     let visit_id = outcome

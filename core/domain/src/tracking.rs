@@ -34,6 +34,7 @@ pub struct VisitRecord {
     pub referrer: Option<String>,
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
+    pub enrichment: VisitEnrichment,
     pub query_params: Vec<(String, String)>,
     pub click_map: Vec<ClickMapEntry>,
     pub redirect_target: String,
@@ -46,4 +47,27 @@ pub struct ClickMapEntry {
     pub slot: u8,
     pub offer_id: String,
     pub target_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VisitEnrichment {
+    pub country: Option<String>,
+    pub region: Option<String>,
+    pub city: Option<String>,
+    pub timezone: Option<String>,
+    pub postal_code: Option<String>,
+    pub metro_code: Option<String>,
+    pub asn: Option<String>,
+    pub asn_organization: Option<String>,
+    pub isp: Option<String>,
+    pub connection_type: Option<String>,
+    pub proxy_type: Option<String>,
+    pub carrier: Option<String>,
+    pub browser: Option<String>,
+    pub browser_version: Option<String>,
+    pub operating_system: Option<String>,
+    pub operating_system_version: Option<String>,
+    pub device_type: Option<String>,
+    pub device_brand: Option<String>,
+    pub device_model: Option<String>,
 }

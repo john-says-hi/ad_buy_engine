@@ -1,4 +1,7 @@
-use ad_buy_engine_domain::{EntityRecord, EntityRow, SessionResponse};
+use ad_buy_engine_domain::{
+    EntityRecord, EntityRow, GeolocationDownloadResponse, GeolocationSettingsResponse,
+    GeolocationSettingsUpdate, ReportDimensionKey, SessionResponse,
+};
 
 use crate::route::Route;
 use crate::state::entity_form::{EntityKind, FormOptionLists, SaveDraft};
@@ -70,6 +73,30 @@ mod wasm {
         let response: ListResponse<EntityRow> =
             get_json(&url_with_date_range(endpoint, date_range)).await?;
         Ok(response.items)
+    }
+
+    pub async fn list_dimension_rows(
+        dimension: ReportDimensionKey,
+        date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
+        let endpoint = format!("/api/reports/dimensions/{}", dimension.slug());
+        let response: ListResponse<EntityRow> =
+            get_json(&url_with_date_range(&endpoint, date_range)).await?;
+        Ok(response.items)
+    }
+
+    pub async fn get_geolocation_settings() -> Result<GeolocationSettingsResponse, String> {
+        get_json("/api/settings/geolocation").await
+    }
+
+    pub async fn save_geolocation_settings(
+        update: GeolocationSettingsUpdate,
+    ) -> Result<GeolocationSettingsResponse, String> {
+        put_json("/api/settings/geolocation", &update).await
+    }
+
+    pub async fn download_geolite_databases() -> Result<GeolocationDownloadResponse, String> {
+        post_json("/api/settings/geolocation/download", &()).await
     }
 
     pub async fn load_options() -> Result<FormOptionLists, String> {
@@ -337,6 +364,27 @@ mod native {
         _route: Route,
         _date_range: ReportDateRange,
     ) -> Result<Vec<EntityRow>, String> {
+        Err(native_error())
+    }
+
+    pub async fn list_dimension_rows(
+        _dimension: ReportDimensionKey,
+        _date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
+        Err(native_error())
+    }
+
+    pub async fn get_geolocation_settings() -> Result<GeolocationSettingsResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn save_geolocation_settings(
+        _update: GeolocationSettingsUpdate,
+    ) -> Result<GeolocationSettingsResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn download_geolite_databases() -> Result<GeolocationDownloadResponse, String> {
         Err(native_error())
     }
 

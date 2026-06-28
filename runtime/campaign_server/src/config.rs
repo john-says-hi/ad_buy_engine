@@ -10,6 +10,11 @@ pub struct ServerConfig {
     pub listen_address: String,
     pub dashboard_dist: PathBuf,
     pub app_version: String,
+    pub maxmind_account_id: String,
+    pub maxmind_license_key: String,
+    pub geolite_city_database_path: String,
+    pub geolite_country_database_path: String,
+    pub geolite_asn_database_path: String,
 }
 
 impl ServerConfig {
@@ -24,6 +29,14 @@ impl ServerConfig {
         let dashboard_dist = env::var("ABE_DASHBOARD_DIST")
             .map(PathBuf::from)
             .unwrap_or_else(|_| repo_root.join("feats/admin_dashboard/dist"));
+        let maxmind_account_id = env::var("ABE_MAXMIND_ACCOUNT_ID").unwrap_or_default();
+        let maxmind_license_key = env::var("ABE_MAXMIND_LICENSE_KEY").unwrap_or_default();
+        let geolite_city_database_path = env::var("ABE_GEOLITE_CITY_DATABASE_PATH")
+            .unwrap_or_else(|_| "runtime/data/GeoLite2-City.mmdb".to_string());
+        let geolite_country_database_path = env::var("ABE_GEOLITE_COUNTRY_DATABASE_PATH")
+            .unwrap_or_else(|_| "runtime/data/GeoLite2-Country.mmdb".to_string());
+        let geolite_asn_database_path = env::var("ABE_GEOLITE_ASN_DATABASE_PATH")
+            .unwrap_or_else(|_| "runtime/data/GeoLite2-ASN.mmdb".to_string());
 
         Ok(Self {
             database_url,
@@ -31,6 +44,11 @@ impl ServerConfig {
             listen_address,
             dashboard_dist,
             app_version: env!("CARGO_PKG_VERSION").to_string(),
+            maxmind_account_id,
+            maxmind_license_key,
+            geolite_city_database_path,
+            geolite_country_database_path,
+            geolite_asn_database_path,
         })
     }
 }
