@@ -5,13 +5,12 @@ use ad_buy_engine_domain::{
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use sqlx::query::Query;
-use sqlx::sqlite::{SqliteArguments, SqliteRow};
-use sqlx::{Row, Sqlite, SqlitePool};
+use sqlx::sqlite::SqliteRow;
+use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::error::{ServerError, ServerResult};
-use crate::storage::date_filter::VisitDateFilter;
+use crate::storage::date_filter::{VisitDateFilter, bind_visit_date_filter};
 use crate::time::now_millis;
 
 pub async fn list_offer_source_rows(
@@ -703,17 +702,6 @@ pub async fn mark_campaign_clicked(
         .execute(pool)
         .await?;
     Ok(())
-}
-
-fn bind_visit_date_filter<'q>(
-    query: Query<'q, Sqlite, SqliteArguments<'q>>,
-    date_filter: VisitDateFilter,
-) -> Query<'q, Sqlite, SqliteArguments<'q>> {
-    query
-        .bind(date_filter.start_at_millis)
-        .bind(date_filter.start_at_millis)
-        .bind(date_filter.end_at_millis)
-        .bind(date_filter.end_at_millis)
 }
 
 fn counted_entity_row(row: SqliteRow) -> ServerResult<EntityRow> {

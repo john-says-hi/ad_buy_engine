@@ -8,17 +8,19 @@ use ad_buy_engine_domain::{
     WeightedReference,
 };
 use axum::body::{Body, to_bytes};
-use axum::http::header::USER_AGENT;
+use axum::http::header::{CONTENT_TYPE, COOKIE, SET_COOKIE, USER_AGENT};
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use campaign_server::config::{BaseUrlOverrides, ServerConfig, UpdateConfig};
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
 use campaign_server::services::geoip::GeoIpService;
+use campaign_server::storage::dashboard::dashboard_summary;
 use campaign_server::storage::database::connect_database;
 use campaign_server::storage::date_filter::VisitDateFilter;
 use campaign_server::storage::entities::{
-    create_campaign, create_funnel, create_landing_page, create_offer, create_offer_source,
-    create_traffic_source, list_campaign_rows, list_funnel_rows, list_landing_page_rows,
-    list_offer_rows, list_offer_source_rows, list_traffic_source_rows, update_campaign,
+    archive_campaign, create_campaign, create_funnel, create_landing_page, create_offer,
+    create_offer_source, create_traffic_source, list_campaign_rows, list_funnel_rows,
+    list_landing_page_rows, list_offer_rows, list_offer_source_rows, list_traffic_source_rows,
+    update_campaign,
 };
 use campaign_server::storage::reports::{
     list_browser_rows, list_connection_rows, list_date_rows, list_day_parting_rows,
@@ -626,6 +628,231 @@ async fn postback_tracks_custom_conversion_and_dedupes_pii()
 }
 
 #[tokio::test]
+async fn dashboard_summary_aggregates_real_tracker_events() -> Result<(), Box<dyn std::error::Error>>
+{
+    let tempdir = tempdir()?;
+    let database_path = tempdir.path().join("dashboard.sqlite3");
+    let dashboard_dist = tempdir.path().join("dist");
+    fs::create_dir(&dashboard_dist)?;
+    fs::write(dashboard_dist.join("index.html"), "<main>dashboard</main>")?;
+    let config = test_config(
+        &database_path,
+        dashboard_dist,
+        tempdir.path(),
+        "https://track.test",
+        "https://admin.test",
+        "http://127.0.0.1:8088",
+    );
+    let pool = connect_database(&config).await?;
+    let offer_source = create_offer_source(
+        &pool,
+        OfferSourceDraft {
+            name: "Network".to_string(),
+            tokens: default_tokens(),
+            tracking_domain: "main".to_string(),
+            tracking_method: "postback".to_string(),
+            payout_currency: "USD".to_string(),
+            postback_url: String::new(),
+            append_click_id: true,
+            accept_duplicate_postbacks: false,
+            whitelist_postback_ips: Vec::new(),
+            referrer_handling: "do_nothing".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let offer = create_offer(
+        &pool,
+        OfferDraft {
+            offer_source_id: offer_source.id,
+            country: "Global".to_string(),
+            name: "Offer".to_string(),
+            tags: Vec::new(),
+            url: "https://offer.test/?cid={clickid}".to_string(),
+            url_tokens: default_tokens(),
+            payout_model: "fixed".to_string(),
+            payout_value: 1.0,
+            currency: "USD".to_string(),
+            language: "en".to_string(),
+            vertical: "demo".to_string(),
+            weight: 100,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let traffic_source = create_traffic_source(
+        &pool,
+        TrafficSourceDraft {
+            name: "Traffic".to_string(),
+            external_id_parameter: "subid".to_string(),
+            cost_parameter: String::new(),
+            custom_parameters: Vec::new(),
+            currency: "USD".to_string(),
+            postback_urls: Vec::new(),
+            pixel_url: String::new(),
+            track_impressions: false,
+            direct_tracking: true,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let campaign = create_campaign(
+        &pool,
+        &config.tracking_base_url,
+        CampaignDraft {
+            traffic_source_id: traffic_source.id,
+            destination_type: DestinationType::DirectSequence,
+            funnel_id: None,
+            direct_sequence: Some(FunnelSequence::default_offer(offer.id)),
+            cost_model: "CPC".to_string(),
+            cost_value: 1.0,
+            country: "Global".to_string(),
+            name: "Campaign".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let geoip = GeoIpService::shared(&load_geolocation_settings(&pool).await?.geoip_settings())?;
+    let visit =
+        process_campaign_click(&pool, &campaign.id, &HeaderMap::new(), None, &geoip).await?;
+    let visit_id = visit
+        .target
+        .split("cid=")
+        .nth(1)
+        .ok_or_else(|| std::io::Error::other("visit id missing"))?;
+    let app = build_router(config.clone(), pool.clone()).await?;
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/postback?cid={visit_id}&type=Sale&payout=10&eventid=sale-1"
+                ))
+                .body(Body::empty())?,
+        )
+        .await?;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let summary = dashboard_summary(&pool, VisitDateFilter::default()).await?;
+
+    assert_dashboard_kpi(&summary.kpis, "visits", 1.0);
+    assert_dashboard_kpi(&summary.kpis, "conversions", 1.0);
+    assert_dashboard_kpi(&summary.kpis, "revenue", 10.0);
+    assert_dashboard_kpi(&summary.kpis, "cost", 1.0);
+    assert_dashboard_kpi(&summary.kpis, "profit", 9.0);
+    assert!(
+        summary
+            .decision_feed
+            .iter()
+            .any(|decision| decision.title == "Scale winner")
+    );
+    assert_eq!(summary.top_movers[0].name, "Campaign");
+    assert_eq!(summary.top_movers[0].profit, 9.0);
+    assert!(
+        summary
+            .conversion_path
+            .iter()
+            .any(|step| step.label == "Conversions" && step.count == 1)
+    );
+    assert!(
+        summary
+            .traffic_mix
+            .iter()
+            .any(|mix| mix.dimension == "Device")
+    );
+
+    sqlx::query(
+        "UPDATE conversion_event_types
+         SET include_in_conversions = 0, include_in_revenue = 0
+         WHERE id = 'sale'",
+    )
+    .execute(&pool)
+    .await?;
+    let excluded_summary = dashboard_summary(&pool, VisitDateFilter::default()).await?;
+    assert_dashboard_kpi(&excluded_summary.kpis, "visits", 1.0);
+    assert_dashboard_kpi(&excluded_summary.kpis, "conversions", 0.0);
+    assert_dashboard_kpi(&excluded_summary.kpis, "revenue", 0.0);
+    assert_dashboard_kpi(&excluded_summary.kpis, "cost", 1.0);
+
+    archive_campaign(&pool, &campaign.id).await?;
+    let archived_summary = dashboard_summary(&pool, VisitDateFilter::default()).await?;
+    assert_dashboard_kpi(&archived_summary.kpis, "visits", 0.0);
+    assert_dashboard_kpi(&archived_summary.kpis, "conversions", 0.0);
+    assert_dashboard_kpi(&archived_summary.kpis, "revenue", 0.0);
+    assert_dashboard_kpi(&archived_summary.kpis, "cost", 0.0);
+    assert!(archived_summary.top_movers.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
+async fn dashboard_summary_api_requires_login_and_returns_summary()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tempdir = tempdir()?;
+    let database_path = tempdir.path().join("dashboard-api.sqlite3");
+    let dashboard_dist = tempdir.path().join("dist");
+    fs::create_dir(&dashboard_dist)?;
+    fs::write(dashboard_dist.join("index.html"), "<main>dashboard</main>")?;
+    let config = test_config(
+        &database_path,
+        dashboard_dist,
+        tempdir.path(),
+        "https://track.test",
+        "https://admin.test",
+        "http://127.0.0.1:8088",
+    );
+    let pool = connect_database(&config).await?;
+    let app = build_router(config, pool.clone()).await?;
+
+    let unauthorized = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/dashboard/summary")
+                .body(Body::empty())?,
+        )
+        .await?;
+    assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+
+    sqlx::query("UPDATE operator_credentials SET must_change_credentials = 0 WHERE id = 1")
+        .execute(&pool)
+        .await?;
+    let login = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/login")
+                .header(CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"username":"admin","password":"admin"}"#))?,
+        )
+        .await?;
+    assert_eq!(login.status(), StatusCode::OK);
+    let cookie = login
+        .headers()
+        .get(SET_COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(';').next())
+        .ok_or_else(|| std::io::Error::other("login cookie missing"))?
+        .to_string();
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/dashboard/summary")
+                .header(COOKIE, cookie)
+                .body(Body::empty())?,
+        )
+        .await?;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), 64 * 1024).await?;
+    let summary: ad_buy_engine_domain::DashboardSummaryResponse = serde_json::from_slice(&body)?;
+    assert!(!summary.kpis.is_empty());
+    assert!(!summary.setup_health.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
 async fn fresh_database_seeds_domain_base_urls() -> Result<(), Box<dyn std::error::Error>> {
     let tempdir = tempdir()?;
     let database_path = tempdir.path().join("fresh.sqlite3");
@@ -858,6 +1085,11 @@ fn assert_row_counts(rows: &[EntityRow], name: &str, visits: i64, unique_visits:
         .find(|row| row.name == name)
         .map(|row| (row.visits, row.unique_visits));
     assert_eq!(counts, Some((visits, unique_visits)));
+}
+
+fn assert_dashboard_kpi(kpis: &[ad_buy_engine_domain::DashboardKpi], key: &str, value: f64) {
+    let actual = kpis.iter().find(|kpi| kpi.key == key).map(|kpi| kpi.value);
+    assert_eq!(actual, Some(value));
 }
 
 fn sum_visits(rows: &[EntityRow]) -> i64 {

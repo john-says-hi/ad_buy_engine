@@ -2,6 +2,7 @@ pub mod auth;
 pub mod clicks;
 pub mod conversions;
 pub mod crud;
+pub mod dashboard;
 pub mod date_filter;
 pub mod health;
 pub mod reports;

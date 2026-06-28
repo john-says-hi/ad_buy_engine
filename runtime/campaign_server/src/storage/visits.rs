@@ -136,7 +136,7 @@ pub async fn insert_event(
     .bind(new_id())
     .bind(visit_id)
     .bind(campaign_id)
-    .bind(event_type_to_str(event_type))
+    .bind(visit_event_type_key(event_type))
     .bind(json_string(&event_data)?)
     .bind(now_millis()?)
     .execute(pool)
@@ -183,7 +183,7 @@ async fn insert_event_in_transaction(
     .bind(new_id())
     .bind(visit_id)
     .bind(campaign_id)
-    .bind(event_type_to_str(event_type))
+    .bind(visit_event_type_key(event_type))
     .bind(json_string(&event_data)?)
     .bind(now_millis()?)
     .execute(&mut **transaction)
@@ -235,7 +235,7 @@ fn row_to_visit(row: SqliteRow) -> ServerResult<VisitRecord> {
     })
 }
 
-fn event_type_to_str(event_type: VisitEventType) -> &'static str {
+pub fn visit_event_type_key(event_type: VisitEventType) -> &'static str {
     match event_type {
         VisitEventType::CampaignClick => "campaign_click",
         VisitEventType::LanderClick => "lander_click",

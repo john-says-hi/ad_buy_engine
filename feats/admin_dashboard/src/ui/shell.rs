@@ -10,6 +10,7 @@ use crate::state::report::{
     ReportDateRange, ReportState, default_grouping_for_route, filter_rows_by_search,
 };
 use crate::ui::create_modal::CreateModal;
+use crate::ui::dashboard_page::DashboardPage;
 use crate::ui::navigation_bar::NavigationBar;
 use crate::ui::report_table::ReportTable;
 use crate::ui::report_toolbar::ReportToolbar;
@@ -198,7 +199,12 @@ pub fn shell(props: &ShellProps) -> Html {
             <NavigationBar active_route={route} />
             {
                 if route.is_dashboard() {
-                    html! { <DashboardPage /> }
+                    html! {
+                        <DashboardPage
+                            date_range={*date_range}
+                            on_date_range_change={on_date_range_change.clone()}
+                        />
+                    }
                 } else if route == Route::Settings {
                     html! { <SettingsPage /> }
                 } else {
@@ -290,12 +296,3 @@ fn save_report_date_range(date_range: ReportDateRange) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn save_report_date_range(_date_range: ReportDateRange) {}
-
-#[function_component(DashboardPage)]
-fn dashboard_page() -> Html {
-    html! {
-        <main class="abe-dashboard">
-            <h1>{ "Dashboard" }</h1>
-        </main>
-    }
-}

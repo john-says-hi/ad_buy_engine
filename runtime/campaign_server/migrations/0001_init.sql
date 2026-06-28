@@ -258,15 +258,23 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_last_clicked
     ON campaigns (last_clicked_at_millis);
 CREATE INDEX IF NOT EXISTS idx_visits_campaign_created
     ON visits (campaign_id, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_visits_created
+    ON visits (created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_visits_ip_user_agent
     ON visits (campaign_id, ip_address, user_agent);
 CREATE INDEX IF NOT EXISTS idx_visit_events_visit_created
     ON visit_events (visit_id, created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_visit_events_campaign_type
     ON visit_events (campaign_id, event_type, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_visit_events_type_created
+    ON visit_events (event_type, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_visit_events_created
+    ON visit_events (created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_conversion_events_campaign_created
     ON conversion_events (campaign_id, created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_conversion_events_type_created
     ON conversion_events (event_type_id, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_conversion_events_duplicate_created
+    ON conversion_events (duplicate, created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_conversion_events_dedupe
     ON conversion_events (dedupe_key, duplicate);

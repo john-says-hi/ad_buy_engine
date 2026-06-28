@@ -6,7 +6,8 @@ use sqlx::{Row, SqlitePool};
 
 use crate::error::ServerResult;
 use crate::services::user_agent::{detect_browser, detect_device_type, detect_operating_system};
-use crate::storage::date_filter::VisitDateFilter;
+use crate::storage::date_filter::{VisitDateFilter, bind_visit_date_filter};
+use crate::storage::visit_identity::unique_visit_key;
 
 #[derive(Clone, Debug)]
 struct VisitFact {
@@ -125,8 +126,9 @@ async fn visit_facts(
     pool: &SqlitePool,
     date_filter: VisitDateFilter,
 ) -> ServerResult<Vec<VisitFact>> {
-    let rows = sqlx::query(
-        "SELECT id, ip_address, user_agent, country, region, city, timezone, postal_code,
+    let rows = bind_visit_date_filter(
+        sqlx::query(
+            "SELECT id, ip_address, user_agent, country, region, city, timezone, postal_code,
                 metro_code, asn, asn_organization, isp, connection_type, proxy_type, carrier,
                 browser, browser_version, operating_system, operating_system_version,
                 device_type, device_brand, device_model, created_at_millis
@@ -134,11 +136,9 @@ async fn visit_facts(
          WHERE (? IS NULL OR created_at_millis >= ?)
             AND (? IS NULL OR created_at_millis < ?)
          ORDER BY created_at_millis DESC",
+        ),
+        date_filter,
     )
-    .bind(date_filter.start_at_millis)
-    .bind(date_filter.start_at_millis)
-    .bind(date_filter.end_at_millis)
-    .bind(date_filter.end_at_millis)
     .fetch_all(pool)
     .await?;
 
@@ -329,15 +329,10 @@ fn rows_by_label(
 }
 
 fn unique_key(visit: &VisitFact) -> String {
-    let ip_address = visit.ip_address.as_deref().unwrap_or_default();
-    let user_agent = visit.user_agent.as_deref().unwrap_or_default();
-    if ip_address.is_empty() && user_agent.is_empty() {
-        return visit.id.clone();
-    }
-    format!(
-        "{}|{}",
-        visit.ip_address.as_deref().unwrap_or_default(),
-        visit.user_agent.as_deref().unwrap_or_default()
+    unique_visit_key(
+        &visit.id,
+        visit.ip_address.as_deref(),
+        visit.user_agent.as_deref(),
     )
 }
 
