@@ -9,6 +9,8 @@ use tower_http::trace::TraceLayer;
 use tower_sessions::{MemoryStore, SessionManagerLayer};
 
 use crate::config::ServerConfig;
+use crate::services::geoip::{GeoIpService, SharedGeoIpService};
+use crate::storage::settings::load_geolocation_settings;
 use crate::web::auth::{credentials, login, logout, session};
 use crate::web::clicks::{campaign_click, lander_click};
 use crate::web::crud::{
@@ -21,8 +23,11 @@ use crate::web::crud::{
 };
 use crate::web::health::health;
 use crate::web::reports::{
-    list_browsers, list_connections, list_dates, list_day_parts, list_devices,
-    list_operating_systems,
+    list_browsers, list_connections, list_dates, list_day_parts, list_devices, list_dimension,
+    list_operating_systems, list_report_dimensions,
+};
+use crate::web::settings::{
+    download_geolite_databases, get_geolocation_settings, put_geolocation_settings,
 };
 
 #[derive(Clone, Debug)]
@@ -31,14 +36,18 @@ pub struct AppState {
     pub public_base_url: String,
     pub dashboard_dist: PathBuf,
     pub app_version: String,
+    pub geoip: SharedGeoIpService,
 }
 
 pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Result<Router> {
+    let geolocation_settings = load_geolocation_settings(&pool).await?;
+    let geoip = GeoIpService::shared(&geolocation_settings.geoip_settings())?;
     let state = AppState {
         pool,
         public_base_url: config.public_base_url,
         dashboard_dist: config.dashboard_dist,
         app_version: config.app_version,
+        geoip,
     };
     let session_layer = SessionManagerLayer::new(MemoryStore::default()).with_secure(false);
     let static_service = ServeDir::new(&state.dashboard_dist)
@@ -50,6 +59,14 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route("/api/auth/logout", post(logout))
         .route("/api/auth/session", get(session))
         .route("/api/auth/credentials", put(credentials))
+        .route(
+            "/api/settings/geolocation",
+            get(get_geolocation_settings).put(put_geolocation_settings),
+        )
+        .route(
+            "/api/settings/geolocation/download",
+            post(download_geolite_databases),
+        )
         .route(
             "/api/offer-sources",
             get(list_offer_sources).post(create_offer_source),
@@ -103,6 +120,8 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route("/api/reports/day-parting", get(list_day_parts))
         .route("/api/reports/device", get(list_devices))
         .route("/api/reports/os", get(list_operating_systems))
+        .route("/api/reports/dimensions", get(list_report_dimensions))
+        .route("/api/reports/dimensions/{key}", get(list_dimension))
         .route("/api/options/{name}", get(get_options))
         .route("/api/{*path}", any(api_not_found))
         .route("/c/{campaign_id}", get(campaign_click))

@@ -20,6 +20,7 @@ pub async fn campaign_click(
         &campaign_id,
         &headers,
         Some(&raw_query),
+        &state.geoip,
     )
     .await?;
     redirect(&outcome.target)

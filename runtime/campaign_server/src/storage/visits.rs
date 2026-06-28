@@ -1,4 +1,6 @@
-use ad_buy_engine_domain::{ClickMapEntry, FunnelSequence, VisitEventType, VisitRecord};
+use ad_buy_engine_domain::{
+    ClickMapEntry, FunnelSequence, VisitEnrichment, VisitEventType, VisitRecord,
+};
 use serde::Serialize;
 use sqlx::sqlite::SqliteRow;
 use sqlx::{Row, Sqlite, SqlitePool, Transaction};
@@ -18,6 +20,7 @@ pub struct NewVisit<'a> {
     pub referrer: Option<&'a str>,
     pub ip_address: Option<&'a str>,
     pub user_agent: Option<&'a str>,
+    pub enrichment: &'a VisitEnrichment,
     pub query_params: &'a [(String, String)],
     pub click_map: &'a [ClickMapEntry],
     pub redirect_target: &'a str,
@@ -33,8 +36,11 @@ pub async fn insert_visit_with_event(
         "INSERT INTO visits
          (id, campaign_id, traffic_source_id, selected_funnel_id, selected_sequence_json,
           selected_landing_page_id, selected_offer_id, referrer, ip_address, user_agent,
-          query_params_json, click_map_json, redirect_target, suspicious, created_at_millis)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          country, region, city, timezone, postal_code, metro_code, asn, asn_organization,
+          isp, connection_type, proxy_type, carrier, browser, browser_version, operating_system,
+          operating_system_version, device_type, device_brand, device_model, query_params_json,
+          click_map_json, redirect_target, suspicious, created_at_millis)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(new_visit.id)
     .bind(new_visit.campaign_id)
@@ -46,6 +52,25 @@ pub async fn insert_visit_with_event(
     .bind(new_visit.referrer)
     .bind(new_visit.ip_address)
     .bind(new_visit.user_agent)
+    .bind(new_visit.enrichment.country.as_deref())
+    .bind(new_visit.enrichment.region.as_deref())
+    .bind(new_visit.enrichment.city.as_deref())
+    .bind(new_visit.enrichment.timezone.as_deref())
+    .bind(new_visit.enrichment.postal_code.as_deref())
+    .bind(new_visit.enrichment.metro_code.as_deref())
+    .bind(new_visit.enrichment.asn.as_deref())
+    .bind(new_visit.enrichment.asn_organization.as_deref())
+    .bind(new_visit.enrichment.isp.as_deref())
+    .bind(new_visit.enrichment.connection_type.as_deref())
+    .bind(new_visit.enrichment.proxy_type.as_deref())
+    .bind(new_visit.enrichment.carrier.as_deref())
+    .bind(new_visit.enrichment.browser.as_deref())
+    .bind(new_visit.enrichment.browser_version.as_deref())
+    .bind(new_visit.enrichment.operating_system.as_deref())
+    .bind(new_visit.enrichment.operating_system_version.as_deref())
+    .bind(new_visit.enrichment.device_type.as_deref())
+    .bind(new_visit.enrichment.device_brand.as_deref())
+    .bind(new_visit.enrichment.device_model.as_deref())
     .bind(json_string(new_visit.query_params)?)
     .bind(json_string(new_visit.click_map)?)
     .bind(new_visit.redirect_target)
@@ -78,6 +103,7 @@ pub async fn insert_visit_with_event(
         referrer: new_visit.referrer.map(ToOwned::to_owned),
         ip_address: new_visit.ip_address.map(ToOwned::to_owned),
         user_agent: new_visit.user_agent.map(ToOwned::to_owned),
+        enrichment: new_visit.enrichment.clone(),
         query_params: new_visit.query_params.to_vec(),
         click_map: new_visit.click_map.to_vec(),
         redirect_target: new_visit.redirect_target.to_string(),
@@ -180,6 +206,27 @@ fn row_to_visit(row: SqliteRow) -> ServerResult<VisitRecord> {
         referrer: row.try_get("referrer")?,
         ip_address: row.try_get("ip_address")?,
         user_agent: row.try_get("user_agent")?,
+        enrichment: VisitEnrichment {
+            country: row.try_get("country")?,
+            region: row.try_get("region")?,
+            city: row.try_get("city")?,
+            timezone: row.try_get("timezone")?,
+            postal_code: row.try_get("postal_code")?,
+            metro_code: row.try_get("metro_code")?,
+            asn: row.try_get("asn")?,
+            asn_organization: row.try_get("asn_organization")?,
+            isp: row.try_get("isp")?,
+            connection_type: row.try_get("connection_type")?,
+            proxy_type: row.try_get("proxy_type")?,
+            carrier: row.try_get("carrier")?,
+            browser: row.try_get("browser")?,
+            browser_version: row.try_get("browser_version")?,
+            operating_system: row.try_get("operating_system")?,
+            operating_system_version: row.try_get("operating_system_version")?,
+            device_type: row.try_get("device_type")?,
+            device_brand: row.try_get("device_brand")?,
+            device_model: row.try_get("device_model")?,
+        },
         query_params: json_value(row.try_get::<String, _>("query_params_json")?)?,
         click_map: json_value(row.try_get::<String, _>("click_map_json")?)?,
         redirect_target: row.try_get("redirect_target")?,
