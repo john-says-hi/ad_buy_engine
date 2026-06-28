@@ -1,6 +1,0 @@
-Visits could be send to client from server as they come in,
-Visits that are updated could be identified to update the local database.
-
-Sync Visits, 1 get visits later than date provided, in that list, then remove those by ID in visit ledger table, then add rest of visits in ledger table, then delete them from that Q.
-
-Sync Elements, Send ID and LastUpdated for each element and each element group,1 Find each by ID in backend and if last_updated field is < objects in request, then update that object in vector, 2, if ID from modal !=  ID from request then add to vector list. -> Returns a list of updated or new modals.

@@ -1,3 +1,0 @@
-CREATE TABLE emails (
-  id VARCHAR NOT NULL PRIMARY KEY
-);
