@@ -1,6 +1,6 @@
 use ad_buy_engine_domain::{
     Campaign, ClickContext, ClickMapEntry, DestinationType, FunnelPath, FunnelSequence,
-    LandingPage, Offer, TokenValue, VisitEventType,
+    LandingPage, Offer, TokenValue, VisitEnrichment, VisitEventType,
 };
 use axum::http::HeaderMap;
 use chrono::{Datelike, Timelike, Utc};
@@ -9,7 +9,8 @@ use url::form_urlencoded;
 
 use crate::error::{ServerError, ServerResult};
 use crate::services::conditions::evaluate_all;
-use crate::services::user_agent::{detect_browser, detect_device_type, detect_operating_system};
+use crate::services::geoip::SharedGeoIpService;
+use crate::services::user_agent::user_agent_enrichment;
 use crate::storage::entities::{get_campaign, get_funnel, get_landing_page, get_offer};
 use crate::storage::visits::{
     NewVisit, get_visit, insert_event, insert_visit_with_event, is_unique_visit, new_visit_id,
@@ -34,10 +35,12 @@ pub async fn process_campaign_click(
     campaign_id: &str,
     headers: &HeaderMap,
     raw_query: Option<&str>,
+    geoip: &SharedGeoIpService,
 ) -> ServerResult<RedirectOutcome> {
     let campaign = get_campaign(pool, campaign_id).await?;
     let query_params = parse_query(raw_query.unwrap_or_default());
-    let mut context = click_context(pool, &campaign, headers, &query_params).await?;
+    let (mut context, enrichment) =
+        click_context(pool, &campaign, headers, &query_params, geoip).await?;
     let (selected_route, missing_fields) = select_route(pool, &campaign, &context).await?;
 
     let visit_id = new_visit_id();
@@ -101,6 +104,7 @@ pub async fn process_campaign_click(
             referrer: context.referrer.as_deref(),
             ip_address: context.ip_address.as_deref(),
             user_agent: context.user_agent.as_deref(),
+            enrichment: &enrichment,
             query_params: &query_params,
             click_map: &click_map,
             redirect_target: &redirect_target,
@@ -169,7 +173,8 @@ async fn click_context(
     campaign: &Campaign,
     headers: &HeaderMap,
     query_params: &[(String, String)],
-) -> ServerResult<ClickContext> {
+    geoip: &SharedGeoIpService,
+) -> ServerResult<(ClickContext, VisitEnrichment)> {
     let user_agent = header_value(headers, "user-agent");
     let ip_address = header_value(headers, "x-forwarded-for")
         .and_then(|value| {
@@ -205,28 +210,46 @@ async fn click_context(
             .map(ToOwned::to_owned)
     });
 
-    Ok(ClickContext {
+    let mut enrichment = geoip_enrichment(geoip, ip_address.as_deref());
+    let user_agent_enrichment = user_agent_enrichment(user_agent.as_deref());
+    enrichment.browser = user_agent_enrichment.browser;
+    enrichment.browser_version = user_agent_enrichment.browser_version;
+    enrichment.operating_system = user_agent_enrichment.operating_system;
+    enrichment.operating_system_version = user_agent_enrichment.operating_system_version;
+    enrichment.device_type = user_agent_enrichment.device_type;
+    enrichment.device_brand = user_agent_enrichment.device_brand;
+    enrichment.device_model = user_agent_enrichment.device_model;
+
+    let context = ClickContext {
         ip_address,
         user_agent: user_agent.clone(),
         referrer,
         referrer_domain,
         query,
-        country: None,
-        region: None,
-        city: None,
-        isp: None,
-        connection_type: None,
-        proxy_type: None,
-        carrier: None,
-        browser: user_agent.as_deref().map(detect_browser),
-        operating_system: user_agent.as_deref().map(detect_operating_system),
-        device_type: user_agent.as_deref().map(detect_device_type),
-        device_brand: None,
+        country: enrichment.country.clone(),
+        region: enrichment.region.clone(),
+        city: enrichment.city.clone(),
+        isp: enrichment.isp.clone(),
+        connection_type: enrichment.connection_type.clone(),
+        proxy_type: enrichment.proxy_type.clone(),
+        carrier: enrichment.carrier.clone(),
+        browser: enrichment.browser.clone(),
+        operating_system: enrichment.operating_system.clone(),
+        device_type: enrichment.device_type.clone(),
+        device_brand: enrichment.device_brand.clone(),
         language,
         weekday: Some(now.weekday().to_string()),
         minute_of_day: u16::try_from(now.hour() * 60 + now.minute()).ok(),
         is_unique_visit: Some(is_unique),
-    })
+    };
+    Ok((context, enrichment))
+}
+
+fn geoip_enrichment(geoip: &SharedGeoIpService, ip_address: Option<&str>) -> VisitEnrichment {
+    match geoip.read() {
+        Ok(service) => service.lookup(ip_address),
+        Err(_) => VisitEnrichment::default(),
+    }
 }
 
 async fn select_route(

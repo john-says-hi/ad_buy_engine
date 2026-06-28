@@ -1,10 +1,10 @@
-use ad_buy_engine_domain::EntityRow;
+use ad_buy_engine_domain::{EntityRow, ReportDimensionKey};
 
 use crate::route::Route;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReportState {
-    pub first_grouping: &'static str,
+    pub first_grouping: ReportDimensionKey,
     pub second_grouping: &'static str,
     pub third_grouping: &'static str,
     pub date_range: ReportDateRange,
@@ -16,9 +16,9 @@ pub struct ReportState {
 }
 
 impl ReportState {
-    pub const fn for_route(route: Route) -> Self {
+    pub fn for_route(_route: Route, first_grouping: ReportDimensionKey) -> Self {
         Self {
-            first_grouping: route.render_route().label(),
+            first_grouping,
             second_grouping: "Drill Down",
             third_grouping: "Drill Down",
             date_range: ReportDateRange::Today,
@@ -29,6 +29,12 @@ impl ReportState {
             unique_total: 0,
         }
     }
+}
+
+pub fn default_grouping_for_route(route: Route) -> ReportDimensionKey {
+    route
+        .default_report_dimension()
+        .unwrap_or(ReportDimensionKey::Campaigns)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

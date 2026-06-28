@@ -1,4 +1,4 @@
-use ad_buy_engine_domain::EntityRow;
+use ad_buy_engine_domain::{EntityRow, ReportDimensionKey};
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
 use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
@@ -33,6 +33,7 @@ fn navigation_labels_match_initial_shell_scope() {
             "OS",
             "Date",
             "Day Parting",
+            "Geo Settings",
         ]
     );
 }
@@ -40,7 +41,7 @@ fn navigation_labels_match_initial_shell_scope() {
 #[test]
 fn offer_sources_has_expected_button_and_report_state() -> Result<(), &'static str> {
     let route = Route::OfferSources;
-    let report = ReportState::for_route(route);
+    let report = ReportState::for_route(route, ReportDimensionKey::OfferSources);
     let Some(form) = CreateFormDefinition::for_route(route) else {
         return Err("offer sources should have a form");
     };
@@ -51,7 +52,7 @@ fn offer_sources_has_expected_button_and_report_state() -> Result<(), &'static s
     assert_eq!(form.title, "New Offer Source");
     assert!(form.contains_field_label("Name of Source:"));
     assert!(form.contains_field_label("Click ID"));
-    assert_eq!(report.first_grouping, "Offer Sources");
+    assert_eq!(report.first_grouping, ReportDimensionKey::OfferSources);
     assert_eq!(report.second_grouping, "Drill Down");
     assert_eq!(report.third_grouping, "Drill Down");
     assert_eq!(report.date_range, ReportDateRange::Today);
@@ -134,6 +135,8 @@ fn non_creatable_report_routes_do_not_have_forms() {
     assert_eq!(Route::Conversions.create_button_label(), None);
     assert_eq!(CreateFormDefinition::for_route(Route::Conversions), None);
     assert_eq!(Route::Conversions.report_rows_endpoint(), None);
+    assert_eq!(Route::GeolocationSettings.report_rows_endpoint(), None);
+    assert!(!Route::GeolocationSettings.is_report());
     for (route, endpoint) in [
         (Route::Connection, "/api/reports/connection"),
         (Route::Browsers, "/api/reports/browsers"),
@@ -146,6 +149,31 @@ fn non_creatable_report_routes_do_not_have_forms() {
         assert_eq!(CreateFormDefinition::for_route(route), None);
         assert_eq!(route.report_rows_endpoint(), Some(endpoint));
     }
+}
+
+#[test]
+fn report_dimensions_include_geolocation_drilldowns() {
+    let labels: Vec<&str> = ReportDimensionKey::ALL
+        .iter()
+        .map(|dimension| dimension.label())
+        .collect();
+
+    assert!(labels.contains(&"Countries"));
+    assert!(labels.contains(&"Regions / States"));
+    assert!(labels.contains(&"Cities"));
+    assert!(labels.contains(&"ASN Organizations"));
+    assert_eq!(
+        Route::from_report_dimension(ReportDimensionKey::TrafficSources),
+        Some(Route::TrafficSources)
+    );
+    assert_eq!(
+        Route::from_report_dimension(ReportDimensionKey::Cities),
+        None
+    );
+    assert_eq!(
+        Route::Campaigns.default_report_dimension(),
+        Some(ReportDimensionKey::Campaigns)
+    );
 }
 
 #[test]

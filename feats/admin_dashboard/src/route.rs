@@ -1,6 +1,8 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+use ad_buy_engine_domain::ReportDimensionKey;
+
 use crate::ui::shell::Shell;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Routable)]
@@ -34,6 +36,8 @@ pub enum Route {
     Date,
     #[at("/day-parting")]
     DayParting,
+    #[at("/settings/geolocation")]
+    GeolocationSettings,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,7 +47,7 @@ pub struct NavigationItem {
     pub icon: &'static str,
 }
 
-pub const NAVIGATION_ITEMS: [NavigationItem; 14] = [
+pub const NAVIGATION_ITEMS: [NavigationItem; 15] = [
     NavigationItem::new(Route::Dashboard, "Dashboard", "home"),
     NavigationItem::new(Route::Campaigns, "Campaigns", "world"),
     NavigationItem::new(Route::Offers, "Offers", "tag"),
@@ -58,6 +62,7 @@ pub const NAVIGATION_ITEMS: [NavigationItem; 14] = [
     NavigationItem::new(Route::Os, "OS", "cog"),
     NavigationItem::new(Route::Date, "Date", "calendar"),
     NavigationItem::new(Route::DayParting, "Day Parting", "clock"),
+    NavigationItem::new(Route::GeolocationSettings, "Geo Settings", "settings"),
 ];
 
 impl NavigationItem {
@@ -83,6 +88,7 @@ impl Route {
             Self::Os => "OS",
             Self::Date => "Date",
             Self::DayParting => "Day Parting",
+            Self::GeolocationSettings => "Geo Settings",
         }
     }
 
@@ -102,6 +108,7 @@ impl Route {
             Self::Os => "/os",
             Self::Date => "/date",
             Self::DayParting => "/day-parting",
+            Self::GeolocationSettings => "/settings/geolocation",
         }
     }
 
@@ -114,7 +121,10 @@ impl Route {
     }
 
     pub const fn is_report(self) -> bool {
-        !self.is_dashboard()
+        !matches!(
+            self.render_route(),
+            Self::Dashboard | Self::GeolocationSettings
+        )
     }
 
     pub const fn create_button_label(self) -> Option<&'static str> {
@@ -137,6 +147,42 @@ impl Route {
             Self::Os => Some("/api/reports/os"),
             Self::Date => Some("/api/reports/date"),
             Self::DayParting => Some("/api/reports/day-parting"),
+            _ => None,
+        }
+    }
+
+    pub const fn default_report_dimension(self) -> Option<ReportDimensionKey> {
+        match self.render_route() {
+            Self::Campaigns => Some(ReportDimensionKey::Campaigns),
+            Self::Offers => Some(ReportDimensionKey::Offers),
+            Self::Landers => Some(ReportDimensionKey::Landers),
+            Self::Funnels => Some(ReportDimensionKey::Funnels),
+            Self::TrafficSources => Some(ReportDimensionKey::TrafficSources),
+            Self::OfferSources => Some(ReportDimensionKey::OfferSources),
+            Self::Connection => Some(ReportDimensionKey::ConnectionTypes),
+            Self::Browsers => Some(ReportDimensionKey::Browsers),
+            Self::Device => Some(ReportDimensionKey::DeviceTypes),
+            Self::Os => Some(ReportDimensionKey::OperatingSystems),
+            Self::Date => Some(ReportDimensionKey::Dates),
+            Self::DayParting => Some(ReportDimensionKey::DayParting),
+            _ => None,
+        }
+    }
+
+    pub const fn from_report_dimension(dimension: ReportDimensionKey) -> Option<Self> {
+        match dimension {
+            ReportDimensionKey::Campaigns => Some(Self::Campaigns),
+            ReportDimensionKey::TrafficSources => Some(Self::TrafficSources),
+            ReportDimensionKey::OfferSources => Some(Self::OfferSources),
+            ReportDimensionKey::Offers => Some(Self::Offers),
+            ReportDimensionKey::Landers => Some(Self::Landers),
+            ReportDimensionKey::Funnels => Some(Self::Funnels),
+            ReportDimensionKey::Browsers => Some(Self::Browsers),
+            ReportDimensionKey::OperatingSystems => Some(Self::Os),
+            ReportDimensionKey::DeviceTypes => Some(Self::Device),
+            ReportDimensionKey::ConnectionTypes => Some(Self::Connection),
+            ReportDimensionKey::Dates => Some(Self::Date),
+            ReportDimensionKey::DayParting => Some(Self::DayParting),
             _ => None,
         }
     }

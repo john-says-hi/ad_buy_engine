@@ -6,14 +6,14 @@ use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{Argon2, PasswordHash};
 use rand_core::OsRng;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
-use sqlx::{Executor, SqlitePool};
+use sqlx::{Executor, Row, SqlitePool};
 
 use crate::config::ServerConfig;
 use crate::error::{ServerError, ServerResult};
 use crate::time::now_millis;
 
 const INIT_MIGRATION: &str = include_str!("../../migrations/0001_init.sql");
-const CURRENT_SCHEMA_VERSION: i64 = 1;
+const CURRENT_SCHEMA_VERSION: i64 = 2;
 
 pub async fn connect_database(config: &ServerConfig) -> ServerResult<SqlitePool> {
     create_parent_directory(&config.database_url)?;
@@ -46,6 +46,7 @@ pub async fn run_migrations(pool: &SqlitePool) -> ServerResult<()> {
             connection.execute(trimmed).await?;
         }
     }
+    ensure_schema_columns(&mut connection).await?;
     sqlx::query(
         "INSERT OR IGNORE INTO schema_migrations (version, applied_at_millis) VALUES (?, ?)",
     )
@@ -56,6 +57,162 @@ pub async fn run_migrations(pool: &SqlitePool) -> ServerResult<()> {
 
     Ok(())
 }
+
+async fn ensure_schema_columns(
+    connection: &mut sqlx::pool::PoolConnection<sqlx::Sqlite>,
+) -> ServerResult<()> {
+    for column in APP_SETTINGS_COLUMNS {
+        ensure_column(connection, "app_settings", *column).await?;
+    }
+    for column in VISIT_ENRICHMENT_COLUMNS {
+        ensure_column(connection, "visits", *column).await?;
+    }
+    Ok(())
+}
+
+async fn ensure_column(
+    connection: &mut sqlx::pool::PoolConnection<sqlx::Sqlite>,
+    table: &str,
+    column: ColumnDefinition,
+) -> ServerResult<()> {
+    if table_has_column(connection, table, column.name).await? {
+        return Ok(());
+    }
+    connection
+        .execute(format!("ALTER TABLE {table} ADD COLUMN {}", column.sql).as_str())
+        .await?;
+    Ok(())
+}
+
+async fn table_has_column(
+    connection: &mut sqlx::pool::PoolConnection<sqlx::Sqlite>,
+    table: &str,
+    column_name: &str,
+) -> ServerResult<bool> {
+    let rows = sqlx::query(&format!("PRAGMA table_info({table})"))
+        .fetch_all(&mut **connection)
+        .await?;
+    Ok(rows
+        .iter()
+        .filter_map(|row| row.try_get::<String, _>("name").ok())
+        .any(|name| name == column_name))
+}
+
+#[derive(Clone, Copy)]
+struct ColumnDefinition {
+    name: &'static str,
+    sql: &'static str,
+}
+
+const APP_SETTINGS_COLUMNS: &[ColumnDefinition] = &[
+    ColumnDefinition {
+        name: "maxmind_account_id",
+        sql: "maxmind_account_id TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "maxmind_license_key",
+        sql: "maxmind_license_key TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "geolite_city_database_path",
+        sql: "geolite_city_database_path TEXT NOT NULL DEFAULT 'runtime/data/GeoLite2-City.mmdb'",
+    },
+    ColumnDefinition {
+        name: "geolite_country_database_path",
+        sql: "geolite_country_database_path TEXT NOT NULL DEFAULT 'runtime/data/GeoLite2-Country.mmdb'",
+    },
+    ColumnDefinition {
+        name: "geolite_asn_database_path",
+        sql: "geolite_asn_database_path TEXT NOT NULL DEFAULT 'runtime/data/GeoLite2-ASN.mmdb'",
+    },
+    ColumnDefinition {
+        name: "geolite_last_download_at_millis",
+        sql: "geolite_last_download_at_millis INTEGER",
+    },
+    ColumnDefinition {
+        name: "geolite_last_download_error",
+        sql: "geolite_last_download_error TEXT",
+    },
+];
+
+const VISIT_ENRICHMENT_COLUMNS: &[ColumnDefinition] = &[
+    ColumnDefinition {
+        name: "country",
+        sql: "country TEXT",
+    },
+    ColumnDefinition {
+        name: "region",
+        sql: "region TEXT",
+    },
+    ColumnDefinition {
+        name: "city",
+        sql: "city TEXT",
+    },
+    ColumnDefinition {
+        name: "timezone",
+        sql: "timezone TEXT",
+    },
+    ColumnDefinition {
+        name: "postal_code",
+        sql: "postal_code TEXT",
+    },
+    ColumnDefinition {
+        name: "metro_code",
+        sql: "metro_code TEXT",
+    },
+    ColumnDefinition {
+        name: "asn",
+        sql: "asn TEXT",
+    },
+    ColumnDefinition {
+        name: "asn_organization",
+        sql: "asn_organization TEXT",
+    },
+    ColumnDefinition {
+        name: "isp",
+        sql: "isp TEXT",
+    },
+    ColumnDefinition {
+        name: "connection_type",
+        sql: "connection_type TEXT",
+    },
+    ColumnDefinition {
+        name: "proxy_type",
+        sql: "proxy_type TEXT",
+    },
+    ColumnDefinition {
+        name: "carrier",
+        sql: "carrier TEXT",
+    },
+    ColumnDefinition {
+        name: "browser",
+        sql: "browser TEXT",
+    },
+    ColumnDefinition {
+        name: "browser_version",
+        sql: "browser_version TEXT",
+    },
+    ColumnDefinition {
+        name: "operating_system",
+        sql: "operating_system TEXT",
+    },
+    ColumnDefinition {
+        name: "operating_system_version",
+        sql: "operating_system_version TEXT",
+    },
+    ColumnDefinition {
+        name: "device_type",
+        sql: "device_type TEXT",
+    },
+    ColumnDefinition {
+        name: "device_brand",
+        sql: "device_brand TEXT",
+    },
+    ColumnDefinition {
+        name: "device_model",
+        sql: "device_model TEXT",
+    },
+];
 
 pub async fn seed_operator_credentials(pool: &SqlitePool) -> ServerResult<()> {
     let existing: Option<i64> =
@@ -87,8 +244,10 @@ pub async fn seed_app_settings(pool: &SqlitePool, config: &ServerConfig) -> Serv
     sqlx::query(
         "INSERT INTO app_settings
          (id, public_base_url, session_key_generated_at_millis, schema_version, app_version,
-          created_at_millis, updated_at_millis)
-         VALUES (1, ?, ?, ?, ?, ?, ?)
+          maxmind_account_id, maxmind_license_key, geolite_city_database_path,
+          geolite_country_database_path, geolite_asn_database_path, created_at_millis,
+          updated_at_millis)
+         VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
             public_base_url = excluded.public_base_url,
             schema_version = excluded.schema_version,
@@ -99,6 +258,11 @@ pub async fn seed_app_settings(pool: &SqlitePool, config: &ServerConfig) -> Serv
     .bind(now)
     .bind(CURRENT_SCHEMA_VERSION)
     .bind(&config.app_version)
+    .bind(&config.maxmind_account_id)
+    .bind(&config.maxmind_license_key)
+    .bind(&config.geolite_city_database_path)
+    .bind(&config.geolite_country_database_path)
+    .bind(&config.geolite_asn_database_path)
     .bind(now)
     .bind(now)
     .execute(pool)

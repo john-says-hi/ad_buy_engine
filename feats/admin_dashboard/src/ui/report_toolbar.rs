@@ -1,5 +1,7 @@
 use yew::prelude::*;
 
+use ad_buy_engine_domain::ReportDimensionKey;
+
 use crate::route::Route;
 use crate::state::report::{DATE_RANGE_OPTIONS, ReportDateRange, ReportState};
 use web_sys::HtmlInputElement;
@@ -13,6 +15,7 @@ pub struct ReportToolbarProps {
     pub on_create: Callback<Route>,
     pub on_search: Callback<String>,
     pub on_date_range_change: Callback<ReportDateRange>,
+    pub on_first_grouping_change: Callback<ReportDimensionKey>,
     pub on_refresh: Callback<()>,
 }
 
@@ -27,9 +30,12 @@ pub fn report_toolbar(props: &ReportToolbarProps) -> Html {
         <section class="abe-toolbar">
             <div class="abe-toolbar-row">
                 <div class="abe-toolbar-left">
-                    <ToolbarDropdown label={props.report.first_grouping} options={&GROUPING_OPTIONS} />
-                    <ToolbarDropdown label={props.report.second_grouping} options={&GROUPING_OPTIONS_WITH_EMPTY} />
-                    <ToolbarDropdown label={props.report.third_grouping} options={&GROUPING_OPTIONS_WITH_EMPTY} />
+                    <GroupingDropdown
+                        selected={props.report.first_grouping}
+                        on_change={props.on_first_grouping_change.clone()}
+                    />
+                    <StaticToolbarDropdown label={props.report.second_grouping} options={GROUPING_OPTIONS_WITH_EMPTY} />
+                    <StaticToolbarDropdown label={props.report.third_grouping} options={GROUPING_OPTIONS_WITH_EMPTY} />
                 </div>
 
                 <div class="abe-toolbar-right">
@@ -64,40 +70,13 @@ pub fn report_toolbar(props: &ReportToolbarProps) -> Html {
                     <ToolbarButton label="Clone" icon="copy" disabled={true} />
                     <ToolbarButton label="Law" icon="warning" disabled={true} />
                     <ToolbarButton label="Export" icon="download" disabled={true} />
-                    <ToolbarDropdown label={props.report.row_limit} options={&ROW_LIMIT_OPTIONS} />
-                    <ToolbarDropdown label={props.report.filter} options={&FILTER_OPTIONS} />
+                    <StaticToolbarDropdown label={props.report.row_limit} options={ROW_LIMIT_OPTIONS} />
+                    <StaticToolbarDropdown label={props.report.filter} options={FILTER_OPTIONS} />
                 </div>
             </div>
         </section>
     }
 }
-
-const GROUPING_OPTIONS: &[&str] = &[
-    "Traffic Sources",
-    "Offer Sources",
-    "Brands",
-    "Browser Versions",
-    "Browsers",
-    "Campaigns",
-    "Connection Types",
-    "Conversions",
-    "Countries",
-    "Day",
-    "Day of Week",
-    "Hour of Day",
-    "Device Types",
-    "Sequences",
-    "Funnels",
-    "ISP / Carriers",
-    "Landers",
-    "Mobile Carriers",
-    "Models",
-    "Month",
-    "OS",
-    "OS Versions",
-    "Offers",
-    "Proxies",
-];
 
 const GROUPING_OPTIONS_WITH_EMPTY: &[&str] = &[
     "Drill Down",
@@ -138,8 +117,8 @@ struct ToolbarDropdownProps {
     icon: Option<&'static str>,
 }
 
-#[function_component(ToolbarDropdown)]
-fn toolbar_dropdown(props: &ToolbarDropdownProps) -> Html {
+#[function_component(StaticToolbarDropdown)]
+fn static_toolbar_dropdown(props: &ToolbarDropdownProps) -> Html {
     html! {
         <div>
             <ul class="uk-subnav uk-subnav-pill" uk-margin="">
@@ -159,6 +138,53 @@ fn toolbar_dropdown(props: &ToolbarDropdownProps) -> Html {
                         <ul class="uk-nav uk-dropdown-nav">
                             { for props.options.iter().map(|option| html! {
                                 <li><a>{ option }</a></li>
+                            }) }
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Properties)]
+struct GroupingDropdownProps {
+    selected: ReportDimensionKey,
+    on_change: Callback<ReportDimensionKey>,
+}
+
+#[function_component(GroupingDropdown)]
+fn grouping_dropdown(props: &GroupingDropdownProps) -> Html {
+    html! {
+        <div>
+            <ul class="uk-subnav uk-subnav-pill" uk-margin="">
+                <li>
+                    <a class="abe-dropdown-label" href="#">
+                        { props.selected.label() }
+                        <span uk-icon="icon: triangle-down"></span>
+                    </a>
+                    <div uk-dropdown="mode: click;">
+                        <ul class="uk-nav uk-dropdown-nav">
+                            { for ReportDimensionKey::ALL.iter().map(|dimension| {
+                                let dimension = *dimension;
+                                let on_change = props.on_change.clone();
+                                let selected = props.selected == dimension;
+                                let unsupported = !dimension.supported();
+                                let onclick = Callback::from(move |event: MouseEvent| {
+                                    event.prevent_default();
+                                    on_change.emit(dimension);
+                                });
+                                html! {
+                                    <li class={classes!(selected.then_some("uk-active"))}>
+                                        <a
+                                            href="#"
+                                            onclick={onclick}
+                                            uk-tooltip={unsupported.then(|| format!("title: {}", dimension.detail()))}
+                                        >
+                                            { dimension.label() }
+                                        </a>
+                                    </li>
+                                }
                             }) }
                         </ul>
                     </div>
