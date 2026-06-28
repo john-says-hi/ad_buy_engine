@@ -26,7 +26,9 @@ The prototype is appearance-only:
 - no real campaign data
 
 Legacy visual assets are copied into `public/assets/` for local, network-free
-rendering. UI state is static and testable through route and report metadata.
+rendering. UI state is static and testable through route, report, and create
+form metadata. Creatable report pages open static legacy-style modal forms; save
+actions remain intentionally disconnected until backend work is added.
 
 ## Local Validation
 

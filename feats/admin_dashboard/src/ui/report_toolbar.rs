@@ -3,10 +3,11 @@ use yew::prelude::*;
 use crate::route::Route;
 use crate::state::report::ReportState;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Properties)]
+#[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ReportToolbarProps {
     pub route: Route,
     pub report: ReportState,
+    pub on_create: Callback<Route>,
 }
 
 #[function_component(ReportToolbar)]
@@ -34,7 +35,11 @@ pub fn report_toolbar(props: &ReportToolbarProps) -> Html {
                 </div>
 
                 <div class="abe-toolbar-right">
-                    <CreateElementButton label={props.route.create_button_label()} />
+                    <CreateElementButton
+                        route={props.route}
+                        label={props.route.create_button_label()}
+                        on_create={props.on_create.clone()}
+                    />
                     <ToolbarButton label="Update Costs" icon="credit-card" disabled={true} />
                     <ToolbarButton label="Update" icon="file-edit" disabled={true} />
                     <ToolbarButton label="Clone" icon="copy" disabled={true} />
@@ -166,12 +171,14 @@ fn search_control() -> Html {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Properties)]
+#[derive(Clone, Debug, PartialEq, Properties)]
 struct ToolbarButtonProps {
     label: &'static str,
     icon: &'static str,
     #[prop_or(false)]
     disabled: bool,
+    #[prop_or_default]
+    onclick: Callback<MouseEvent>,
 }
 
 #[function_component(ToolbarButton)]
@@ -183,6 +190,7 @@ fn toolbar_button(props: &ToolbarButtonProps) -> Html {
             class={classes!("uk-button", "uk-button-default", "uk-button-small", "uk-background-primary", "uk-light", "abe-button", disabled_class)}
             disabled={props.disabled}
             uk-tooltip={props.disabled.then_some("title: Not built yet")}
+            onclick={props.onclick.clone()}
         >
             { render_icon(props.icon) }
             { props.label }
@@ -190,15 +198,23 @@ fn toolbar_button(props: &ToolbarButtonProps) -> Html {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Properties)]
+#[derive(Clone, Debug, PartialEq, Properties)]
 struct CreateElementButtonProps {
+    route: Route,
     label: Option<&'static str>,
+    on_create: Callback<Route>,
 }
 
 #[function_component(CreateElementButton)]
 fn create_element_button(props: &CreateElementButtonProps) -> Html {
     match props.label {
-        Some(label) => html! { <ToolbarButton label={label} icon="plus" /> },
+        Some(label) => {
+            let route = props.route;
+            let on_create = props.on_create.clone();
+            let onclick = Callback::from(move |_| on_create.emit(route));
+
+            html! { <ToolbarButton label={label} icon="plus" onclick={onclick} /> }
+        }
         None => Html::default(),
     }
 }
