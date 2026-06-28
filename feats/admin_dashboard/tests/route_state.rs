@@ -1,11 +1,14 @@
 use ad_buy_engine_domain::{
     DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus, EntityRow, ReportDimensionKey,
-    RollbackEligibility, UpdatePhase, UpdateStatusResponse,
+    RollbackEligibility, SequenceType, UpdatePhase, UpdateStatusResponse,
 };
+use admin_dashboard::app::initial_login_password;
 use admin_dashboard::client::{domain_update_from_primary_domain, primary_domain_from_settings};
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
-use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
+use admin_dashboard::state::entity_form::{
+    EntityKind, FieldType, SaveDraft, SelectSource, default_values, draft_from_values, form_fields,
+};
 use admin_dashboard::state::report::{
     DATE_RANGE_OPTIONS, ReportDateRange, ReportState, ReportTotals, filter_rows_by_search,
 };
@@ -15,6 +18,12 @@ use admin_dashboard::ui::update_settings_page::{can_install, can_rollback, phase
 fn default_route_is_dashboard() {
     assert_eq!(Route::default(), Route::Dashboard);
     assert_eq!(Route::default().label(), "Dashboard");
+}
+
+#[test]
+fn login_password_prefills_only_during_first_run_setup() {
+    assert_eq!(initial_login_password(true), "admin");
+    assert_eq!(initial_login_password(false), "");
 }
 
 #[test]
@@ -38,9 +47,6 @@ fn navigation_labels_match_initial_shell_scope() {
             "OS",
             "Date",
             "Day Parting",
-            "Domain Settings",
-            "Geo Settings",
-            "Updates",
         ]
     );
 }
@@ -102,6 +108,13 @@ fn creatable_routes_have_legacy_modal_metadata() -> Result<(), String> {
             "Lander Name:",
         ),
         (
+            Route::Conversions,
+            "New Conversion Event",
+            "conversions",
+            "New Conversion Event",
+            "Event Key",
+        ),
+        (
             Route::Funnels,
             "New Funnel",
             "funnels",
@@ -139,12 +152,17 @@ fn creatable_routes_have_legacy_modal_metadata() -> Result<(), String> {
 
 #[test]
 fn non_creatable_report_routes_do_not_have_forms() {
-    assert_eq!(Route::Conversions.create_button_label(), None);
-    assert_eq!(CreateFormDefinition::for_route(Route::Conversions), None);
+    assert_eq!(
+        Route::Conversions.create_button_label(),
+        Some("New Conversion Event")
+    );
+    assert!(CreateFormDefinition::for_route(Route::Conversions).is_some());
     assert_eq!(Route::Conversions.report_rows_endpoint(), None);
+    assert_eq!(Route::Settings.report_rows_endpoint(), None);
     assert_eq!(Route::DomainSettings.report_rows_endpoint(), None);
     assert_eq!(Route::GeolocationSettings.report_rows_endpoint(), None);
     assert_eq!(Route::UpdateSettings.report_rows_endpoint(), None);
+    assert!(!Route::Settings.is_report());
     assert!(!Route::DomainSettings.is_report());
     assert!(!Route::GeolocationSettings.is_report());
     assert!(!Route::UpdateSettings.is_report());
@@ -165,6 +183,7 @@ fn non_creatable_report_routes_do_not_have_forms() {
 #[test]
 fn settings_routes_are_not_report_routes() {
     for route in [
+        Route::Settings,
         Route::DomainSettings,
         Route::GeolocationSettings,
         Route::UpdateSettings,
@@ -198,8 +217,13 @@ fn update_settings_route_and_actions_have_expected_state() {
         ..idle.clone()
     };
 
+    assert_eq!(Route::Settings.label(), "Settings");
+    assert_eq!(Route::Settings.path(), "/settings");
     assert_eq!(Route::UpdateSettings.label(), "Updates");
     assert_eq!(Route::UpdateSettings.path(), "/settings/updates");
+    assert_eq!(Route::UpdateSettings.render_route(), Route::Settings);
+    assert_eq!(Route::DomainSettings.render_route(), Route::Settings);
+    assert_eq!(Route::GeolocationSettings.render_route(), Route::Settings);
     assert_eq!(phase_label(UpdatePhase::Downloading), "Downloading");
     assert!(can_install(&idle));
     assert!(can_rollback(&idle));
@@ -273,6 +297,10 @@ fn report_dimensions_include_geolocation_drilldowns() {
         Route::Campaigns.default_report_dimension(),
         Some(ReportDimensionKey::Campaigns)
     );
+    assert_eq!(
+        Route::Conversions.default_report_dimension(),
+        Some(ReportDimensionKey::Conversions)
+    );
 }
 
 #[test]
@@ -290,9 +318,102 @@ fn money_fields_accept_decimal_values() {
         Some(FieldType::Number)
     );
     assert_eq!(
+        field_type(EntityKind::LandingPage, "role"),
+        Some(FieldType::Select(
+            admin_dashboard::state::entity_form::SelectSource::Static(&[
+                "standard",
+                "lead_capture",
+                "advertorial",
+                "after_optin"
+            ])
+        ))
+    );
+    assert_eq!(
         field_type(EntityKind::Offer, "weight"),
         Some(FieldType::Number)
     );
+    assert_eq!(
+        field_type(EntityKind::ConversionEventType, "default_revenue_value"),
+        Some(FieldType::Decimal)
+    );
+}
+
+#[test]
+fn funnel_form_exposes_lead_capture_split_template() {
+    assert_eq!(
+        field_type(EntityKind::Funnel, "funnel_template"),
+        Some(FieldType::Select(SelectSource::Static(&[
+            "simple",
+            "lead_capture_split"
+        ])))
+    );
+    assert_eq!(
+        field_type(EntityKind::Funnel, "lead_capture_landing_page_id"),
+        Some(FieldType::Select(SelectSource::LandingPages))
+    );
+    assert_eq!(
+        field_type(EntityKind::Funnel, "advertorial_landing_page_id"),
+        Some(FieldType::Select(SelectSource::LandingPages))
+    );
+    assert_eq!(
+        field_type(EntityKind::Funnel, "sales_offer_id"),
+        Some(FieldType::Select(SelectSource::Offers))
+    );
+    assert_eq!(
+        field_type(EntityKind::Funnel, "direct_sales_weight"),
+        Some(FieldType::Number)
+    );
+    assert_eq!(
+        field_type(EntityKind::Funnel, "advertorial_weight"),
+        Some(FieldType::Number)
+    );
+}
+
+#[test]
+fn lead_capture_split_template_builds_nested_funnel_sequence() -> Result<(), String> {
+    let values = default_values(EntityKind::Funnel)
+        .with_text("name", "Email Capture Split")
+        .with_text("funnel_template", "lead_capture_split")
+        .with_text("lead_capture_landing_page_id", "lead-lander")
+        .with_text("advertorial_landing_page_id", "advertorial")
+        .with_text("sales_offer_id", "sales-offer")
+        .with_text("direct_sales_weight", "50")
+        .with_text("advertorial_weight", "50");
+
+    let SaveDraft::Funnel(draft) = draft_from_values(EntityKind::Funnel, &values)? else {
+        return Err("expected funnel draft".to_string());
+    };
+
+    let sequence = draft
+        .default_sequences
+        .first()
+        .ok_or_else(|| "expected default sequence".to_string())?;
+    assert_eq!(sequence.id, "lead-capture-split");
+    assert_eq!(sequence.sequence_type, SequenceType::Matrix);
+
+    let root = sequence
+        .paths
+        .first()
+        .ok_or_else(|| "expected root path".to_string())?;
+    assert_eq!(root.landing_page_id.as_deref(), Some("lead-lander"));
+    assert!(root.offers.is_empty());
+    assert_eq!(root.children.len(), 2);
+
+    assert_eq!(root.children[0].id, "direct-sales");
+    assert_eq!(root.children[0].weight, 50);
+    assert_eq!(root.children[0].landing_page_id, None);
+    assert_eq!(root.children[0].offers[0].id, "sales-offer");
+
+    assert_eq!(root.children[1].id, "advertorial");
+    assert_eq!(root.children[1].weight, 50);
+    assert_eq!(
+        root.children[1].landing_page_id.as_deref(),
+        Some("advertorial")
+    );
+    assert!(root.children[1].offers.is_empty());
+    assert_eq!(root.children[1].children[0].offers[0].id, "sales-offer");
+
+    Ok(())
 }
 
 #[test]
@@ -324,6 +445,14 @@ fn date_range_options_match_toolbar_labels() {
             "All of Time",
         ]
     );
+
+    for option in DATE_RANGE_OPTIONS {
+        assert_eq!(
+            ReportDateRange::from_storage_key(option.storage_key()),
+            Some(*option)
+        );
+    }
+    assert_eq!(ReportDateRange::from_storage_key("not-a-range"), None);
 }
 
 #[test]

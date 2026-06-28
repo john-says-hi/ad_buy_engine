@@ -92,6 +92,10 @@ pub struct LandingPageDraft {
     pub url: String,
     pub url_tokens: Vec<UrlToken>,
     pub cta_count: u8,
+    #[serde(default)]
+    pub role: LandingPageRole,
+    #[serde(default)]
+    pub expected_conversion_event_type_ids: Vec<String>,
     pub language: String,
     pub vertical: String,
     pub weight: u32,
@@ -114,6 +118,16 @@ impl Deref for LandingPage {
     fn deref(&self) -> &Self::Target {
         &self.draft
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LandingPageRole {
+    #[default]
+    Standard,
+    LeadCapture,
+    Advertorial,
+    AfterOptin,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -142,6 +156,47 @@ pub struct TrafficSource {
 
 impl Deref for TrafficSource {
     type Target = TrafficSourceDraft;
+
+    fn deref(&self) -> &Self::Target {
+        &self.draft
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConversionEventCategory {
+    Lead,
+    Sale,
+    Custom,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConversionEventTypeDraft {
+    pub name: String,
+    pub event_key: String,
+    pub aliases: Vec<String>,
+    pub category: ConversionEventCategory,
+    pub include_in_conversions: bool,
+    pub include_in_revenue: bool,
+    pub include_in_cost: bool,
+    pub send_postback_to_traffic_source: bool,
+    pub default_revenue_value: f64,
+    pub currency: String,
+    pub notes: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConversionEventType {
+    pub id: String,
+    pub created_at_millis: i64,
+    pub updated_at_millis: i64,
+    pub archived: bool,
+    #[serde(flatten)]
+    pub draft: ConversionEventTypeDraft,
+}
+
+impl Deref for ConversionEventType {
+    type Target = ConversionEventTypeDraft;
 
     fn deref(&self) -> &Self::Target {
         &self.draft

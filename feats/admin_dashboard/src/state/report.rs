@@ -73,6 +73,33 @@ impl ReportDateRange {
             Self::AllTime => "All of Time",
         }
     }
+
+    pub const fn storage_key(self) -> &'static str {
+        match self {
+            Self::Today => "today",
+            Self::Yesterday => "yesterday",
+            Self::Last3Days => "last_3_days",
+            Self::Last7Days => "last_7_days",
+            Self::Last14Days => "last_14_days",
+            Self::Last30Days => "last_30_days",
+            Self::Last6Months => "last_6_months",
+            Self::AllTime => "all_time",
+        }
+    }
+
+    pub fn from_storage_key(value: &str) -> Option<Self> {
+        match value {
+            "today" => Some(Self::Today),
+            "yesterday" => Some(Self::Yesterday),
+            "last_3_days" => Some(Self::Last3Days),
+            "last_7_days" => Some(Self::Last7Days),
+            "last_14_days" => Some(Self::Last14Days),
+            "last_30_days" => Some(Self::Last30Days),
+            "last_6_months" => Some(Self::Last6Months),
+            "all_time" => Some(Self::AllTime),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

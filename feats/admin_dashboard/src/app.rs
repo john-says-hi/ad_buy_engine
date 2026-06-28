@@ -64,7 +64,12 @@ pub fn app() -> Html {
     });
 
     if !current_session.authenticated {
-        return html! { <LoginPage on_session={on_session} /> };
+        return html! {
+            <LoginPage
+                on_session={on_session}
+                use_default_credentials={current_session.must_change_credentials}
+            />
+        };
     }
 
     if current_session.must_change_credentials {
@@ -85,12 +90,13 @@ fn switch_with_logout(route: Route, on_logout: Callback<()>) -> Html {
 #[derive(Clone, Debug, PartialEq, Properties)]
 struct LoginPageProps {
     on_session: Callback<SessionResponse>,
+    use_default_credentials: bool,
 }
 
 #[function_component(LoginPage)]
 fn login_page(props: &LoginPageProps) -> Html {
     let username = use_state(|| "admin".to_string());
-    let password = use_state(|| "admin".to_string());
+    let password = use_state(|| initial_login_password(props.use_default_credentials).to_string());
     let error = use_state(|| None::<String>);
     let submitting = use_state(|| false);
     let onsubmit = {
@@ -130,6 +136,10 @@ fn login_page(props: &LoginPageProps) -> Html {
             </form>
         </AuthFrame>
     }
+}
+
+pub const fn initial_login_password(use_default_credentials: bool) -> &'static str {
+    if use_default_credentials { "admin" } else { "" }
 }
 
 #[derive(Clone, Debug, PartialEq, Properties)]

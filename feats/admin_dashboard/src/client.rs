@@ -19,9 +19,9 @@ pub fn primary_domain_from_settings(settings: &DomainSettingsResponse) -> String
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use ad_buy_engine_domain::{
-        ApiErrorBody, Campaign, CredentialUpdateRequest, Funnel, LandingPage, ListResponse,
-        LoginRequest, Offer, OfferSource, OptionsResponse, TrafficSource, UpdateCheckRequest,
-        UpdateRollbackRequest, UpdateStartRequest,
+        ApiErrorBody, Campaign, ConversionEventType, CredentialUpdateRequest, Funnel, LandingPage,
+        ListResponse, LoginRequest, Offer, OfferSource, OptionsResponse, TrafficSource,
+        UpdateCheckRequest, UpdateRollbackRequest, UpdateStartRequest,
     };
     use gloo_net::http::Request;
     use serde::Serialize;
@@ -164,6 +164,7 @@ mod wasm {
             offer_sources: options("offer-sources").await?,
             offers: options("offers").await?,
             landing_pages: options("landers").await?,
+            conversion_events: options("conversion-events").await?,
             traffic_sources: options("traffic-sources").await?,
             funnels: options("funnels").await?,
         })
@@ -179,6 +180,9 @@ mod wasm {
             EntityKind::LandingPage => get_json::<LandingPage>(&endpoint)
                 .await
                 .map(EntityRecord::LandingPage),
+            EntityKind::ConversionEventType => get_json::<ConversionEventType>(&endpoint)
+                .await
+                .map(EntityRecord::ConversionEventType),
             EntityKind::TrafficSource => get_json::<TrafficSource>(&endpoint)
                 .await
                 .map(EntityRecord::TrafficSource),
@@ -226,6 +230,16 @@ mod wasm {
                 post_json::<_, LandingPage>("/api/landers", &draft)
                     .await
                     .map(EntityRecord::LandingPage)
+            }
+            (EntityKind::ConversionEventType, Some(id), SaveDraft::ConversionEventType(draft)) => {
+                put_json::<_, ConversionEventType>(&format!("/api/conversions/{id}"), &draft)
+                    .await
+                    .map(EntityRecord::ConversionEventType)
+            }
+            (EntityKind::ConversionEventType, None, SaveDraft::ConversionEventType(draft)) => {
+                post_json::<_, ConversionEventType>("/api/conversions", &draft)
+                    .await
+                    .map(EntityRecord::ConversionEventType)
             }
             (EntityKind::TrafficSource, Some(id), SaveDraft::TrafficSource(draft)) => {
                 put_json::<_, TrafficSource>(&format!("/api/traffic-sources/{id}"), &draft)

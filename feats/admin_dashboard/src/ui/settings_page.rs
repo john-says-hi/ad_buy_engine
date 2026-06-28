@@ -7,9 +7,37 @@ use yew::platform::spawn_local;
 use yew::prelude::*;
 
 use crate::client;
+use crate::ui::update_settings_page::UpdateSettingsSection;
+
+#[function_component(SettingsPage)]
+pub fn settings_page() -> Html {
+    html! {
+        <main class="abe-report abe-settings-page">
+            <section class="abe-settings-panel">
+                <h1>{ "Settings" }</h1>
+                <div class="abe-settings-sections">
+                    <DomainSettingsSection />
+                    <GeolocationSettingsSection />
+                    <UpdateSettingsSection />
+                </div>
+            </section>
+        </main>
+    }
+}
 
 #[function_component(DomainSettingsPage)]
 pub fn domain_settings_page() -> Html {
+    html! {
+        <main class="abe-report abe-settings-page">
+            <section class="abe-settings-panel">
+                <DomainSettingsSection />
+            </section>
+        </main>
+    }
+}
+
+#[function_component(DomainSettingsSection)]
+pub fn domain_settings_section() -> Html {
     let settings = use_state(|| None::<DomainSettingsResponse>);
     let primary_domain = use_state(String::new);
     let loading = use_state(|| true);
@@ -65,32 +93,41 @@ pub fn domain_settings_page() -> Html {
     };
 
     html! {
-        <main class="abe-report">
-            <section class="abe-settings-panel">
-                <h1>{ "Domain Settings" }</h1>
-                {
-                    if *loading {
-                        html! { <p>{ "Loading..." }</p> }
-                    } else {
-                        html! {
-                            <form class="abe-settings-form" onsubmit={on_save}>
-                                { settings_message(&message) }
-                                { text_input("Primary Domain", &primary_domain, false) }
-                                <div class="abe-settings-actions">
-                                    <button class="uk-button uk-button-primary" type="submit" disabled={*saving}>{ "Save" }</button>
-                                </div>
-                            </form>
-                        }
+        <section class="abe-settings-section" id="domain-settings">
+            <h2>{ "Domain Settings" }</h2>
+            {
+                if *loading {
+                    html! { <p>{ "Loading..." }</p> }
+                } else {
+                    html! {
+                        <form class="abe-settings-form" onsubmit={on_save}>
+                            { settings_message(&message) }
+                            { text_input("Primary Domain", &primary_domain, false) }
+                            <div class="abe-settings-actions">
+                                <button class="uk-button uk-button-primary" type="submit" disabled={*saving}>{ "Save" }</button>
+                            </div>
+                        </form>
                     }
                 }
-                { settings.as_ref().map(domain_status_table).unwrap_or_default() }
-            </section>
-        </main>
+            }
+            { settings.as_ref().map(domain_status_table).unwrap_or_default() }
+        </section>
     }
 }
 
 #[function_component(GeolocationSettingsPage)]
 pub fn geolocation_settings_page() -> Html {
+    html! {
+        <main class="abe-report abe-settings-page">
+            <section class="abe-settings-panel">
+                <GeolocationSettingsSection />
+            </section>
+        </main>
+    }
+}
+
+#[function_component(GeolocationSettingsSection)]
+pub fn geolocation_settings_section() -> Html {
     let settings = use_state(|| None::<GeolocationSettingsResponse>);
     let account_id = use_state(String::new);
     let license_key = use_state(String::new);
@@ -196,33 +233,31 @@ pub fn geolocation_settings_page() -> Html {
     };
 
     html! {
-        <main class="abe-report">
-            <section class="abe-settings-panel">
-                <h1>{ "Geo Settings" }</h1>
-                {
-                    if *loading {
-                        html! { <p>{ "Loading..." }</p> }
-                    } else {
-                        html! {
-                            <form class="abe-settings-form" onsubmit={on_save}>
-                                { settings_message(&message) }
-                                { text_input("MaxMind Account ID", &account_id, false) }
-                                { text_input("MaxMind License Key", &license_key, true) }
-                                { license_key_status(settings.as_ref()) }
-                                { text_input("City Database", &city_path, false) }
-                                { text_input("Country Database", &country_path, false) }
-                                { text_input("ASN Database", &asn_path, false) }
-                                <div class="abe-settings-actions">
-                                    <button class="uk-button uk-button-primary" type="submit" disabled={*saving}>{ "Save" }</button>
-                                    <button class="uk-button uk-button-default" type="button" disabled={*saving} onclick={on_download}>{ "Download" }</button>
-                                </div>
-                            </form>
-                        }
+        <section class="abe-settings-section" id="geo-settings">
+            <h2>{ "Geo Settings" }</h2>
+            {
+                if *loading {
+                    html! { <p>{ "Loading..." }</p> }
+                } else {
+                    html! {
+                        <form class="abe-settings-form" onsubmit={on_save}>
+                            { settings_message(&message) }
+                            { text_input("MaxMind Account ID", &account_id, false) }
+                            { text_input("MaxMind License Key", &license_key, true) }
+                            { license_key_status(settings.as_ref()) }
+                            { text_input("City Database", &city_path, false) }
+                            { text_input("Country Database", &country_path, false) }
+                            { text_input("ASN Database", &asn_path, false) }
+                            <div class="abe-settings-actions">
+                                <button class="uk-button uk-button-primary" type="submit" disabled={*saving}>{ "Save" }</button>
+                                <button class="uk-button uk-button-default" type="button" disabled={*saving} onclick={on_download}>{ "Download" }</button>
+                            </div>
+                        </form>
                     }
                 }
-                { settings.as_ref().map(status_table).unwrap_or_default() }
-            </section>
-        </main>
+            }
+            { settings.as_ref().map(status_table).unwrap_or_default() }
+        </section>
     }
 }
 

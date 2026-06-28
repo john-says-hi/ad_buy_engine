@@ -1,6 +1,9 @@
+use std::future::Future;
+use std::pin::Pin;
+
 use ad_buy_engine_domain::{
-    Campaign, ClickContext, ClickMapEntry, DestinationType, FunnelPath, FunnelSequence,
-    LandingPage, Offer, TokenValue, VisitEnrichment, VisitEventType,
+    Campaign, ClickContext, ClickMapEntry, ClickTargetType, DestinationType, FunnelPath,
+    FunnelSequence, LandingPage, Offer, TokenValue, VisitEnrichment, VisitEventType,
 };
 use axum::http::HeaderMap;
 use chrono::{Datelike, Timelike, Utc};
@@ -25,8 +28,26 @@ pub struct RedirectOutcome {
 #[derive(Clone, Debug)]
 struct SelectedRoute {
     sequence: FunnelSequence,
-    landing_page_id: Option<String>,
-    offer_id: String,
+    path: FunnelPath,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ClickUrlToken {
+    token_slot: u8,
+    route_slot: u8,
+}
+
+#[derive(Clone, Debug, Default)]
+struct ClickSlotAllocator {
+    next_slot: u8,
+}
+
+#[derive(Clone, Debug)]
+struct RoutePlan {
+    redirect_target: String,
+    click_map: Vec<ClickMapEntry>,
+    selected_landing_page_id: Option<String>,
+    selected_offer_id: Option<String>,
 }
 
 pub async fn process_campaign_click(
@@ -44,50 +65,15 @@ pub async fn process_campaign_click(
     let (selected_route, missing_fields) = select_route(pool, &campaign, &context).await?;
 
     let visit_id = new_visit_id();
-    let offer = get_offer(pool, &selected_route.offer_id).await?;
-    let (redirect_target, click_map) =
-        if let Some(landing_page_id) = selected_route.landing_page_id.as_deref() {
-            let landing_page = get_landing_page(pool, landing_page_id).await?;
-            let click_map = lander_click_map(
-                &tracking_base_url,
-                &visit_id,
-                &campaign,
-                &offer,
-                &landing_page,
-                &query_params,
-            );
-            (
-                substitute_url(
-                    &landing_page.url,
-                    UrlSubstitution {
-                        tracking_base_url: &tracking_base_url,
-                        visit_id: &visit_id,
-                        campaign: &campaign,
-                        landing_page: Some(&landing_page),
-                        offer: Some(&offer),
-                        query_params: &query_params,
-                        click_map: &click_map,
-                    },
-                ),
-                click_map,
-            )
-        } else {
-            (
-                substitute_url(
-                    &offer.url,
-                    UrlSubstitution {
-                        tracking_base_url: &tracking_base_url,
-                        visit_id: &visit_id,
-                        campaign: &campaign,
-                        landing_page: None,
-                        offer: Some(&offer),
-                        query_params: &query_params,
-                        click_map: &[],
-                    },
-                ),
-                Vec::new(),
-            )
-        };
+    let route_plan = build_route_plan(
+        pool,
+        &tracking_base_url,
+        &visit_id,
+        &campaign,
+        &selected_route.path,
+        &query_params,
+    )
+    .await?;
 
     let mut transaction = pool.begin().await?;
     let selected_funnel_id = campaign.funnel_id.as_deref();
@@ -99,15 +85,15 @@ pub async fn process_campaign_click(
             traffic_source_id: &campaign.traffic_source_id,
             selected_funnel_id,
             selected_sequence: Some(&selected_route.sequence),
-            selected_landing_page_id: selected_route.landing_page_id.as_deref(),
-            selected_offer_id: Some(&selected_route.offer_id),
+            selected_landing_page_id: route_plan.selected_landing_page_id.as_deref(),
+            selected_offer_id: route_plan.selected_offer_id.as_deref(),
             referrer: context.referrer.as_deref(),
             ip_address: context.ip_address.as_deref(),
             user_agent: context.user_agent.as_deref(),
             enrichment: &enrichment,
             query_params: &query_params,
-            click_map: &click_map,
-            redirect_target: &redirect_target,
+            click_map: &route_plan.click_map,
+            redirect_target: &route_plan.redirect_target,
             suspicious: false,
         },
     )
@@ -132,7 +118,7 @@ pub async fn process_campaign_click(
 
     context.is_unique_visit = Some(false);
     Ok(RedirectOutcome {
-        target: redirect_target,
+        target: route_plan.redirect_target,
     })
 }
 
@@ -147,22 +133,32 @@ pub async fn process_lander_click(
         .iter()
         .find(|entry| entry.slot == slot)
         .ok_or_else(|| ServerError::not_found("Click slot not found"))?;
+    let target_type = entry.target_type.clone();
+    let target_id = entry_target_id(entry);
+    let target_type_name = click_target_type_name(&target_type);
     insert_event(
         pool,
         Some(visit_id),
         Some(&visit.campaign_id),
         VisitEventType::LanderClick,
-        serde_json::json!({ "slot": slot, "offer_id": entry.offer_id }),
+        serde_json::json!({
+            "slot": slot,
+            "target_type": target_type_name,
+            "target_id": target_id,
+            "offer_id": entry.offer_id,
+        }),
     )
     .await?;
-    insert_event(
-        pool,
-        Some(visit_id),
-        Some(&visit.campaign_id),
-        VisitEventType::OfferClick,
-        serde_json::json!({ "slot": slot, "offer_id": entry.offer_id }),
-    )
-    .await?;
+    if target_type == ClickTargetType::Offer {
+        insert_event(
+            pool,
+            Some(visit_id),
+            Some(&visit.campaign_id),
+            VisitEventType::OfferClick,
+            serde_json::json!({ "slot": slot, "offer_id": target_id }),
+        )
+        .await?;
+    }
     Ok(RedirectOutcome {
         target: entry.target_url.clone(),
     })
@@ -296,19 +292,10 @@ async fn select_route(
         .or_else(|| weighted_sequence(&default_sequences, seed))
         .ok_or_else(|| ServerError::not_found("No active campaign sequence is available"))?;
     let path = weighted_path(&sequence.paths, seed)
+        .cloned()
         .ok_or_else(|| ServerError::not_found("No active campaign path is available"))?;
-    let offer_id = weighted_offer_id(path, seed)
-        .ok_or_else(|| ServerError::not_found("No offer is available for the selected path"))?;
-    let landing_page_id = path.landing_page_id.clone();
 
-    Ok((
-        SelectedRoute {
-            sequence,
-            landing_page_id,
-            offer_id,
-        },
-        missing_fields,
-    ))
+    Ok((SelectedRoute { sequence, path }, missing_fields))
 }
 
 fn weighted_sequence(sequences: &[FunnelSequence], seed: i64) -> Option<FunnelSequence> {
@@ -323,12 +310,7 @@ fn weighted_sequence(sequences: &[FunnelSequence], seed: i64) -> Option<FunnelSe
 fn weighted_path(paths: &[FunnelPath], seed: i64) -> Option<&FunnelPath> {
     let active: Vec<&FunnelPath> = paths.iter().filter(|path| path.weight > 0).collect();
     let index = weighted_index(active.iter().map(|path| path.weight), seed)?;
-    let selected = *active.get(index)?;
-    if selected.children.is_empty() {
-        Some(selected)
-    } else {
-        weighted_path(&selected.children, seed + 1).or(Some(selected))
-    }
+    active.get(index).copied()
 }
 
 fn weighted_offer_id(path: &FunnelPath, seed: i64) -> Option<String> {
@@ -357,32 +339,269 @@ fn weighted_index(weights: impl Iterator<Item = u32>, seed: i64) -> Option<usize
     None
 }
 
-fn lander_click_map(
+async fn build_route_plan(
+    pool: &SqlitePool,
     tracking_base_url: &str,
     visit_id: &str,
     campaign: &Campaign,
-    offer: &Offer,
-    landing_page: &LandingPage,
+    path: &FunnelPath,
     query_params: &[(String, String)],
-) -> Vec<ClickMapEntry> {
-    (1..=landing_page.cta_count)
-        .map(|slot| ClickMapEntry {
-            slot,
-            offer_id: offer.id.clone(),
-            target_url: substitute_url(
-                &offer.url,
+) -> ServerResult<RoutePlan> {
+    if let Some(landing_page_id) = path.landing_page_id.as_deref() {
+        let landing_page = get_landing_page(pool, landing_page_id).await?;
+        let mut allocator = ClickSlotAllocator::default();
+        let (click_map, click_urls) = click_map_for_path_exits(
+            pool,
+            tracking_base_url,
+            visit_id,
+            campaign,
+            path,
+            landing_page.cta_count,
+            query_params,
+            &mut allocator,
+        )
+        .await?;
+        let selected_offer_id = click_map
+            .iter()
+            .find(|entry| entry.target_type == ClickTargetType::Offer)
+            .map(entry_target_id);
+        let redirect_target = substitute_url(
+            &landing_page.url,
+            UrlSubstitution {
+                tracking_base_url,
+                visit_id,
+                campaign,
+                landing_page: Some(&landing_page),
+                offer: None,
+                query_params,
+                click_urls: &click_urls,
+            },
+        );
+        return Ok(RoutePlan {
+            redirect_target,
+            click_map,
+            selected_landing_page_id: Some(landing_page.id),
+            selected_offer_id,
+        });
+    }
+
+    let offer_id = weighted_offer_id(path, now_millis()?)
+        .ok_or_else(|| ServerError::not_found("No offer is available for the selected path"))?;
+    let offer = get_offer(pool, &offer_id).await?;
+    let redirect_target = substitute_url(
+        &offer.url,
+        UrlSubstitution {
+            tracking_base_url,
+            visit_id,
+            campaign,
+            landing_page: None,
+            offer: Some(&offer),
+            query_params,
+            click_urls: &[],
+        },
+    );
+    Ok(RoutePlan {
+        redirect_target,
+        click_map: Vec::new(),
+        selected_landing_page_id: None,
+        selected_offer_id: Some(offer.id),
+    })
+}
+
+type ClickMapFuture<'a> = Pin<
+    Box<dyn Future<Output = ServerResult<(Vec<ClickMapEntry>, Vec<ClickUrlToken>)>> + Send + 'a>,
+>;
+
+fn click_map_for_path_exits<'a>(
+    pool: &'a SqlitePool,
+    tracking_base_url: &'a str,
+    visit_id: &'a str,
+    campaign: &'a Campaign,
+    path: &'a FunnelPath,
+    cta_count: u8,
+    query_params: &'a [(String, String)],
+    allocator: &'a mut ClickSlotAllocator,
+) -> ClickMapFuture<'a> {
+    Box::pin(async move {
+        let mut entries = Vec::new();
+        let mut click_urls = Vec::new();
+        for token_slot in 1..=cta_count {
+            let seed = now_millis()? + i64::from(token_slot);
+            let target_path = if path.children.is_empty() {
+                None
+            } else {
+                weighted_path(&path.children, seed)
+            };
+            let target_entries = if let Some(target_path) = target_path {
+                click_entries_for_path_target(
+                    pool,
+                    tracking_base_url,
+                    visit_id,
+                    campaign,
+                    target_path,
+                    query_params,
+                    allocator,
+                )
+                .await?
+            } else {
+                let offer_id = weighted_offer_id(path, seed).ok_or_else(|| {
+                    ServerError::not_found("No offer or child path is available for this CTA")
+                })?;
+                vec![
+                    click_entry_for_offer(
+                        pool,
+                        tracking_base_url,
+                        visit_id,
+                        campaign,
+                        &offer_id,
+                        None,
+                        query_params,
+                        allocator,
+                    )
+                    .await?,
+                ]
+            };
+            if let Some(first_entry) = target_entries.first() {
+                click_urls.push(ClickUrlToken {
+                    token_slot,
+                    route_slot: first_entry.slot,
+                });
+            }
+            entries.extend(target_entries);
+        }
+        Ok((entries, click_urls))
+    })
+}
+
+type ClickEntriesFuture<'a> =
+    Pin<Box<dyn Future<Output = ServerResult<Vec<ClickMapEntry>>> + Send + 'a>>;
+
+fn click_entries_for_path_target<'a>(
+    pool: &'a SqlitePool,
+    tracking_base_url: &'a str,
+    visit_id: &'a str,
+    campaign: &'a Campaign,
+    path: &'a FunnelPath,
+    query_params: &'a [(String, String)],
+    allocator: &'a mut ClickSlotAllocator,
+) -> ClickEntriesFuture<'a> {
+    Box::pin(async move {
+        if let Some(landing_page_id) = path.landing_page_id.as_deref() {
+            let landing_page = get_landing_page(pool, landing_page_id).await?;
+            let (nested_entries, nested_click_urls) = click_map_for_path_exits(
+                pool,
+                tracking_base_url,
+                visit_id,
+                campaign,
+                path,
+                landing_page.cta_count,
+                query_params,
+                allocator,
+            )
+            .await?;
+            let slot = allocator.next();
+            let target_url = substitute_url(
+                &landing_page.url,
                 UrlSubstitution {
                     tracking_base_url,
                     visit_id,
                     campaign,
-                    landing_page: Some(landing_page),
-                    offer: Some(offer),
+                    landing_page: Some(&landing_page),
+                    offer: None,
                     query_params,
-                    click_map: &[],
+                    click_urls: &nested_click_urls,
                 },
-            ),
-        })
-        .collect()
+            );
+            let mut entries = vec![ClickMapEntry {
+                slot,
+                target_type: ClickTargetType::LandingPage,
+                target_id: landing_page.id,
+                offer_id: String::new(),
+                target_url,
+            }];
+            entries.extend(nested_entries);
+            return Ok(entries);
+        }
+
+        let offer_id = weighted_offer_id(path, now_millis()?)
+            .ok_or_else(|| ServerError::not_found("No offer is available for this path"))?;
+        Ok(vec![
+            click_entry_for_offer(
+                pool,
+                tracking_base_url,
+                visit_id,
+                campaign,
+                &offer_id,
+                None,
+                query_params,
+                allocator,
+            )
+            .await?,
+        ])
+    })
+}
+
+async fn click_entry_for_offer(
+    pool: &SqlitePool,
+    tracking_base_url: &str,
+    visit_id: &str,
+    campaign: &Campaign,
+    offer_id: &str,
+    landing_page: Option<&LandingPage>,
+    query_params: &[(String, String)],
+    allocator: &mut ClickSlotAllocator,
+) -> ServerResult<ClickMapEntry> {
+    let offer = get_offer(pool, offer_id).await?;
+    let slot = allocator.next();
+    Ok(ClickMapEntry {
+        slot,
+        target_type: ClickTargetType::Offer,
+        target_id: offer.id.clone(),
+        offer_id: offer.id.clone(),
+        target_url: substitute_url(
+            &offer.url,
+            UrlSubstitution {
+                tracking_base_url,
+                visit_id,
+                campaign,
+                landing_page,
+                offer: Some(&offer),
+                query_params,
+                click_urls: &[],
+            },
+        ),
+    })
+}
+
+impl ClickSlotAllocator {
+    fn next(&mut self) -> u8 {
+        self.next_slot = self.next_slot.saturating_add(1);
+        self.next_slot
+    }
+}
+
+fn entry_target_id(entry: &ClickMapEntry) -> String {
+    if entry.target_id.is_empty() {
+        entry.offer_id.clone()
+    } else {
+        entry.target_id.clone()
+    }
+}
+
+fn click_target_type_name(target_type: &ClickTargetType) -> &'static str {
+    match target_type {
+        ClickTargetType::LandingPage => "landing_page",
+        ClickTargetType::Offer => "offer",
+    }
+}
+
+fn click_url(tracking_base_url: &str, visit_id: &str, route_slot: u8) -> String {
+    format!(
+        "{}/go/{}/{}",
+        tracking_base_url.trim_end_matches('/'),
+        visit_id,
+        route_slot
+    )
 }
 
 fn campaign_tracking_base_url(campaign: &Campaign) -> String {
@@ -401,7 +620,7 @@ struct UrlSubstitution<'a> {
     landing_page: Option<&'a LandingPage>,
     offer: Option<&'a Offer>,
     query_params: &'a [(String, String)],
-    click_map: &'a [ClickMapEntry],
+    click_urls: &'a [ClickUrlToken],
 }
 
 fn substitute_url(url: &str, context: UrlSubstitution<'_>) -> String {
@@ -426,14 +645,13 @@ fn substitute_url(url: &str, context: UrlSubstitution<'_>) -> String {
     for (key, value) in context.query_params {
         output = output.replace(&format!("{{{key}}}"), value);
     }
-    for entry in context.click_map {
+    for click_url_token in context.click_urls {
         output = output.replace(
-            &format!("{{click_url_{}}}", entry.slot),
-            &format!(
-                "{}/go/{}/{}",
-                context.tracking_base_url.trim_end_matches('/'),
+            &format!("{{click_url_{}}}", click_url_token.token_slot),
+            &click_url(
+                context.tracking_base_url,
                 context.visit_id,
-                entry.slot
+                click_url_token.route_slot,
             ),
         );
     }
@@ -495,10 +713,9 @@ mod tests {
                 landing_page: None,
                 offer: None,
                 query_params: &[("src".to_string(), "paid".to_string())],
-                click_map: &[ClickMapEntry {
-                    slot: 1,
-                    offer_id: "offer-1".to_string(),
-                    target_url: "https://offer.test".to_string(),
+                click_urls: &[ClickUrlToken {
+                    token_slot: 1,
+                    route_slot: 1,
                 }],
             },
         );

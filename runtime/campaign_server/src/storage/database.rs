@@ -14,7 +14,7 @@ use crate::storage::settings::domain_from_base_url;
 use crate::time::now_millis;
 
 const INIT_MIGRATION: &str = include_str!("../../migrations/0001_init.sql");
-const CURRENT_SCHEMA_VERSION: i64 = 3;
+const CURRENT_SCHEMA_VERSION: i64 = 4;
 
 pub async fn connect_database(config: &ServerConfig) -> ServerResult<SqlitePool> {
     create_parent_directory(&config.database_url)?;
@@ -32,6 +32,7 @@ pub async fn connect_database(config: &ServerConfig) -> ServerResult<SqlitePool>
     run_migrations(&pool).await?;
     seed_operator_credentials(&pool).await?;
     seed_app_settings(&pool, config).await?;
+    seed_conversion_event_types(&pool).await?;
     Ok(pool)
 }
 
@@ -67,6 +68,9 @@ async fn ensure_schema_columns(
     }
     for column in VISIT_ENRICHMENT_COLUMNS {
         ensure_column(connection, "visits", *column).await?;
+    }
+    for column in LANDING_PAGE_COLUMNS {
+        ensure_column(connection, "landing_pages", *column).await?;
     }
     Ok(())
 }
@@ -235,6 +239,17 @@ const VISIT_ENRICHMENT_COLUMNS: &[ColumnDefinition] = &[
     },
 ];
 
+const LANDING_PAGE_COLUMNS: &[ColumnDefinition] = &[
+    ColumnDefinition {
+        name: "role",
+        sql: "role TEXT NOT NULL DEFAULT 'standard'",
+    },
+    ColumnDefinition {
+        name: "expected_conversion_event_type_ids_json",
+        sql: "expected_conversion_event_type_ids_json TEXT NOT NULL DEFAULT '[]'",
+    },
+];
+
 pub async fn seed_operator_credentials(pool: &SqlitePool) -> ServerResult<()> {
     let existing: Option<i64> =
         sqlx::query_scalar("SELECT id FROM operator_credentials WHERE id = 1")
@@ -259,6 +274,67 @@ pub async fn seed_operator_credentials(pool: &SqlitePool) -> ServerResult<()> {
     .await?;
     Ok(())
 }
+
+async fn seed_conversion_event_types(pool: &SqlitePool) -> ServerResult<()> {
+    let now = now_millis()?;
+    for seed in DEFAULT_CONVERSION_EVENT_TYPES {
+        sqlx::query(
+            "INSERT OR IGNORE INTO conversion_event_types
+             (id, name, event_key, aliases_json, event_category, include_in_conversions,
+              include_in_revenue, include_in_cost, send_postback_to_traffic_source,
+              default_revenue_value, currency, notes, archived, created_at_millis,
+              updated_at_millis)
+             VALUES (?, ?, ?, ?, ?, 1, ?, 0, 1, ?, ?, '', 0, ?, ?)",
+        )
+        .bind(seed.id)
+        .bind(seed.name)
+        .bind(seed.event_key)
+        .bind(seed.aliases_json)
+        .bind(seed.event_category)
+        .bind(seed.include_in_revenue)
+        .bind(seed.default_revenue_value)
+        .bind(seed.currency)
+        .bind(now)
+        .bind(now)
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+struct ConversionEventTypeSeed {
+    id: &'static str,
+    name: &'static str,
+    event_key: &'static str,
+    aliases_json: &'static str,
+    event_category: &'static str,
+    include_in_revenue: bool,
+    default_revenue_value: f64,
+    currency: &'static str,
+}
+
+const DEFAULT_CONVERSION_EVENT_TYPES: &[ConversionEventTypeSeed] = &[
+    ConversionEventTypeSeed {
+        id: "lead",
+        name: "Lead",
+        event_key: "Lead",
+        aliases_json: "[\"lead\",\"subscriber\",\"email_submit\"]",
+        event_category: "lead",
+        include_in_revenue: false,
+        default_revenue_value: 0.0,
+        currency: "USD",
+    },
+    ConversionEventTypeSeed {
+        id: "sale",
+        name: "Sale",
+        event_key: "Sale",
+        aliases_json: "[\"sale\",\"conversion\",\"purchase\"]",
+        event_category: "sale",
+        include_in_revenue: true,
+        default_revenue_value: 0.0,
+        currency: "USD",
+    },
+];
 
 pub async fn seed_app_settings(pool: &SqlitePool, config: &ServerConfig) -> ServerResult<()> {
     let now = now_millis()?;

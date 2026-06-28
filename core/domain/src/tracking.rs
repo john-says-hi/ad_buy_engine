@@ -45,8 +45,34 @@ pub struct VisitRecord {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClickMapEntry {
     pub slot: u8,
+    #[serde(default = "default_click_target_type")]
+    pub target_type: ClickTargetType,
+    #[serde(default)]
+    pub target_id: String,
+    #[serde(default)]
     pub offer_id: String,
     pub target_url: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClickTargetType {
+    LandingPage,
+    Offer,
+}
+
+fn default_click_target_type() -> ClickTargetType {
+    ClickTargetType::Offer
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConversionTrackingResponse {
+    pub conversion_id: String,
+    pub duplicate: bool,
+    pub campaign_id: String,
+    pub visit_id: Option<String>,
+    pub event_type_id: String,
+    pub event_key: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

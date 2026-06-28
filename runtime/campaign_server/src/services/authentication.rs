@@ -49,14 +49,14 @@ pub async fn session_response(
     pool: &SqlitePool,
     session: &Session,
 ) -> ServerResult<SessionResponse> {
+    let credentials = load_operator_credentials(pool).await?;
     let Some(username) = session_username(session).await? else {
         return Ok(SessionResponse {
             authenticated: false,
             username: None,
-            must_change_credentials: false,
+            must_change_credentials: credentials.must_change_credentials,
         });
     };
-    let credentials = load_operator_credentials(pool).await?;
     if credentials.username != username {
         session.delete().await.map_err(|error| {
             ServerError::internal(format!("failed to clear stale session: {error}"))
@@ -64,7 +64,7 @@ pub async fn session_response(
         return Ok(SessionResponse {
             authenticated: false,
             username: None,
-            must_change_credentials: false,
+            must_change_credentials: credentials.must_change_credentials,
         });
     }
 

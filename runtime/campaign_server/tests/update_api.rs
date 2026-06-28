@@ -2,7 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ad_buy_engine_domain::{
-    HealthResponse, UPDATE_REQUEST_FILE, UpdateSlot, UpdateStartRequest, UpdateStatusResponse,
+    HealthResponse, SessionResponse, UPDATE_REQUEST_FILE, UpdateSlot, UpdateStartRequest,
+    UpdateStatusResponse,
 };
 use axum::Router;
 use axum::body::{Body, to_bytes};
@@ -28,6 +29,41 @@ async fn unauthenticated_update_requests_fail() -> Result<(), Box<dyn std::error
         .await?;
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    Ok(())
+}
+
+#[tokio::test]
+async fn unauthenticated_session_reports_first_run_credential_state()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fresh_harness = ApiHarness::new_with_credentials_reset(false, false).await?;
+    let fresh_response = fresh_harness
+        .app
+        .oneshot(
+            Request::builder()
+                .uri("/api/auth/session")
+                .body(Body::empty())?,
+        )
+        .await?;
+
+    assert_eq!(fresh_response.status(), StatusCode::OK);
+    let fresh_session: SessionResponse = response_json(fresh_response).await?;
+    assert!(!fresh_session.authenticated);
+    assert!(fresh_session.must_change_credentials);
+
+    let reset_harness = ApiHarness::new_with_credentials_reset(false, true).await?;
+    let reset_response = reset_harness
+        .app
+        .oneshot(
+            Request::builder()
+                .uri("/api/auth/session")
+                .body(Body::empty())?,
+        )
+        .await?;
+
+    assert_eq!(reset_response.status(), StatusCode::OK);
+    let reset_session: SessionResponse = response_json(reset_response).await?;
+    assert!(!reset_session.authenticated);
+    assert!(!reset_session.must_change_credentials);
     Ok(())
 }
 
@@ -106,6 +142,13 @@ struct ApiHarness {
 
 impl ApiHarness {
     async fn new(update_enabled: bool) -> Result<Self, Box<dyn std::error::Error>> {
+        Self::new_with_credentials_reset(update_enabled, true).await
+    }
+
+    async fn new_with_credentials_reset(
+        update_enabled: bool,
+        credentials_reset: bool,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let tempdir = tempdir()?;
         let dashboard_dist = tempdir.path().join("dist");
         fs::create_dir(&dashboard_dist)?;
@@ -117,9 +160,11 @@ impl ApiHarness {
             update_enabled,
         );
         let pool = connect_database(&config).await?;
-        sqlx::query("UPDATE operator_credentials SET must_change_credentials = 0 WHERE id = 1")
-            .execute(&pool)
-            .await?;
+        if credentials_reset {
+            sqlx::query("UPDATE operator_credentials SET must_change_credentials = 0 WHERE id = 1")
+                .execute(&pool)
+                .await?;
+        }
         let app = build_router(config, pool).await?;
         Ok(Self { app, tempdir })
     }

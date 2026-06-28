@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS landing_pages (
     url TEXT NOT NULL,
     url_tokens_json TEXT NOT NULL,
     cta_count INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'standard',
+    expected_conversion_event_type_ids_json TEXT NOT NULL DEFAULT '[]',
     language TEXT NOT NULL,
     vertical TEXT NOT NULL,
     weight INTEGER NOT NULL,
@@ -101,6 +103,24 @@ CREATE TABLE IF NOT EXISTS traffic_sources (
     pixel_url TEXT NOT NULL,
     track_impressions INTEGER NOT NULL,
     direct_tracking INTEGER NOT NULL,
+    notes TEXT NOT NULL,
+    archived INTEGER NOT NULL DEFAULT 0,
+    created_at_millis INTEGER NOT NULL,
+    updated_at_millis INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS conversion_event_types (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    event_key TEXT NOT NULL UNIQUE,
+    aliases_json TEXT NOT NULL,
+    event_category TEXT NOT NULL,
+    include_in_conversions INTEGER NOT NULL,
+    include_in_revenue INTEGER NOT NULL,
+    include_in_cost INTEGER NOT NULL,
+    send_postback_to_traffic_source INTEGER NOT NULL,
+    default_revenue_value REAL NOT NULL,
+    currency TEXT NOT NULL,
     notes TEXT NOT NULL,
     archived INTEGER NOT NULL DEFAULT 0,
     created_at_millis INTEGER NOT NULL,
@@ -195,12 +215,39 @@ CREATE TABLE IF NOT EXISTS visit_events (
     FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
 );
 
+CREATE TABLE IF NOT EXISTS conversion_events (
+    id TEXT PRIMARY KEY,
+    visit_id TEXT,
+    campaign_id TEXT NOT NULL,
+    event_type_id TEXT NOT NULL,
+    event_key TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    event_category TEXT NOT NULL,
+    status TEXT NOT NULL,
+    raw_status TEXT,
+    revenue_value REAL NOT NULL,
+    currency TEXT NOT NULL,
+    transaction_id TEXT,
+    external_event_id TEXT,
+    identity_hash TEXT,
+    dedupe_key TEXT NOT NULL,
+    source TEXT NOT NULL,
+    duplicate INTEGER NOT NULL,
+    raw_payload_json TEXT NOT NULL,
+    created_at_millis INTEGER NOT NULL,
+    FOREIGN KEY (visit_id) REFERENCES visits(id),
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id),
+    FOREIGN KEY (event_type_id) REFERENCES conversion_event_types(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_offer_sources_archived_name
     ON offer_sources (archived, name);
 CREATE INDEX IF NOT EXISTS idx_offers_source_archived_name
     ON offers (offer_source_id, archived, name);
 CREATE INDEX IF NOT EXISTS idx_landing_pages_archived_name
     ON landing_pages (archived, name);
+CREATE INDEX IF NOT EXISTS idx_conversion_event_types_archived_name
+    ON conversion_event_types (archived, name);
 CREATE INDEX IF NOT EXISTS idx_traffic_sources_archived_name
     ON traffic_sources (archived, name);
 CREATE INDEX IF NOT EXISTS idx_funnels_archived_name
@@ -217,3 +264,9 @@ CREATE INDEX IF NOT EXISTS idx_visit_events_visit_created
     ON visit_events (visit_id, created_at_millis);
 CREATE INDEX IF NOT EXISTS idx_visit_events_campaign_type
     ON visit_events (campaign_id, event_type, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_conversion_events_campaign_created
+    ON conversion_events (campaign_id, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_conversion_events_type_created
+    ON conversion_events (event_type_id, created_at_millis);
+CREATE INDEX IF NOT EXISTS idx_conversion_events_dedupe
+    ON conversion_events (dedupe_key, duplicate);

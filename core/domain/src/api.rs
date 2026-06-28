@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entities::{
-    Campaign, CampaignDraft, Funnel, FunnelDraft, LandingPage, LandingPageDraft, Offer, OfferDraft,
-    OfferSource, OfferSourceDraft, TrafficSource, TrafficSourceDraft,
+    Campaign, CampaignDraft, ConversionEventType, ConversionEventTypeDraft, Funnel, FunnelDraft,
+    LandingPage, LandingPageDraft, Offer, OfferDraft, OfferSource, OfferSourceDraft, TrafficSource,
+    TrafficSourceDraft,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +66,7 @@ pub enum ReportDimensionKey {
     OfferSources,
     Offers,
     Landers,
+    Conversions,
     Funnels,
     Browsers,
     BrowserVersions,
@@ -105,6 +107,7 @@ impl ReportDimensionKey {
         Self::DeviceTypes,
         Self::DeviceBrands,
         Self::DeviceModels,
+        Self::Conversions,
         Self::Funnels,
         Self::IspCarriers,
         Self::Landers,
@@ -134,6 +137,7 @@ impl ReportDimensionKey {
             Self::OfferSources => "offer-sources",
             Self::Offers => "offers",
             Self::Landers => "landers",
+            Self::Conversions => "conversions",
             Self::Funnels => "funnels",
             Self::Browsers => "browsers",
             Self::BrowserVersions => "browser-versions",
@@ -166,6 +170,7 @@ impl ReportDimensionKey {
             Self::OfferSources => "Offer Sources",
             Self::Offers => "Offers",
             Self::Landers => "Landers",
+            Self::Conversions => "Conversions",
             Self::Funnels => "Funnels",
             Self::Browsers => "Browsers",
             Self::BrowserVersions => "Browser Versions",
@@ -198,6 +203,7 @@ impl ReportDimensionKey {
             Self::OfferSources => Some("/offer-sources"),
             Self::Offers => Some("/offers"),
             Self::Landers => Some("/landers"),
+            Self::Conversions => Some("/conversions"),
             Self::Funnels => Some("/funnels"),
             Self::Browsers => Some("/browsers"),
             Self::OperatingSystems => Some("/os"),
@@ -235,6 +241,7 @@ impl ReportDimensionKey {
             | Self::DeviceBrands
             | Self::DeviceModels => "User agent",
             Self::Dates | Self::DayParting => "Visit timestamp",
+            Self::Conversions => "Tracked conversion event type",
             _ => "Tracked entity",
         }
     }
@@ -434,6 +441,7 @@ pub enum EntityDraft {
     OfferSource(OfferSourceDraft),
     Offer(OfferDraft),
     LandingPage(LandingPageDraft),
+    ConversionEventType(ConversionEventTypeDraft),
     TrafficSource(TrafficSourceDraft),
     Funnel(FunnelDraft),
     Campaign(CampaignDraft),
@@ -445,6 +453,7 @@ pub enum EntityRecord {
     OfferSource(OfferSource),
     Offer(Offer),
     LandingPage(LandingPage),
+    ConversionEventType(ConversionEventType),
     TrafficSource(TrafficSource),
     Funnel(Funnel),
     Campaign(Campaign),
@@ -456,6 +465,7 @@ impl EntityRecord {
             Self::OfferSource(record) => &record.id,
             Self::Offer(record) => &record.id,
             Self::LandingPage(record) => &record.id,
+            Self::ConversionEventType(record) => &record.id,
             Self::TrafficSource(record) => &record.id,
             Self::Funnel(record) => &record.id,
             Self::Campaign(record) => &record.id,
@@ -467,6 +477,7 @@ impl EntityRecord {
             Self::OfferSource(record) => &record.name,
             Self::Offer(record) => &record.name,
             Self::LandingPage(record) => &record.name,
+            Self::ConversionEventType(record) => &record.name,
             Self::TrafficSource(record) => &record.name,
             Self::Funnel(record) => &record.name,
             Self::Campaign(record) => &record.name,

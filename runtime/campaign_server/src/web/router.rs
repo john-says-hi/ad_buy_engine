@@ -13,13 +13,17 @@ use crate::services::geoip::{GeoIpService, SharedGeoIpService};
 use crate::storage::settings::load_geolocation_settings;
 use crate::web::auth::{credentials, login, logout, session};
 use crate::web::clicks::{campaign_click, lander_click};
+use crate::web::conversions::{conversion_gif, postback};
 use crate::web::crud::{
-    archive_campaign, archive_funnel, archive_landing_page, archive_offer, archive_offer_source,
-    archive_traffic_source, create_campaign, create_funnel, create_landing_page, create_offer,
-    create_offer_source, create_traffic_source, get_campaign, get_funnel, get_landing_page,
-    get_offer, get_offer_source, get_options, get_traffic_source, list_campaigns, list_funnels,
-    list_landing_pages, list_offer_sources, list_offers, list_traffic_sources, update_campaign,
-    update_funnel, update_landing_page, update_offer, update_offer_source, update_traffic_source,
+    archive_campaign, archive_conversion_event_type, archive_funnel, archive_landing_page,
+    archive_offer, archive_offer_source, archive_traffic_source, create_campaign,
+    create_conversion_event_type, create_funnel, create_landing_page, create_offer,
+    create_offer_source, create_traffic_source, get_campaign, get_conversion_event_type,
+    get_funnel, get_landing_page, get_offer, get_offer_source, get_options, get_traffic_source,
+    list_campaigns, list_conversion_event_types, list_funnels, list_landing_pages,
+    list_offer_sources, list_offers, list_traffic_sources, update_campaign,
+    update_conversion_event_type, update_funnel, update_landing_page, update_offer,
+    update_offer_source, update_traffic_source,
 };
 use crate::web::health::health;
 use crate::web::reports::{
@@ -105,6 +109,16 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
                 .delete(archive_landing_page),
         )
         .route(
+            "/api/conversions",
+            get(list_conversion_event_types).post(create_conversion_event_type),
+        )
+        .route(
+            "/api/conversions/{id}",
+            get(get_conversion_event_type)
+                .put(update_conversion_event_type)
+                .delete(archive_conversion_event_type),
+        )
+        .route(
             "/api/traffic-sources",
             get(list_traffic_sources).post(create_traffic_source),
         )
@@ -138,6 +152,8 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route("/api/{*path}", any(api_not_found))
         .route("/c/{campaign_id}", get(campaign_click))
         .route("/go/{visit_id}/{slot}", get(lander_click))
+        .route("/postback", get(postback).post(postback))
+        .route("/conversion.gif", get(conversion_gif))
         .fallback_service(static_service)
         .layer(TraceLayer::new_for_http())
         .layer(session_layer)

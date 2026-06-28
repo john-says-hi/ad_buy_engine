@@ -10,6 +10,17 @@ const POLL_MILLIS: u32 = 3000;
 
 #[function_component(UpdateSettingsPage)]
 pub fn update_settings_page() -> Html {
+    html! {
+        <main class="abe-report abe-settings-page">
+            <section class="abe-settings-panel">
+                <UpdateSettingsSection />
+            </section>
+        </main>
+    }
+}
+
+#[function_component(UpdateSettingsSection)]
+pub fn update_settings_section() -> Html {
     let status = use_state(|| None::<UpdateStatusResponse>);
     let loading = use_state(|| true);
     let busy = use_state(|| false);
@@ -146,43 +157,41 @@ pub fn update_settings_page() -> Html {
         .unwrap_or(true);
 
     html! {
-        <main class="abe-report">
-            <section class="abe-settings-panel">
-                <h1>{ "Updates" }</h1>
-                { render_message(&message) }
-                {
-                    if *loading {
-                        html! { <p>{ "Loading..." }</p> }
-                    } else if let Some(current) = status.as_ref() {
-                        html! {
-                            <>
-                                { update_status_table(current) }
+        <section class="abe-settings-section" id="update-settings">
+            <h2>{ "Updates" }</h2>
+            { render_message(&message) }
+            {
+                if *loading {
+                    html! { <p>{ "Loading..." }</p> }
+                } else if let Some(current) = status.as_ref() {
+                    html! {
+                        <>
+                            { update_status_table(current) }
+                            <div class="abe-settings-actions">
+                                <button class="uk-button uk-button-default" type="button" disabled={!current.enabled || current.phase.is_running() || *busy} onclick={on_check}>
+                                    { if *busy { "Working..." } else { "Check" } }
+                                </button>
+                            </div>
+                            <form class="abe-settings-form" onsubmit={on_install}>
+                                { password_input("Operator Password", &password) }
+                                { text_input("Install Confirmation", &install_confirmation, "INSTALL") }
                                 <div class="abe-settings-actions">
-                                    <button class="uk-button uk-button-default" type="button" disabled={!current.enabled || current.phase.is_running() || *busy} onclick={on_check}>
-                                        { if *busy { "Working..." } else { "Check" } }
-                                    </button>
+                                    <button class="uk-button uk-button-primary" type="submit" disabled={install_disabled}>{ "Install" }</button>
                                 </div>
-                                <form class="abe-settings-form" onsubmit={on_install}>
-                                    { password_input("Operator Password", &password) }
-                                    { text_input("Install Confirmation", &install_confirmation, "INSTALL") }
-                                    <div class="abe-settings-actions">
-                                        <button class="uk-button uk-button-primary" type="submit" disabled={install_disabled}>{ "Install" }</button>
-                                    </div>
-                                </form>
-                                <form class="abe-settings-form" onsubmit={on_rollback}>
-                                    { text_input("Rollback Confirmation", &rollback_confirmation, "ROLLBACK") }
-                                    <div class="abe-settings-actions">
-                                        <button class="uk-button uk-button-danger" type="submit" disabled={rollback_disabled}>{ "Rollback" }</button>
-                                    </div>
-                                </form>
-                            </>
-                        }
-                    } else {
-                        html! { <p class="abe-inline-error">{ "Update status is unavailable" }</p> }
+                            </form>
+                            <form class="abe-settings-form" onsubmit={on_rollback}>
+                                { text_input("Rollback Confirmation", &rollback_confirmation, "ROLLBACK") }
+                                <div class="abe-settings-actions">
+                                    <button class="uk-button uk-button-danger" type="submit" disabled={rollback_disabled}>{ "Rollback" }</button>
+                                </div>
+                            </form>
+                        </>
                     }
+                } else {
+                    html! { <p class="abe-inline-error">{ "Update status is unavailable" }</p> }
                 }
-            </section>
-        </main>
+            }
+        </section>
     }
 }
 

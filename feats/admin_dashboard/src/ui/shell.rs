@@ -13,9 +13,11 @@ use crate::ui::create_modal::CreateModal;
 use crate::ui::navigation_bar::NavigationBar;
 use crate::ui::report_table::ReportTable;
 use crate::ui::report_toolbar::ReportToolbar;
-use crate::ui::settings_page::{DomainSettingsPage, GeolocationSettingsPage};
+use crate::ui::settings_page::SettingsPage;
 use crate::ui::top_bar::TopBar;
-use crate::ui::update_settings_page::UpdateSettingsPage;
+
+#[cfg(target_arch = "wasm32")]
+const REPORT_DATE_RANGE_STORAGE_KEY: &str = "abe.report_date_range";
 
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ShellProps {
@@ -32,7 +34,7 @@ pub fn shell(props: &ShellProps) -> Html {
     let loading_rows = use_state(|| false);
     let row_error = use_state(|| None::<String>);
     let refresh_version = use_state(|| 0_u64);
-    let date_range = use_state(|| ReportDateRange::Today);
+    let date_range = use_state(load_saved_report_date_range);
     let search_query = use_state(String::new);
     let first_grouping = use_state(|| default_grouping_for_route(route));
 
@@ -168,7 +170,10 @@ pub fn shell(props: &ShellProps) -> Html {
     };
     let on_date_range_change = {
         let date_range = date_range.clone();
-        Callback::from(move |selected_date_range| date_range.set(selected_date_range))
+        Callback::from(move |selected_date_range| {
+            save_report_date_range(selected_date_range);
+            date_range.set(selected_date_range);
+        })
     };
     let on_first_grouping_change = {
         let first_grouping = first_grouping.clone();
@@ -194,12 +199,8 @@ pub fn shell(props: &ShellProps) -> Html {
             {
                 if route.is_dashboard() {
                     html! { <DashboardPage /> }
-                } else if route == Route::DomainSettings {
-                    html! { <DomainSettingsPage /> }
-                } else if route == Route::GeolocationSettings {
-                    html! { <GeolocationSettingsPage /> }
-                } else if route == Route::UpdateSettings {
-                    html! { <UpdateSettingsPage /> }
+                } else if route == Route::Settings {
+                    html! { <SettingsPage /> }
                 } else {
                     let mut report = ReportState::for_route(route, *first_grouping);
                     report.date_range = *date_range;
@@ -258,6 +259,37 @@ struct EditorState {
     route: Route,
     edit_id: Option<String>,
 }
+
+#[cfg(target_arch = "wasm32")]
+fn load_saved_report_date_range() -> ReportDateRange {
+    web_sys::window()
+        .and_then(|window| window.local_storage().ok().flatten())
+        .and_then(|storage| {
+            storage
+                .get_item(REPORT_DATE_RANGE_STORAGE_KEY)
+                .ok()
+                .flatten()
+        })
+        .and_then(|stored_value| ReportDateRange::from_storage_key(&stored_value))
+        .unwrap_or(ReportDateRange::Today)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn load_saved_report_date_range() -> ReportDateRange {
+    ReportDateRange::Today
+}
+
+#[cfg(target_arch = "wasm32")]
+fn save_report_date_range(date_range: ReportDateRange) {
+    if let Some(storage) =
+        web_sys::window().and_then(|window| window.local_storage().ok().flatten())
+    {
+        let _ = storage.set_item(REPORT_DATE_RANGE_STORAGE_KEY, date_range.storage_key());
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn save_report_date_range(_date_range: ReportDateRange) {}
 
 #[function_component(DashboardPage)]
 fn dashboard_page() -> Html {

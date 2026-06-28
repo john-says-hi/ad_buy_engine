@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use ad_buy_engine_domain::{
-    CampaignDraft, ConditionRule, DestinationType, EntityRecord, FunnelDraft, FunnelPath,
-    FunnelSequence, LandingPageDraft, OfferDraft, OfferSourceDraft, OptionItem, SequenceType,
-    TrafficSourceDraft, UrlToken, WeightedReference,
+    CampaignDraft, ConditionRule, ConversionEventCategory, ConversionEventTypeDraft,
+    DestinationType, EntityRecord, FunnelDraft, FunnelPath, FunnelSequence, LandingPageDraft,
+    LandingPageRole, OfferDraft, OfferSourceDraft, OptionItem, SequenceType, TrafficSourceDraft,
+    UrlToken, WeightedReference,
 };
 
 use crate::route::Route;
@@ -13,6 +14,7 @@ pub enum EntityKind {
     OfferSource,
     Offer,
     LandingPage,
+    ConversionEventType,
     TrafficSource,
     Funnel,
     Campaign,
@@ -29,6 +31,7 @@ pub struct FormOptionLists {
     pub offer_sources: Vec<OptionItem>,
     pub offers: Vec<OptionItem>,
     pub landing_pages: Vec<OptionItem>,
+    pub conversion_events: Vec<OptionItem>,
     pub traffic_sources: Vec<OptionItem>,
     pub funnels: Vec<OptionItem>,
 }
@@ -57,6 +60,7 @@ pub enum SelectSource {
     OfferSources,
     Offers,
     LandingPages,
+    ConversionEvents,
     TrafficSources,
     Funnels,
 }
@@ -66,6 +70,7 @@ pub enum SaveDraft {
     OfferSource(OfferSourceDraft),
     Offer(OfferDraft),
     LandingPage(LandingPageDraft),
+    ConversionEventType(ConversionEventTypeDraft),
     TrafficSource(TrafficSourceDraft),
     Funnel(FunnelDraft),
     Campaign(CampaignDraft),
@@ -77,6 +82,7 @@ impl EntityKind {
             Route::OfferSources => Some(Self::OfferSource),
             Route::Offers => Some(Self::Offer),
             Route::Landers => Some(Self::LandingPage),
+            Route::Conversions => Some(Self::ConversionEventType),
             Route::TrafficSources => Some(Self::TrafficSource),
             Route::Funnels => Some(Self::Funnel),
             Route::Campaigns => Some(Self::Campaign),
@@ -89,6 +95,7 @@ impl EntityKind {
             Self::OfferSource => "/api/offer-sources",
             Self::Offer => "/api/offers",
             Self::LandingPage => "/api/landers",
+            Self::ConversionEventType => "/api/conversions",
             Self::TrafficSource => "/api/traffic-sources",
             Self::Funnel => "/api/funnels",
             Self::Campaign => "/api/campaigns",
@@ -100,6 +107,7 @@ impl EntityKind {
             Self::OfferSource => "New Offer Source",
             Self::Offer => "New Offer",
             Self::LandingPage => "New Lander",
+            Self::ConversionEventType => "New Conversion Event",
             Self::TrafficSource => "New Traffic Source",
             Self::Funnel => "Create Funnel",
             Self::Campaign => "Create Campaign",
@@ -148,6 +156,7 @@ impl FormOptionLists {
             SelectSource::OfferSources => self.offer_sources.clone(),
             SelectSource::Offers => self.offers.clone(),
             SelectSource::LandingPages => self.landing_pages.clone(),
+            SelectSource::ConversionEvents => self.conversion_events.clone(),
             SelectSource::TrafficSources => self.traffic_sources.clone(),
             SelectSource::Funnels => self.funnels.clone(),
         }
@@ -218,9 +227,46 @@ pub fn form_fields(kind: EntityKind) -> Vec<FormFieldSpec> {
             text("tags", "Tags", false),
             text("url", "Lander URL", true),
             number("cta_count", "Number of CTAs:", false),
+            select(
+                "role",
+                "Lander Role",
+                SelectSource::Static(LANDING_PAGE_ROLES),
+                false,
+            ),
+            text(
+                "expected_conversion_event_type_ids",
+                "Expected Conversion Event IDs",
+                true,
+            ),
             text("language", "Language", false),
             text("vertical", "Vertical", false),
             number("weight", "Weight", false),
+            text_area("notes", "Notes", true),
+        ],
+        EntityKind::ConversionEventType => vec![
+            text("name", "Event Name", false),
+            text("event_key", "Event Key", false),
+            text("aliases", "Accepted Aliases", true),
+            select(
+                "category",
+                "Event Category",
+                SelectSource::Static(CONVERSION_EVENT_CATEGORIES),
+                false,
+            ),
+            toggle("include_in_conversions", "Include in Conversions"),
+            toggle("include_in_revenue", "Include in Revenue"),
+            toggle("include_in_cost", "Include in Cost"),
+            toggle(
+                "send_postback_to_traffic_source",
+                "Send Postback to Traffic Source",
+            ),
+            decimal("default_revenue_value", "Default Revenue", false),
+            select(
+                "currency",
+                "Currency",
+                SelectSource::Static(CURRENCIES),
+                false,
+            ),
             text_area("notes", "Notes", true),
         ],
         EntityKind::TrafficSource => vec![
@@ -250,6 +296,12 @@ pub fn form_fields(kind: EntityKind) -> Vec<FormFieldSpec> {
                 false,
             ),
             select(
+                "funnel_template",
+                "Funnel Template",
+                SelectSource::Static(FUNNEL_TEMPLATES),
+                false,
+            ),
+            select(
                 "sequence_type",
                 "Default Sequence Type",
                 SelectSource::Static(SEQUENCE_TYPES),
@@ -262,6 +314,21 @@ pub fn form_fields(kind: EntityKind) -> Vec<FormFieldSpec> {
                 false,
             ),
             select("offer_id", "Default Offer", SelectSource::Offers, false),
+            select(
+                "lead_capture_landing_page_id",
+                "Lead Capture Lander",
+                SelectSource::LandingPages,
+                false,
+            ),
+            select(
+                "advertorial_landing_page_id",
+                "Advertorial Lander",
+                SelectSource::LandingPages,
+                false,
+            ),
+            select("sales_offer_id", "Sales Offer", SelectSource::Offers, false),
+            number("direct_sales_weight", "Direct Sales Weight", false),
+            number("advertorial_weight", "Advertorial Weight", false),
             text("condition_query_key", "Conditional Query Key", false),
             text("condition_query_value", "Conditional Query Value", false),
             text_area("notes", "Notes", true),
@@ -317,8 +384,15 @@ pub fn default_values(kind: EntityKind) -> FormValues {
         EntityKind::LandingPage => FormValues::default()
             .with_text("country", "Global")
             .with_text("cta_count", "1")
+            .with_text("role", "standard")
             .with_text("language", "en")
             .with_text("weight", "100"),
+        EntityKind::ConversionEventType => FormValues::default()
+            .with_text("category", "custom")
+            .with_text("currency", "USD")
+            .with_text("default_revenue_value", "0")
+            .with_toggle("include_in_conversions", true)
+            .with_toggle("send_postback_to_traffic_source", true),
         EntityKind::TrafficSource => FormValues::default()
             .with_text("currency", "USD")
             .with_text("external_id_parameter", "external_id")
@@ -327,7 +401,10 @@ pub fn default_values(kind: EntityKind) -> FormValues {
         EntityKind::Funnel => FormValues::default()
             .with_text("country", "Global")
             .with_text("referrer_handling", "do_nothing")
-            .with_text("sequence_type", "offers_only"),
+            .with_text("funnel_template", "simple")
+            .with_text("sequence_type", "offers_only")
+            .with_text("direct_sales_weight", "50")
+            .with_text("advertorial_weight", "50"),
         EntityKind::Campaign => FormValues::default()
             .with_text("country", "Global")
             .with_text("cost_model", "CPC")
@@ -373,11 +450,33 @@ pub fn draft_from_values(kind: EntityKind, values: &FormValues) -> Result<SaveDr
             url: values.text("url"),
             url_tokens: default_url_tokens(),
             cta_count: parse_u8(&values.text("cta_count"), "CTA count")?,
+            role: landing_page_role_from_value(&values.text("role")),
+            expected_conversion_event_type_ids: split_csv(
+                &values.text("expected_conversion_event_type_ids"),
+            ),
             language: values.text("language"),
             vertical: values.text("vertical"),
             weight: parse_u32(&values.text("weight"), "Weight")?,
             notes: values.text("notes"),
         })),
+        EntityKind::ConversionEventType => {
+            Ok(SaveDraft::ConversionEventType(ConversionEventTypeDraft {
+                name: values.text("name"),
+                event_key: values.text("event_key"),
+                aliases: split_csv(&values.text("aliases")),
+                category: conversion_event_category_from_value(&values.text("category")),
+                include_in_conversions: values.toggle("include_in_conversions"),
+                include_in_revenue: values.toggle("include_in_revenue"),
+                include_in_cost: values.toggle("include_in_cost"),
+                send_postback_to_traffic_source: values.toggle("send_postback_to_traffic_source"),
+                default_revenue_value: parse_f64(
+                    &values.text("default_revenue_value"),
+                    "Default revenue",
+                )?,
+                currency: values.text("currency"),
+                notes: values.text("notes"),
+            }))
+        }
         EntityKind::TrafficSource => Ok(SaveDraft::TrafficSource(TrafficSourceDraft {
             name: values.text("name"),
             external_id_parameter: values.text("external_id_parameter"),
@@ -396,7 +495,7 @@ pub fn draft_from_values(kind: EntityKind, values: &FormValues) -> Result<SaveDr
             redirect_handling: "default".to_string(),
             referrer_handling: values.text("referrer_handling"),
             conditional_sequences: conditional_sequences(values),
-            default_sequences: vec![sequence_from_values("default", "Default", values)],
+            default_sequences: vec![default_funnel_sequence(values)?],
             notes: values.text("notes"),
         })),
         EntityKind::Campaign => {
@@ -468,10 +567,36 @@ pub fn values_from_record(record: EntityRecord) -> FormValues {
                 .with_text("tags", draft.tags.join(", "))
                 .with_text("url", draft.url)
                 .with_text("cta_count", draft.cta_count.to_string())
+                .with_text("role", landing_page_role_value(&draft.role))
+                .with_text(
+                    "expected_conversion_event_type_ids",
+                    draft.expected_conversion_event_type_ids.join(", "),
+                )
                 .with_text("language", draft.language)
                 .with_text("vertical", draft.vertical)
                 .with_text("weight", draft.weight.to_string())
                 .with_text("notes", draft.notes)
+        }
+        EntityRecord::ConversionEventType(record) => {
+            let draft = record.draft;
+            FormValues::default()
+                .with_text("name", draft.name)
+                .with_text("event_key", draft.event_key)
+                .with_text("aliases", draft.aliases.join(", "))
+                .with_text("category", conversion_event_category_value(&draft.category))
+                .with_text(
+                    "default_revenue_value",
+                    draft.default_revenue_value.to_string(),
+                )
+                .with_text("currency", draft.currency)
+                .with_text("notes", draft.notes)
+                .with_toggle("include_in_conversions", draft.include_in_conversions)
+                .with_toggle("include_in_revenue", draft.include_in_revenue)
+                .with_toggle("include_in_cost", draft.include_in_cost)
+                .with_toggle(
+                    "send_postback_to_traffic_source",
+                    draft.send_postback_to_traffic_source,
+                )
         }
         EntityRecord::TrafficSource(record) => {
             let draft = record.draft;
@@ -498,6 +623,7 @@ pub fn values_from_record(record: EntityRecord) -> FormValues {
                 .with_text("country", draft.country)
                 .with_text("name", draft.name)
                 .with_text("referrer_handling", draft.referrer_handling)
+                .with_text("funnel_template", "simple")
                 .with_text(
                     "sequence_type",
                     sequence
@@ -549,6 +675,9 @@ const COUNTRIES: &[&str] = &["Global", "US", "CA", "GB"];
 const CURRENCIES: &[&str] = &["USD", "CAD", "EUR", "GBP"];
 const TRACKING_METHODS: &[&str] = &["postback", "pixel"];
 const REFERRER_HANDLING: &[&str] = &["do_nothing", "hide_referrer", "pass_referrer"];
+const LANDING_PAGE_ROLES: &[&str] = &["standard", "lead_capture", "advertorial", "after_optin"];
+const CONVERSION_EVENT_CATEGORIES: &[&str] = &["lead", "sale", "custom"];
+const FUNNEL_TEMPLATES: &[&str] = &["simple", "lead_capture_split"];
 const PAYOUT_MODELS: &[&str] = &["fixed", "percentage", "auto", "none"];
 const COST_MODELS: &[&str] = &["CPC", "CPA", "CPM", "RevShare", "Not Tracked"];
 const SEQUENCE_TYPES: &[&str] = &["offers_only", "landing_page_and_offers", "matrix"];
@@ -595,6 +724,71 @@ fn field(
         field_type,
         wide,
     }
+}
+
+fn default_funnel_sequence(values: &FormValues) -> Result<FunnelSequence, String> {
+    if values.text("funnel_template") == "lead_capture_split" {
+        lead_capture_split_sequence(values)
+    } else {
+        Ok(sequence_from_values("default", "Default", values))
+    }
+}
+
+fn lead_capture_split_sequence(values: &FormValues) -> Result<FunnelSequence, String> {
+    let lead_capture_landing_page_id = required_value(
+        values,
+        "lead_capture_landing_page_id",
+        "Lead capture lander",
+    )?;
+    let advertorial_landing_page_id =
+        required_value(values, "advertorial_landing_page_id", "Advertorial lander")?;
+    let sales_offer_id = required_value(values, "sales_offer_id", "Sales offer")?;
+    let direct_sales_weight =
+        parse_u32(&values.text("direct_sales_weight"), "Direct sales weight")?;
+    let advertorial_weight = parse_u32(&values.text("advertorial_weight"), "Advertorial weight")?;
+
+    Ok(FunnelSequence {
+        id: "lead-capture-split".to_string(),
+        name: "Lead Capture Split".to_string(),
+        active: true,
+        weight: 100,
+        sequence_type: SequenceType::Matrix,
+        conditions: Vec::new(),
+        paths: vec![FunnelPath {
+            id: "lead-capture".to_string(),
+            weight: 100,
+            landing_page_id: Some(lead_capture_landing_page_id),
+            offers: Vec::new(),
+            children: vec![
+                FunnelPath {
+                    id: "direct-sales".to_string(),
+                    weight: direct_sales_weight,
+                    landing_page_id: None,
+                    offers: vec![WeightedReference {
+                        id: sales_offer_id.clone(),
+                        weight: 100,
+                    }],
+                    children: Vec::new(),
+                },
+                FunnelPath {
+                    id: "advertorial".to_string(),
+                    weight: advertorial_weight,
+                    landing_page_id: Some(advertorial_landing_page_id),
+                    offers: Vec::new(),
+                    children: vec![FunnelPath {
+                        id: "advertorial-sales".to_string(),
+                        weight: 100,
+                        landing_page_id: None,
+                        offers: vec![WeightedReference {
+                            id: sales_offer_id,
+                            weight: 100,
+                        }],
+                        children: Vec::new(),
+                    }],
+                },
+            ],
+        }],
+    })
 }
 
 fn sequence_from_values(id: &str, name: &str, values: &FormValues) -> FunnelSequence {
@@ -667,6 +861,40 @@ fn destination_type_value(destination_type: &DestinationType) -> &'static str {
     match destination_type {
         DestinationType::Funnel => "funnel",
         DestinationType::DirectSequence => "direct_sequence",
+    }
+}
+
+fn landing_page_role_from_value(value: &str) -> LandingPageRole {
+    match value {
+        "lead_capture" => LandingPageRole::LeadCapture,
+        "advertorial" => LandingPageRole::Advertorial,
+        "after_optin" => LandingPageRole::AfterOptin,
+        _ => LandingPageRole::Standard,
+    }
+}
+
+fn landing_page_role_value(role: &LandingPageRole) -> &'static str {
+    match role {
+        LandingPageRole::Standard => "standard",
+        LandingPageRole::LeadCapture => "lead_capture",
+        LandingPageRole::Advertorial => "advertorial",
+        LandingPageRole::AfterOptin => "after_optin",
+    }
+}
+
+fn conversion_event_category_from_value(value: &str) -> ConversionEventCategory {
+    match value {
+        "lead" => ConversionEventCategory::Lead,
+        "sale" => ConversionEventCategory::Sale,
+        _ => ConversionEventCategory::Custom,
+    }
+}
+
+fn conversion_event_category_value(category: &ConversionEventCategory) -> &'static str {
+    match category {
+        ConversionEventCategory::Lead => "lead",
+        ConversionEventCategory::Sale => "sale",
+        ConversionEventCategory::Custom => "custom",
     }
 }
 
@@ -758,4 +986,8 @@ fn empty_to_none(value: String) -> Option<String> {
     } else {
         Some(trimmed.to_string())
     }
+}
+
+fn required_value(values: &FormValues, key: &str, label: &str) -> Result<String, String> {
+    empty_to_none(values.text(key)).ok_or_else(|| format!("{label} is required"))
 }
