@@ -42,7 +42,7 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
     };
     let session_layer = SessionManagerLayer::new(MemoryStore::default()).with_secure(false);
     let static_service = ServeDir::new(&state.dashboard_dist)
-        .not_found_service(ServeFile::new(state.dashboard_dist.join("index.html")));
+        .fallback(ServeFile::new(state.dashboard_dist.join("index.html")));
 
     Ok(Router::new()
         .route("/api/health", get(health))

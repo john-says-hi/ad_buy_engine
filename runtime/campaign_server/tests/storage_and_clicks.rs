@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::fs;
 
 use ad_buy_engine_domain::{
     CampaignDraft, DestinationType, EntityRow, FunnelDraft, FunnelPath, FunnelSequence,
@@ -29,11 +29,14 @@ use tower::ServiceExt;
 async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std::error::Error>> {
     let tempdir = tempdir()?;
     let database_path = tempdir.path().join("ad_buy_engine.sqlite3");
+    let dashboard_dist = tempdir.path().join("dist");
+    fs::create_dir(&dashboard_dist)?;
+    fs::write(dashboard_dist.join("index.html"), "<main>dashboard</main>")?;
     let config = ServerConfig {
         database_url: format!("sqlite://{}", database_path.display()),
         public_base_url: "http://127.0.0.1:8088".to_string(),
         listen_address: "127.0.0.1:0".to_string(),
-        dashboard_dist: PathBuf::from("feats/admin_dashboard/dist"),
+        dashboard_dist,
         app_version: "test".to_string(),
     };
     let pool = connect_database(&config).await?;
@@ -178,6 +181,12 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default();
     assert!(location.starts_with("https://lander.test/"));
+
+    let app = build_router(config.clone(), pool.clone()).await?;
+    let response = app
+        .oneshot(Request::builder().uri("/offers").body(Body::empty())?)
+        .await?;
+    assert_eq!(response.status(), StatusCode::OK);
 
     let mut headers = HeaderMap::new();
     headers.insert(
