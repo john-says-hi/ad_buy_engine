@@ -1,0 +1,245 @@
+:root {
+  --abe-purple: #9148f7;
+  --abe-purple-dark: #442071;
+  --abe-surface: #ffffff;
+  --abe-muted: #77727e;
+  --abe-border: #e8e3ef;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #5d2b92;
+  background-image: url("/assets/background.svg");
+  background-size: cover;
+  background-attachment: fixed;
+  color: #1f1b26;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.abe-app {
+  min-height: 100vh;
+}
+
+.abe-top-bar {
+  margin: 0;
+  border-bottom: 1px solid var(--abe-border);
+  background: var(--abe-surface);
+}
+
+.abe-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 72px;
+  color: #1f1b26;
+}
+
+.abe-brand-link:hover {
+  color: var(--abe-purple);
+  text-decoration: none;
+}
+
+.abe-brand-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.abe-top-status {
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.abe-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 32px;
+  color: #292332;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.abe-status-pill [uk-icon] {
+  color: var(--abe-purple);
+}
+
+.abe-main-nav {
+  margin: 24px 0 0;
+  background: var(--abe-surface);
+}
+
+.abe-main-nav .uk-navbar-nav {
+  gap: 0.15rem;
+  min-height: 86px;
+}
+
+.abe-main-nav .uk-navbar-nav > li > a {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 86px;
+  padding: 0 11px;
+  color: #24202a;
+  font-size: 0.69rem;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.abe-main-nav .uk-navbar-nav > li > a:hover,
+.abe-main-nav .uk-navbar-nav > li.uk-active > a {
+  color: var(--abe-purple) !important;
+}
+
+.abe-main-nav [uk-icon] {
+  display: block;
+  margin: 0 auto 7px;
+}
+
+.abe-dashboard {
+  padding: 22px 24px 48px;
+  background: var(--abe-surface);
+}
+
+.abe-dashboard h1 {
+  margin: 0;
+  font-size: 2.35rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.abe-report {
+  min-height: calc(100vh - 170px);
+}
+
+.abe-toolbar {
+  border-top: 1px solid var(--abe-border);
+  background: var(--abe-surface);
+}
+
+.abe-toolbar-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, auto);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 14px;
+  min-height: 52px;
+}
+
+.abe-toolbar-row + .abe-toolbar-row {
+  border-top: 1px solid #f3f0f7;
+}
+
+.abe-toolbar-left,
+.abe-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.abe-toolbar-right {
+  justify-content: flex-end;
+}
+
+.abe-dropdown-label {
+  min-width: 108px;
+  color: #25202c;
+  font-size: 0.82rem;
+}
+
+.abe-search {
+  min-width: 190px;
+}
+
+.abe-search .uk-search-input {
+  min-height: 30px;
+  border-bottom: 1px solid var(--abe-border);
+  font-size: 0.82rem;
+}
+
+.abe-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 31px;
+  white-space: nowrap;
+}
+
+.abe-button[disabled] {
+  cursor: not-allowed;
+}
+
+.abe-pagination {
+  margin: 0;
+}
+
+.abe-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  background: var(--abe-surface);
+}
+
+.abe-table {
+  min-width: 520px;
+  margin: 0;
+  background: var(--abe-surface);
+}
+
+.abe-table th,
+.abe-table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.abe-table tfoot td {
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .abe-toolbar-row {
+    grid-template-columns: 1fr;
+    padding: 10px 12px;
+  }
+
+  .abe-toolbar-right {
+    justify-content: flex-start;
+  }
+
+  .abe-main-nav .uk-navbar-nav {
+    justify-content: flex-start;
+    overflow-x: auto;
+    width: 100vw;
+  }
+}
+
+@media (max-width: 560px) {
+  .abe-brand-title {
+    display: none;
+  }
+
+  .abe-status-pill span:not([uk-icon]) {
+    display: none;
+  }
+
+  .abe-main-nav .uk-navbar-nav > li > a {
+    min-width: 76px;
+    padding: 0 8px;
+    font-size: 0.66rem;
+  }
+
+  .abe-search {
+    min-width: min(100%, 230px);
+  }
+}
