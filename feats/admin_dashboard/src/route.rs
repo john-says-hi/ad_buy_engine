@@ -128,8 +128,20 @@ impl Route {
             _ => None,
         }
     }
+
+    pub const fn report_rows_endpoint(self) -> Option<&'static str> {
+        match self.render_route() {
+            Self::Connection => Some("/api/reports/connection"),
+            Self::Browsers => Some("/api/reports/browsers"),
+            Self::Device => Some("/api/reports/device"),
+            Self::Os => Some("/api/reports/os"),
+            Self::Date => Some("/api/reports/date"),
+            Self::DayParting => Some("/api/reports/day-parting"),
+            _ => None,
+        }
+    }
 }
 
 pub fn switch(route: Route) -> Html {
-    html! { <Shell route={route.render_route()} /> }
+    html! { <Shell route={route.render_route()} on_logout={Callback::from(|_| ())} /> }
 }

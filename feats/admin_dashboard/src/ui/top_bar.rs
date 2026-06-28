@@ -3,8 +3,16 @@ use yew_router::prelude::*;
 
 use crate::route::Route;
 
+#[derive(Clone, Debug, PartialEq, Properties)]
+pub struct TopBarProps {
+    pub on_logout: Callback<()>,
+}
+
 #[function_component(TopBar)]
-pub fn top_bar() -> Html {
+pub fn top_bar(props: &TopBarProps) -> Html {
+    let on_logout = props.on_logout.clone();
+    let logout = Callback::from(move |_| on_logout.emit(()));
+
     html! {
         <nav class="uk-navbar-container abe-top-bar" uk-navbar="">
             <div class="uk-navbar-left">
@@ -39,9 +47,10 @@ pub fn top_bar() -> Html {
                         </div>
                     </li>
                     <li class="uk-navbar-item">
-                        <div class="abe-status-pill" uk-tooltip="title: This Feature is Not Built Yet">
-                            <span uk-icon="icon: cog"></span>
-                        </div>
+                        <button class="uk-button uk-button-default uk-button-small abe-button" type="button" onclick={logout}>
+                            <span uk-icon="icon: sign-out"></span>
+                            { "Logout" }
+                        </button>
                     </li>
                 </ul>
             </div>

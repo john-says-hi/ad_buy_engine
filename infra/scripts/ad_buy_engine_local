@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TRUNK_VERSION="0.21.14"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+DASHBOARD_DIR="${REPO_ROOT}/feats/admin_dashboard"
+PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
+DRY_RUN=false
+
+if [[ "${1:-}" == "--dry-run" ]]; then
+  DRY_RUN=true
+fi
+
+run() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+ %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+load_private_env() {
+  if [[ -f "${PRIVATE_ENV}" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "${PRIVATE_ENV}"
+    set +a
+  fi
+}
+
+ensure_wasm_target() {
+  run rustup target add wasm32-unknown-unknown
+}
+
+ensure_trunk() {
+  if command -v trunk >/dev/null 2>&1 && env -u NO_COLOR trunk --version | grep -q "trunk ${TRUNK_VERSION}"; then
+    return
+  fi
+
+  run cargo install trunk --version "${TRUNK_VERSION}" --locked
+}
+
+build_dashboard() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ cd ${DASHBOARD_DIR} && env -u NO_COLOR trunk build"
+  else
+    (cd "${DASHBOARD_DIR}" && env -u NO_COLOR trunk build)
+  fi
+}
+
+main() {
+  cd "${REPO_ROOT}"
+  load_private_env
+  export ABE_DATABASE_URL="${ABE_DATABASE_URL:-sqlite:runtime/data/ad_buy_engine.sqlite3}"
+  export ABE_PUBLIC_BASE_URL="${ABE_PUBLIC_BASE_URL:-http://127.0.0.1:8088}"
+  export ABE_LISTEN_ADDRESS="${ABE_LISTEN_ADDRESS:-127.0.0.1:8088}"
+  export ABE_DASHBOARD_DIST="${ABE_DASHBOARD_DIST:-${DASHBOARD_DIR}/dist}"
+
+  ensure_wasm_target
+  ensure_trunk
+  run mkdir -p "${REPO_ROOT}/runtime/data"
+  build_dashboard
+
+  echo "Ad Buy Engine dashboard: ${ABE_PUBLIC_BASE_URL}"
+  run cargo run -p campaign_server
+}
+
+main "$@"

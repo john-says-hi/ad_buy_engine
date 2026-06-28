@@ -1,17 +1,28 @@
 use yew::prelude::*;
 
 use crate::route::Route;
-use crate::state::report::ReportState;
+use crate::state::report::{DATE_RANGE_OPTIONS, ReportDateRange, ReportState};
+use web_sys::HtmlInputElement;
 
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ReportToolbarProps {
     pub route: Route,
     pub report: ReportState,
+    pub search_query: String,
+    pub loading: bool,
     pub on_create: Callback<Route>,
+    pub on_search: Callback<String>,
+    pub on_date_range_change: Callback<ReportDateRange>,
+    pub on_refresh: Callback<()>,
 }
 
 #[function_component(ReportToolbar)]
 pub fn report_toolbar(props: &ReportToolbarProps) -> Html {
+    let on_refresh = {
+        let on_refresh = props.on_refresh.clone();
+        Callback::from(move |_| on_refresh.emit(()))
+    };
+
     html! {
         <section class="abe-toolbar">
             <div class="abe-toolbar-row">
@@ -22,9 +33,17 @@ pub fn report_toolbar(props: &ReportToolbarProps) -> Html {
                 </div>
 
                 <div class="abe-toolbar-right">
-                    <SearchControl />
-                    <ToolbarDropdown label={props.report.date_range} options={&DATE_RANGE_OPTIONS} icon={Some("calendar")} />
-                    <ToolbarButton label="Refresh" icon="refresh" />
+                    <SearchControl value={props.search_query.clone()} on_search={props.on_search.clone()} />
+                    <DateRangeDropdown
+                        selected={props.report.date_range}
+                        on_change={props.on_date_range_change.clone()}
+                    />
+                    <ToolbarButton
+                        label="Refresh"
+                        icon="refresh"
+                        disabled={props.loading}
+                        onclick={on_refresh}
+                    />
                     <ToolbarButton label="Graph" icon="database" disabled={true} />
                 </div>
             </div>
@@ -108,18 +127,6 @@ const GROUPING_OPTIONS_WITH_EMPTY: &[&str] = &[
     "Proxies",
 ];
 
-const DATE_RANGE_OPTIONS: &[&str] = &[
-    "Today",
-    "Yesterday",
-    "Last 3 Days",
-    "Last 7 Days",
-    "Last 14 Days",
-    "Last 30 Days",
-    "Last 6 Months",
-    "Custom Range",
-    "All of Time",
-];
-
 const ROW_LIMIT_OPTIONS: &[&str] = &["50", "100", "200", "500", "1000"];
 const FILTER_OPTIONS: &[&str] = &["All", "Archived", "Has traffic", "Active"];
 
@@ -161,13 +168,72 @@ fn toolbar_dropdown(props: &ToolbarDropdownProps) -> Html {
     }
 }
 
-#[function_component(SearchControl)]
-fn search_control() -> Html {
+#[derive(Clone, Debug, PartialEq, Properties)]
+struct DateRangeDropdownProps {
+    selected: ReportDateRange,
+    on_change: Callback<ReportDateRange>,
+}
+
+#[function_component(DateRangeDropdown)]
+fn date_range_dropdown(props: &DateRangeDropdownProps) -> Html {
     html! {
-        <form class="uk-search uk-search-small abe-search">
+        <div>
+            <ul class="uk-subnav uk-subnav-pill" uk-margin="">
+                <li>
+                    <a class="abe-dropdown-label" href="#">
+                        { render_icon("calendar") }
+                        { props.selected.label() }
+                        <span uk-icon="icon: triangle-down"></span>
+                    </a>
+                    <div uk-dropdown="mode: click;">
+                        <ul class="uk-nav uk-dropdown-nav">
+                            { for DATE_RANGE_OPTIONS.iter().map(|option| {
+                                let option = *option;
+                                let on_change = props.on_change.clone();
+                                let selected = props.selected == option;
+                                let onclick = Callback::from(move |event: MouseEvent| {
+                                    event.prevent_default();
+                                    on_change.emit(option);
+                                });
+                                html! {
+                                    <li class={classes!(selected.then_some("uk-active"))}>
+                                        <a href="#" onclick={onclick}>{ option.label() }</a>
+                                    </li>
+                                }
+                            }) }
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Properties)]
+struct SearchControlProps {
+    value: String,
+    on_search: Callback<String>,
+}
+
+#[function_component(SearchControl)]
+fn search_control(props: &SearchControlProps) -> Html {
+    let on_search = props.on_search.clone();
+    let oninput = Callback::from(move |event: InputEvent| {
+        let input: HtmlInputElement = event.target_unchecked_into();
+        on_search.emit(input.value());
+    });
+
+    html! {
+        <div class="uk-search uk-search-small abe-search">
             <span uk-search-icon=""></span>
-            <input class="uk-search-input" type="search" placeholder="     Search..." disabled={true} />
-        </form>
+            <input
+                class="uk-search-input"
+                type="search"
+                placeholder="     Search..."
+                value={props.value.clone()}
+                oninput={oninput}
+            />
+        </div>
     }
 }
 
