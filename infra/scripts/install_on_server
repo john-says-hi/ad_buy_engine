@@ -5,7 +5,7 @@ APP_NAME="ad_buy_engine"
 SERVICE_NAME="ad_buy_engine"
 APP_USER="adbuyengine"
 REPO_URL="https://github.com/john-says-hi/ad_buy_engine"
-DEFAULT_GIT_REF="main"
+DEFAULT_GIT_REF="master"
 RUST_VERSION="1.90.0"
 TRUNK_VERSION="0.21.14"
 APP_ROOT="/opt/ad_buy_engine"
@@ -261,6 +261,9 @@ ABE_ADMIN_BASE_URL=https://${PRIMARY_DOMAIN}
 ABE_PUBLIC_BASE_URL=https://${PRIMARY_DOMAIN}
 ABE_LISTEN_ADDRESS=${LISTEN_ADDRESS}
 ABE_DASHBOARD_DIST=${REPO_DIR}/feats/admin_dashboard/dist
+ABE_GEOLITE_CITY_DATABASE_PATH=${STATE_DIR}/GeoLite2-City.mmdb
+ABE_GEOLITE_COUNTRY_DATABASE_PATH=${STATE_DIR}/GeoLite2-Country.mmdb
+ABE_GEOLITE_ASN_DATABASE_PATH=${STATE_DIR}/GeoLite2-ASN.mmdb
 RUST_LOG=info
 ENV
   chown root:"${APP_USER}" "${ENV_FILE}"
