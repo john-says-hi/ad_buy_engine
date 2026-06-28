@@ -16,7 +16,6 @@ pub async fn campaign_click(
     let raw_query = serde_urlencoded(query);
     let outcome = process_campaign_click(
         &state.pool,
-        &state.public_base_url,
         &campaign_id,
         &headers,
         Some(&raw_query),

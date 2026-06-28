@@ -10,10 +10,11 @@ use sqlx::{Executor, Row, SqlitePool};
 
 use crate::config::ServerConfig;
 use crate::error::{ServerError, ServerResult};
+use crate::storage::settings::domain_from_base_url;
 use crate::time::now_millis;
 
 const INIT_MIGRATION: &str = include_str!("../../migrations/0001_init.sql");
-const CURRENT_SCHEMA_VERSION: i64 = 2;
+const CURRENT_SCHEMA_VERSION: i64 = 3;
 
 pub async fn connect_database(config: &ServerConfig) -> ServerResult<SqlitePool> {
     create_parent_directory(&config.database_url)?;
@@ -108,6 +109,26 @@ const APP_SETTINGS_COLUMNS: &[ColumnDefinition] = &[
     ColumnDefinition {
         name: "maxmind_account_id",
         sql: "maxmind_account_id TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "primary_tracking_domain",
+        sql: "primary_tracking_domain TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "tracking_base_url",
+        sql: "tracking_base_url TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "admin_dashboard_domain",
+        sql: "admin_dashboard_domain TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "admin_dashboard_base_url",
+        sql: "admin_dashboard_base_url TEXT NOT NULL DEFAULT ''",
+    },
+    ColumnDefinition {
+        name: "domain_setup_status",
+        sql: "domain_setup_status TEXT NOT NULL DEFAULT 'not_configured'",
     },
     ColumnDefinition {
         name: "maxmind_license_key",
@@ -241,20 +262,28 @@ pub async fn seed_operator_credentials(pool: &SqlitePool) -> ServerResult<()> {
 
 pub async fn seed_app_settings(pool: &SqlitePool, config: &ServerConfig) -> ServerResult<()> {
     let now = now_millis()?;
+    let primary_tracking_domain =
+        domain_from_base_url(&config.tracking_base_url).unwrap_or_default();
+    let admin_dashboard_domain =
+        domain_from_base_url(&config.admin_dashboard_base_url).unwrap_or_default();
     sqlx::query(
         "INSERT INTO app_settings
-         (id, public_base_url, session_key_generated_at_millis, schema_version, app_version,
-          maxmind_account_id, maxmind_license_key, geolite_city_database_path,
-          geolite_country_database_path, geolite_asn_database_path, created_at_millis,
-          updated_at_millis)
-         VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, public_base_url, primary_tracking_domain, tracking_base_url,
+          admin_dashboard_domain, admin_dashboard_base_url, domain_setup_status,
+          session_key_generated_at_millis, schema_version, app_version, maxmind_account_id,
+          maxmind_license_key, geolite_city_database_path, geolite_country_database_path,
+          geolite_asn_database_path, created_at_millis, updated_at_millis)
+         VALUES (1, ?, ?, ?, ?, ?, 'not_configured', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
-            public_base_url = excluded.public_base_url,
             schema_version = excluded.schema_version,
             app_version = excluded.app_version,
             updated_at_millis = excluded.updated_at_millis",
     )
     .bind(&config.public_base_url)
+    .bind(primary_tracking_domain)
+    .bind(&config.tracking_base_url)
+    .bind(admin_dashboard_domain)
+    .bind(&config.admin_dashboard_base_url)
     .bind(now)
     .bind(CURRENT_SCHEMA_VERSION)
     .bind(&config.app_version)
@@ -267,7 +296,82 @@ pub async fn seed_app_settings(pool: &SqlitePool, config: &ServerConfig) -> Serv
     .bind(now)
     .execute(pool)
     .await?;
+    backfill_missing_domain_settings(pool, config).await?;
     Ok(())
+}
+
+async fn backfill_missing_domain_settings(
+    pool: &SqlitePool,
+    config: &ServerConfig,
+) -> ServerResult<()> {
+    let row = sqlx::query(
+        "SELECT public_base_url, primary_tracking_domain, tracking_base_url,
+                admin_dashboard_domain, admin_dashboard_base_url, domain_setup_status
+         FROM app_settings
+         WHERE id = 1",
+    )
+    .fetch_one(pool)
+    .await?;
+
+    let public_base_url: String = row.try_get("public_base_url")?;
+    let tracking_base_url = first_non_empty(
+        row.try_get::<String, _>("tracking_base_url")?,
+        [&public_base_url, &config.tracking_base_url],
+    );
+    let admin_dashboard_base_url = first_non_empty(
+        row.try_get::<String, _>("admin_dashboard_base_url")?,
+        [&public_base_url, &config.admin_dashboard_base_url],
+    );
+    let tracking_domain_from_base = domain_from_base_url(&tracking_base_url).unwrap_or_default();
+    let tracking_domain_from_config =
+        domain_from_base_url(&config.tracking_base_url).unwrap_or_default();
+    let primary_tracking_domain = first_non_empty(
+        row.try_get::<String, _>("primary_tracking_domain")?,
+        [&tracking_domain_from_base, &tracking_domain_from_config],
+    );
+    let admin_domain_from_base =
+        domain_from_base_url(&admin_dashboard_base_url).unwrap_or_default();
+    let admin_domain_from_config =
+        domain_from_base_url(&config.admin_dashboard_base_url).unwrap_or_default();
+    let admin_dashboard_domain = first_non_empty(
+        row.try_get::<String, _>("admin_dashboard_domain")?,
+        [&admin_domain_from_base, &admin_domain_from_config],
+    );
+    let domain_setup_status = first_non_empty(
+        row.try_get::<String, _>("domain_setup_status")?,
+        ["not_configured", "not_configured"],
+    );
+
+    sqlx::query(
+        "UPDATE app_settings SET
+            primary_tracking_domain = ?,
+            tracking_base_url = ?,
+            admin_dashboard_domain = ?,
+            admin_dashboard_base_url = ?,
+            domain_setup_status = ?
+         WHERE id = 1",
+    )
+    .bind(primary_tracking_domain)
+    .bind(tracking_base_url)
+    .bind(admin_dashboard_domain)
+    .bind(admin_dashboard_base_url)
+    .bind(domain_setup_status)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+fn first_non_empty<const N: usize>(current: String, fallbacks: [&str; N]) -> String {
+    if !current.trim().is_empty() {
+        return current.trim().trim_end_matches('/').to_string();
+    }
+    fallbacks
+        .into_iter()
+        .find(|value| !value.trim().is_empty())
+        .unwrap_or_default()
+        .trim()
+        .trim_end_matches('/')
+        .to_string()
 }
 
 pub fn hash_password(password: &str) -> ServerResult<String> {

@@ -1,5 +1,6 @@
 use ad_buy_engine_domain::{
-    FieldError, GeolocationDownloadResponse, GeolocationSettingsResponse, GeolocationSettingsUpdate,
+    DomainSettingsResponse, DomainSettingsUpdate, FieldError, GeolocationDownloadResponse,
+    GeolocationSettingsResponse, GeolocationSettingsUpdate,
 };
 use axum::Json;
 use axum::extract::State;
@@ -9,8 +10,30 @@ use crate::error::{ServerError, ServerResult};
 use crate::services::authentication::require_session;
 use crate::services::geoip::GeoIpService;
 use crate::services::geolite_download;
-use crate::storage::settings::{load_geolocation_settings, update_geolocation_settings};
+use crate::storage::settings::{
+    load_domain_settings, load_geolocation_settings, update_domain_settings,
+    update_geolocation_settings,
+};
 use crate::web::router::AppState;
+
+pub async fn get_domain_settings(
+    State(state): State<AppState>,
+    session: Session,
+) -> ServerResult<Json<DomainSettingsResponse>> {
+    require_session(&state.pool, &session, false).await?;
+    let settings = load_domain_settings(&state.pool).await?;
+    Ok(Json(settings.to_response(&state.base_url_overrides)))
+}
+
+pub async fn put_domain_settings(
+    State(state): State<AppState>,
+    session: Session,
+    Json(update): Json<DomainSettingsUpdate>,
+) -> ServerResult<Json<DomainSettingsResponse>> {
+    require_session(&state.pool, &session, false).await?;
+    let settings = update_domain_settings(&state.pool, update).await?;
+    Ok(Json(settings.to_response(&state.base_url_overrides)))
+}
 
 pub async fn get_geolocation_settings(
     State(state): State<AppState>,

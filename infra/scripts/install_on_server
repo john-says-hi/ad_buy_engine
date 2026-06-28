@@ -1,0 +1,374 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="ad_buy_engine"
+SERVICE_NAME="ad_buy_engine"
+APP_USER="adbuyengine"
+REPO_URL="https://github.com/john-says-hi/ad_buy_engine"
+DEFAULT_GIT_REF="master"
+RUST_VERSION="1.90.0"
+TRUNK_VERSION="0.21.14"
+APP_ROOT="/opt/ad_buy_engine"
+REPO_DIR="${APP_ROOT}/repo"
+BIN_DIR="${APP_ROOT}/bin"
+STATE_DIR="/var/lib/ad_buy_engine"
+ENV_DIR="/etc/ad_buy_engine"
+ENV_FILE="${ENV_DIR}/ad_buy_engine.env"
+SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
+CADDYFILE="/etc/caddy/Caddyfile"
+LISTEN_ADDRESS="127.0.0.1:8088"
+DRY_RUN=false
+PRIMARY_DOMAIN=""
+GIT_REF="${DEFAULT_GIT_REF}"
+
+usage() {
+  cat <<'USAGE'
+Usage: infra/scripts/install_on_server [--dry-run] [--domain example.com] [--git-ref main]
+
+Installs or updates Ad Buy Engine on Ubuntu 24.04 LTS.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --domain)
+      PRIMARY_DOMAIN="${2:-}"
+      shift 2
+      ;;
+    --git-ref)
+      GIT_REF="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+run() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+run_shell() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+ bash -c %q\n' "$1"
+  else
+    bash -c "$1"
+  fi
+}
+
+run_in_repo() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+ cd %q &&' "${REPO_DIR}"
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    (cd "${REPO_DIR}" && "$@")
+  fi
+}
+
+require_root() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "Dry run: would require root or sudo for installation."
+    return
+  fi
+  if [[ "${EUID}" -eq 0 ]]; then
+    return
+  fi
+  if command -v sudo >/dev/null 2>&1; then
+    exec sudo -E "$0" --domain "${PRIMARY_DOMAIN}" --git-ref "${GIT_REF}"
+  fi
+  echo "This installer must run as root or through sudo." >&2
+  exit 1
+}
+
+require_ubuntu_2404() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "Dry run: would verify Ubuntu 24.04 LTS."
+    return
+  fi
+  # shellcheck source=/dev/null
+  source /etc/os-release
+  if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
+    echo "Ubuntu 24.04 LTS is required. Found ${PRETTY_NAME:-unknown OS}." >&2
+    exit 1
+  fi
+}
+
+prompt_inputs() {
+  if [[ -z "${PRIMARY_DOMAIN}" ]]; then
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      PRIMARY_DOMAIN="example.com"
+    elif [[ -t 0 ]]; then
+      read -r -p "Primary domain for dashboard and campaign tracking: " PRIMARY_DOMAIN
+    else
+      echo "--domain is required when stdin is not interactive." >&2
+      exit 2
+    fi
+  fi
+  if [[ -z "${GIT_REF}" ]]; then
+    GIT_REF="${DEFAULT_GIT_REF}"
+  fi
+  validate_domain "${PRIMARY_DOMAIN}"
+}
+
+validate_domain() {
+  local domain="$1"
+  if [[ -z "${domain}" || "${domain}" =~ [[:space:]] ]]; then
+    echo "Primary domain must not be empty or contain whitespace." >&2
+    exit 2
+  fi
+  if [[ "${domain}" == *"://"* || "${domain}" == *"/"* || "${domain}" == *":"* ]]; then
+    echo "Primary domain must be a hostname only, without scheme, path, or port." >&2
+    exit 2
+  fi
+  if [[ ! "${domain}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
+    echo "Primary domain is not a valid hostname." >&2
+    exit 2
+  fi
+}
+
+check_dns_warning() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "Dry run: would check DNS A/AAAA records for ${PRIMARY_DOMAIN}."
+    return
+  fi
+  local server_ips domain_ips matched
+  server_ips="$(hostname -I | tr ' ' '\n' | sed '/^$/d' | sort -u || true)"
+  domain_ips="$(getent ahosts "${PRIMARY_DOMAIN}" | awk '{print $1}' | sort -u || true)"
+  matched="$(comm -12 <(printf '%s\n' "${server_ips}") <(printf '%s\n' "${domain_ips}") || true)"
+  if [[ -z "${domain_ips}" ]]; then
+    echo "Warning: DNS lookup for ${PRIMARY_DOMAIN} returned no records." >&2
+    echo "Caddy HTTPS may fail until A/AAAA records point to this server." >&2
+  elif [[ -z "${matched}" ]]; then
+    echo "Warning: ${PRIMARY_DOMAIN} does not appear to resolve to this server yet." >&2
+    echo "Server IPs: ${server_ips}" >&2
+    echo "Domain IPs: ${domain_ips}" >&2
+  fi
+}
+
+install_apt_dependencies() {
+  run apt-get update
+  run apt-get install -y \
+    apt-transport-https \
+    build-essential \
+    ca-certificates \
+    curl \
+    debian-archive-keyring \
+    debian-keyring \
+    git \
+    gpg \
+    libsqlite3-dev \
+    pkg-config \
+    ufw
+}
+
+install_caddy() {
+  run install -d -m 0755 /usr/share/keyrings
+  run_shell "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg"
+  run_shell "curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list"
+  run apt-get update
+  run apt-get install -y caddy
+}
+
+install_rust_toolchain() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ install rustup and Rust ${RUST_VERSION} if missing"
+  elif ! command -v rustup >/dev/null 2>&1; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "${RUST_VERSION}"
+  fi
+  local cargo_env="${HOME}/.cargo/env"
+  if [[ -f "${cargo_env}" ]]; then
+    # shellcheck source=/dev/null
+    source "${cargo_env}"
+  fi
+  run rustup toolchain install "${RUST_VERSION}"
+  run rustup default "${RUST_VERSION}"
+  run rustup target add wasm32-unknown-unknown --toolchain "${RUST_VERSION}"
+  if command -v trunk >/dev/null 2>&1 && trunk --version | grep -q "trunk ${TRUNK_VERSION}"; then
+    return
+  fi
+  run cargo install trunk --version "${TRUNK_VERSION}" --locked
+}
+
+ensure_app_user_and_dirs() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ create system user ${APP_USER} if missing"
+  elif ! id -u "${APP_USER}" >/dev/null 2>&1; then
+    useradd --system --home-dir "${STATE_DIR}" --create-home --shell /usr/sbin/nologin --user-group "${APP_USER}"
+  fi
+  run install -d -m 0755 "${APP_ROOT}" "${BIN_DIR}"
+  run install -d -m 0750 -o "${APP_USER}" -g "${APP_USER}" "${STATE_DIR}"
+  run install -d -m 0750 -o root -g "${APP_USER}" "${ENV_DIR}"
+}
+
+checkout_repo() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ clone or update ${REPO_URL} at ${GIT_REF} into ${REPO_DIR}"
+    return
+  fi
+  if [[ -d "${REPO_DIR}/.git" ]]; then
+    git -C "${REPO_DIR}" fetch --all --tags --prune
+  else
+    rm -rf "${REPO_DIR}"
+    git clone "${REPO_URL}" "${REPO_DIR}"
+    git -C "${REPO_DIR}" fetch --all --tags --prune
+  fi
+  git -C "${REPO_DIR}" checkout --force "${GIT_REF}"
+  if git -C "${REPO_DIR}" rev-parse --verify --quiet "origin/${GIT_REF}" >/dev/null; then
+    git -C "${REPO_DIR}" reset --hard "origin/${GIT_REF}"
+  fi
+}
+
+build_app() {
+  run_in_repo rustup override set "${RUST_VERSION}"
+  run_in_repo rustup target add wasm32-unknown-unknown
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ cd ${REPO_DIR}/feats/admin_dashboard && env -u NO_COLOR trunk build --release"
+  else
+    (cd "${REPO_DIR}/feats/admin_dashboard" && env -u NO_COLOR trunk build --release)
+  fi
+  run_in_repo cargo build --release -p campaign_server
+  run install -m 0755 "${REPO_DIR}/target/release/campaign_server" "${BIN_DIR}/campaign_server"
+}
+
+write_env_file() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ write ${ENV_FILE} with Ad Buy Engine runtime settings"
+    return
+  fi
+  umask 027
+  cat >"${ENV_FILE}" <<ENV
+ABE_DATABASE_URL=sqlite:${STATE_DIR}/ad_buy_engine.sqlite3
+ABE_TRACKING_BASE_URL=https://${PRIMARY_DOMAIN}
+ABE_ADMIN_BASE_URL=https://${PRIMARY_DOMAIN}
+ABE_PUBLIC_BASE_URL=https://${PRIMARY_DOMAIN}
+ABE_LISTEN_ADDRESS=${LISTEN_ADDRESS}
+ABE_DASHBOARD_DIST=${REPO_DIR}/feats/admin_dashboard/dist
+ABE_GEOLITE_CITY_DATABASE_PATH=${STATE_DIR}/GeoLite2-City.mmdb
+ABE_GEOLITE_COUNTRY_DATABASE_PATH=${STATE_DIR}/GeoLite2-Country.mmdb
+ABE_GEOLITE_ASN_DATABASE_PATH=${STATE_DIR}/GeoLite2-ASN.mmdb
+RUST_LOG=info
+ENV
+  chown root:"${APP_USER}" "${ENV_FILE}"
+  chmod 0640 "${ENV_FILE}"
+}
+
+write_systemd_unit() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ write ${SYSTEMD_UNIT}"
+    return
+  fi
+  cat >"${SYSTEMD_UNIT}" <<UNIT
+[Unit]
+Description=Ad Buy Engine campaign server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+Group=${APP_USER}
+WorkingDirectory=${REPO_DIR}
+EnvironmentFile=${ENV_FILE}
+ExecStart=${BIN_DIR}/campaign_server
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=${STATE_DIR}
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable "${SERVICE_NAME}.service"
+  systemctl restart "${SERVICE_NAME}.service"
+}
+
+write_caddy_config() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ install Caddy reverse proxy for https://${PRIMARY_DOMAIN} -> ${LISTEN_ADDRESS}"
+    return
+  fi
+  install -d -m 0755 "$(dirname "${CADDYFILE}")"
+  touch "${CADDYFILE}"
+  local temp_file
+  temp_file="$(mktemp)"
+  awk '
+    /^# BEGIN ad_buy_engine$/ { skip = 1; next }
+    /^# END ad_buy_engine$/ { skip = 0; next }
+    skip != 1 { print }
+  ' "${CADDYFILE}" >"${temp_file}"
+  cat >>"${temp_file}" <<CADDY
+# BEGIN ad_buy_engine
+${PRIMARY_DOMAIN} {
+	reverse_proxy ${LISTEN_ADDRESS}
+}
+# END ad_buy_engine
+CADDY
+  install -m 0644 "${temp_file}" "${CADDYFILE}"
+  rm -f "${temp_file}"
+  caddy validate --config "${CADDYFILE}"
+  systemctl enable caddy
+  systemctl reload caddy || systemctl restart caddy
+}
+
+configure_firewall() {
+  run ufw allow OpenSSH
+  run ufw allow 80/tcp
+  run ufw allow 443/tcp
+  run ufw --force enable
+}
+
+print_summary() {
+  cat <<SUMMARY
+Ad Buy Engine installation complete.
+Dashboard URL: https://${PRIMARY_DOMAIN}
+Campaign tracking URLs: https://${PRIMARY_DOMAIN}/c/{campaign_id}
+
+First login reminder: use admin/admin, then change credentials when prompted.
+Service: systemctl status ${SERVICE_NAME}
+Logs: journalctl -u ${SERVICE_NAME} -f
+Environment file: ${ENV_FILE}
+Database: ${STATE_DIR}/ad_buy_engine.sqlite3
+SUMMARY
+}
+
+main() {
+  prompt_inputs
+  require_root
+  require_ubuntu_2404
+  check_dns_warning
+  install_apt_dependencies
+  install_caddy
+  install_rust_toolchain
+  ensure_app_user_and_dirs
+  checkout_repo
+  build_app
+  write_env_file
+  write_systemd_unit
+  write_caddy_config
+  configure_firewall
+  print_summary
+}
+
+main "$@"

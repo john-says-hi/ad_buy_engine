@@ -306,6 +306,128 @@ pub struct GeolocationDownloadedDatabase {
     pub build_epoch: u64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DomainSetupStatus {
+    NotConfigured,
+    Configured,
+}
+
+impl DomainSetupStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotConfigured => "not_configured",
+            Self::Configured => "configured",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DomainSettingsResponse {
+    pub primary_tracking_domain: String,
+    pub tracking_base_url: String,
+    pub admin_dashboard_domain: String,
+    pub admin_dashboard_base_url: String,
+    pub domain_setup_status: DomainSetupStatus,
+    pub updated_at_millis: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DomainSettingsUpdate {
+    pub primary_tracking_domain: String,
+    pub admin_dashboard_domain: String,
+}
+
+impl DomainSettingsUpdate {
+    pub fn from_primary_domain(primary_domain: String) -> Self {
+        Self {
+            primary_tracking_domain: primary_domain.clone(),
+            admin_dashboard_domain: primary_domain,
+        }
+    }
+
+    pub fn validate(&self) -> Vec<FieldError> {
+        [
+            validate_domain("primary_tracking_domain", &self.primary_tracking_domain),
+            validate_domain("admin_dashboard_domain", &self.admin_dashboard_domain),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+
+    pub fn normalized_primary_tracking_domain(&self) -> String {
+        normalized_domain(&self.primary_tracking_domain)
+    }
+
+    pub fn normalized_admin_dashboard_domain(&self) -> String {
+        normalized_domain(&self.admin_dashboard_domain)
+    }
+
+    pub fn tracking_base_url(&self) -> String {
+        base_url_from_domain(&self.primary_tracking_domain)
+    }
+
+    pub fn admin_dashboard_base_url(&self) -> String {
+        base_url_from_domain(&self.admin_dashboard_domain)
+    }
+}
+
+fn validate_domain(field: &'static str, value: &str) -> Option<FieldError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Some(field_error(field, "Domain is required"));
+    }
+    if trimmed.len() != value.len() || trimmed.chars().any(char::is_whitespace) {
+        return Some(field_error(field, "Domain must not contain whitespace"));
+    }
+    if trimmed.contains("://")
+        || trimmed.contains('/')
+        || trimmed.contains('\\')
+        || trimmed.contains(':')
+        || trimmed.contains('?')
+        || trimmed.contains('#')
+        || trimmed.contains('@')
+    {
+        return Some(field_error(
+            field,
+            "Enter a hostname without a scheme, path, or port",
+        ));
+    }
+    if trimmed.len() > 253 {
+        return Some(field_error(field, "Domain is too long"));
+    }
+    if trimmed.split('.').any(|label| !valid_hostname_label(label)) {
+        return Some(field_error(field, "Domain is not a valid hostname"));
+    }
+    None
+}
+
+fn valid_hostname_label(label: &str) -> bool {
+    !label.is_empty()
+        && label.len() <= 63
+        && !label.starts_with('-')
+        && !label.ends_with('-')
+        && label
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '-')
+}
+
+fn normalized_domain(value: &str) -> String {
+    value.trim().trim_end_matches('.').to_ascii_lowercase()
+}
+
+fn base_url_from_domain(value: &str) -> String {
+    format!("https://{}", normalized_domain(value))
+}
+
+fn field_error(field: impl Into<String>, message: impl Into<String>) -> FieldError {
+    FieldError {
+        field: field.into(),
+        message: message.into(),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "payload", rename_all = "snake_case")]
 pub enum EntityDraft {

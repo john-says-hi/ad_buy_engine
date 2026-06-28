@@ -1,11 +1,20 @@
 use ad_buy_engine_domain::{
-    EntityRecord, EntityRow, GeolocationDownloadResponse, GeolocationSettingsResponse,
-    GeolocationSettingsUpdate, ReportDimensionKey, SessionResponse,
+    DomainSettingsResponse, DomainSettingsUpdate, EntityRecord, EntityRow,
+    GeolocationDownloadResponse, GeolocationSettingsResponse, GeolocationSettingsUpdate,
+    ReportDimensionKey, SessionResponse,
 };
 
 use crate::route::Route;
 use crate::state::entity_form::{EntityKind, FormOptionLists, SaveDraft};
 use crate::state::report::ReportDateRange;
+
+pub fn domain_update_from_primary_domain(primary_domain: String) -> DomainSettingsUpdate {
+    DomainSettingsUpdate::from_primary_domain(primary_domain)
+}
+
+pub fn primary_domain_from_settings(settings: &DomainSettingsResponse) -> String {
+    settings.primary_tracking_domain.clone()
+}
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
@@ -97,6 +106,16 @@ mod wasm {
 
     pub async fn download_geolite_databases() -> Result<GeolocationDownloadResponse, String> {
         post_json("/api/settings/geolocation/download", &()).await
+    }
+
+    pub async fn get_domain_settings() -> Result<DomainSettingsResponse, String> {
+        get_json("/api/settings/domain").await
+    }
+
+    pub async fn save_domain_settings(
+        update: DomainSettingsUpdate,
+    ) -> Result<DomainSettingsResponse, String> {
+        put_json("/api/settings/domain", &update).await
     }
 
     pub async fn load_options() -> Result<FormOptionLists, String> {
@@ -385,6 +404,16 @@ mod native {
     }
 
     pub async fn download_geolite_databases() -> Result<GeolocationDownloadResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn get_domain_settings() -> Result<DomainSettingsResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn save_domain_settings(
+        _update: DomainSettingsUpdate,
+    ) -> Result<DomainSettingsResponse, String> {
         Err(native_error())
     }
 
