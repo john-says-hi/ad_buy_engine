@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
+DRY_RUN=false
+
+usage() {
+  cat <<'USAGE'
+Usage: infra/scripts/install_vps_update_system [--dry-run] [--env-file /path/to/.env]
+
+Installs public-safe systemd and Nginx templates for the manual blue/green
+update system. Real VPS values must come from the private env file.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --env-file)
+      PRIVATE_ENV="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+run() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+render() {
+  local source="$1"
+  local destination="$2"
+  local rendered
+  rendered="$(sed \
+    -e "s#__ABE_APP_USER__#${ABE_APP_USER}#g" \
+    -e "s#__ABE_APP_GROUP__#${ABE_APP_GROUP}#g" \
+    -e "s#__ABE_AGENT_USER__#${ABE_AGENT_USER}#g" \
+    -e "s#__ABE_AGENT_GROUP__#${ABE_AGENT_GROUP}#g" \
+    -e "s#__ABE_ENV_FILE__#${ABE_SYSTEM_ENV_FILE}#g" \
+    -e "s#__ABE_SLOT_ENV_DIR__#${ABE_SLOT_ENV_DIR}#g" \
+    -e "s#__ABE_RELEASE_ROOT__#${ABE_RELEASE_ROOT}#g" \
+    -e "s#__ABE_STATE_DIR__#${ABE_STATE_DIR}#g" \
+    -e "s#__ABE_UPDATE_CONTROL_DIR__#${ABE_UPDATE_CONTROL_DIR}#g" \
+    -e "s#__ABE_UPDATE_AGENT_BIN__#${ABE_UPDATE_AGENT_BIN}#g" \
+    -e "s#__ABE_NGINX_CONF_DIR__#${ABE_NGINX_CONF_DIR}#g" \
+    "${source}")"
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ render ${source} -> ${destination}"
+    echo "${rendered}" | sed 's/^/  | /'
+  else
+    install -m 0644 /dev/null "${destination}"
+    printf '%s\n' "${rendered}" > "${destination}"
+  fi
+}
+
+require_private_env() {
+  if [[ ! -f "${PRIVATE_ENV}" ]]; then
+    echo "Missing private env file: ${PRIVATE_ENV}" >&2
+    exit 2
+  fi
+  set -a
+  # shellcheck source=/dev/null
+  source "${PRIVATE_ENV}"
+  set +a
+}
+
+require_var() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "Missing required private env value: ${name}" >&2
+    exit 2
+  fi
+}
+
+write_env_file() {
+  local temporary
+  temporary="$(mktemp)"
+  {
+    printf 'ABE_UPDATE_ENABLED=true\n'
+    printf 'ABE_UPDATE_CONTROL_DIR=%q\n' "${ABE_UPDATE_CONTROL_DIR}"
+    printf 'ABE_RELEASE_ROOT=%q\n' "${ABE_RELEASE_ROOT}"
+    printf 'ABE_UPDATE_REPO=%q\n' "${ABE_UPDATE_REPO}"
+    printf 'ABE_UPDATE_TARGET_TRIPLE=%q\n' "${ABE_UPDATE_TARGET_TRIPLE}"
+    printf 'ABE_NGINX_ACTIVE_UPSTREAM=%q\n' "${ABE_NGINX_ACTIVE_UPSTREAM}"
+    printf 'ABE_NGINX_UPSTREAM_TEMPLATE=%q\n' "${ABE_NGINX_UPSTREAM_TEMPLATE}"
+    printf 'ABE_PUBLIC_HEALTH_URL=%q\n' "${ABE_PUBLIC_HEALTH_URL}"
+    printf 'ABE_UPDATE_DRAIN_SECONDS=%q\n' "${ABE_UPDATE_DRAIN_SECONDS}"
+    printf 'ABE_RELEASES_TO_KEEP=%q\n' "${ABE_RELEASES_TO_KEEP}"
+    printf 'ABE_CURRENT_SCHEMA_VERSION=%q\n' "${ABE_CURRENT_SCHEMA_VERSION}"
+    printf 'ABE_BLUE_PORT=%q\n' "${ABE_BLUE_PORT}"
+    printf 'ABE_GREEN_PORT=%q\n' "${ABE_GREEN_PORT}"
+    printf 'ABE_DATABASE_URL=%q\n' "${ABE_DATABASE_URL}"
+    printf 'ABE_PUBLIC_BASE_URL=%q\n' "${ABE_PUBLIC_BASE_URL}"
+    printf 'ABE_TRACKING_BASE_URL=%q\n' "${ABE_TRACKING_BASE_URL:-${ABE_PUBLIC_BASE_URL}}"
+    printf 'ABE_ADMIN_BASE_URL=%q\n' "${ABE_ADMIN_BASE_URL:-${ABE_PUBLIC_BASE_URL}}"
+    if [[ -n "${ABE_GITHUB_TOKEN:-}" ]]; then
+      printf 'ABE_GITHUB_TOKEN=%q\n' "${ABE_GITHUB_TOKEN}"
+    fi
+  } > "${temporary}"
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ write ${ABE_SYSTEM_ENV_FILE} (secret values redacted)"
+    sed -E 's/(TOKEN=).+/\1[redacted]/' "${temporary}" | sed 's/^/  | /'
+    rm -f "${temporary}"
+  else
+    install -m 0600 "${temporary}" "${ABE_SYSTEM_ENV_FILE}"
+    rm -f "${temporary}"
+  fi
+}
+
+write_slot_env() {
+  local slot="$1"
+  local port="$2"
+  local path="${ABE_SLOT_ENV_DIR}/ad-buy-engine-${slot}.env"
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "+ write ${path}"
+    echo "  | ABE_LISTEN_ADDRESS=127.0.0.1:${port}"
+    echo "  | ABE_DASHBOARD_DIST=${ABE_RELEASE_ROOT}/${slot}/dist"
+  else
+    {
+      printf 'ABE_LISTEN_ADDRESS=127.0.0.1:%s\n' "${port}"
+      printf 'ABE_DASHBOARD_DIST=%s/%s/dist\n' "${ABE_RELEASE_ROOT}" "${slot}"
+    } > "${path}"
+    chmod 0644 "${path}"
+  fi
+}
+
+main() {
+  require_private_env
+
+  ABE_APP_USER="${ABE_APP_USER:-adbuyengine}"
+  ABE_APP_GROUP="${ABE_APP_GROUP:-adbuyengine}"
+  ABE_AGENT_USER="${ABE_AGENT_USER:-root}"
+  ABE_AGENT_GROUP="${ABE_AGENT_GROUP:-root}"
+  ABE_STATE_DIR="${ABE_STATE_DIR:-/var/lib/ad_buy_engine}"
+  ABE_SYSTEM_ENV_FILE="${ABE_SYSTEM_ENV_FILE:-/etc/ad_buy_engine/ad_buy_engine.env}"
+  ABE_SLOT_ENV_DIR="${ABE_SLOT_ENV_DIR:-/etc/ad_buy_engine/slots}"
+  ABE_NGINX_CONF_DIR="${ABE_NGINX_CONF_DIR:-/etc/nginx/conf.d}"
+  ABE_UPDATE_AGENT_BIN="${ABE_UPDATE_AGENT_BIN:-/usr/local/bin/abe-update-agent}"
+  ABE_BLUE_PORT="${ABE_BLUE_PORT:-18081}"
+  ABE_GREEN_PORT="${ABE_GREEN_PORT:-18082}"
+  ABE_UPDATE_REPO="${ABE_UPDATE_REPO:-john-says-hi/ad_buy_engine}"
+  ABE_UPDATE_TARGET_TRIPLE="${ABE_UPDATE_TARGET_TRIPLE:-x86_64-unknown-linux-gnu}"
+  ABE_UPDATE_DRAIN_SECONDS="${ABE_UPDATE_DRAIN_SECONDS:-10}"
+  ABE_RELEASES_TO_KEEP="${ABE_RELEASES_TO_KEEP:-5}"
+  ABE_CURRENT_SCHEMA_VERSION="${ABE_CURRENT_SCHEMA_VERSION:-3}"
+  ABE_NGINX_UPSTREAM_TEMPLATE="${ABE_NGINX_UPSTREAM_TEMPLATE:-/etc/ad_buy_engine/ad-buy-engine-upstream.conf.template}"
+
+  require_var ABE_RELEASE_ROOT
+  require_var ABE_UPDATE_CONTROL_DIR
+  require_var ABE_NGINX_ACTIVE_UPSTREAM
+  require_var ABE_PUBLIC_HEALTH_URL
+  require_var ABE_DATABASE_URL
+  require_var ABE_PUBLIC_BASE_URL
+
+  run install -d -m 0755 "$(dirname "${ABE_SYSTEM_ENV_FILE}")" "${ABE_SLOT_ENV_DIR}"
+  run install -d -m 0755 "${ABE_RELEASE_ROOT}" "${ABE_UPDATE_CONTROL_DIR}" "${ABE_NGINX_CONF_DIR}"
+  write_env_file
+  write_slot_env blue "${ABE_BLUE_PORT}"
+  write_slot_env green "${ABE_GREEN_PORT}"
+
+  render "${REPO_ROOT}/infra/systemd/ad-buy-engine@.service" "/etc/systemd/system/ad-buy-engine@.service"
+  render "${REPO_ROOT}/infra/systemd/abe-update-agent.service" "/etc/systemd/system/abe-update-agent.service"
+  run install -m 0644 "${REPO_ROOT}/infra/nginx/ad-buy-engine-upstream.conf.template" "${ABE_NGINX_UPSTREAM_TEMPLATE}"
+  run cargo build --release -p update_agent
+  run install -m 0755 "${REPO_ROOT}/target/release/update_agent" "${ABE_UPDATE_AGENT_BIN}"
+  run systemctl daemon-reload
+  run systemctl enable abe-update-agent.service
+  echo "Manual update system templates installed."
+}
+
+main "$@"

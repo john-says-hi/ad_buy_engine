@@ -1,0 +1,5 @@
+# Managed by Ad Buy Engine update agent. Active slot: {slot}
+upstream ad_buy_engine_active {
+    server 127.0.0.1:{port};
+    keepalive 32;
+}

@@ -30,6 +30,7 @@ use crate::web::settings::{
     download_geolite_databases, get_domain_settings, get_geolocation_settings, put_domain_settings,
     put_geolocation_settings,
 };
+use crate::web::updates::{check_updates, rollback_update, start_update, update_status};
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -37,6 +38,7 @@ pub struct AppState {
     pub base_url_overrides: BaseUrlOverrides,
     pub dashboard_dist: PathBuf,
     pub app_version: String,
+    pub update_config: crate::config::UpdateConfig,
     pub geoip: SharedGeoIpService,
 }
 
@@ -48,6 +50,7 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         base_url_overrides: config.base_url_overrides(),
         dashboard_dist: config.dashboard_dist,
         app_version: config.app_version,
+        update_config: config.updates,
         geoip,
     };
     let session_layer = SessionManagerLayer::new(MemoryStore::default()).with_secure(false);
@@ -60,6 +63,10 @@ pub async fn build_router(config: ServerConfig, pool: SqlitePool) -> anyhow::Res
         .route("/api/auth/logout", post(logout))
         .route("/api/auth/session", get(session))
         .route("/api/auth/credentials", put(credentials))
+        .route("/api/updates/status", get(update_status))
+        .route("/api/updates/check", post(check_updates))
+        .route("/api/updates/start", post(start_update))
+        .route("/api/updates/rollback", post(rollback_update))
         .route(
             "/api/settings/geolocation",
             get(get_geolocation_settings).put(put_geolocation_settings),

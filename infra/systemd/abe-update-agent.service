@@ -1,0 +1,21 @@
+[Unit]
+Description=Ad Buy Engine update agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__ABE_AGENT_USER__
+Group=__ABE_AGENT_GROUP__
+EnvironmentFile=__ABE_ENV_FILE__
+ExecStart=__ABE_UPDATE_AGENT_BIN__
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__ABE_UPDATE_CONTROL_DIR__ __ABE_RELEASE_ROOT__ __ABE_NGINX_CONF_DIR__
+
+[Install]
+WantedBy=multi-user.target

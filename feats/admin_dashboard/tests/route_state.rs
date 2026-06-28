@@ -1,5 +1,6 @@
 use ad_buy_engine_domain::{
     DomainSettingsResponse, DomainSettingsUpdate, DomainSetupStatus, EntityRow, ReportDimensionKey,
+    RollbackEligibility, UpdatePhase, UpdateStatusResponse,
 };
 use admin_dashboard::client::{domain_update_from_primary_domain, primary_domain_from_settings};
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
@@ -8,6 +9,7 @@ use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
 use admin_dashboard::state::report::{
     DATE_RANGE_OPTIONS, ReportDateRange, ReportState, ReportTotals, filter_rows_by_search,
 };
+use admin_dashboard::ui::update_settings_page::{can_install, can_rollback, phase_label};
 
 #[test]
 fn default_route_is_dashboard() {
@@ -38,6 +40,7 @@ fn navigation_labels_match_initial_shell_scope() {
             "Day Parting",
             "Domain Settings",
             "Geo Settings",
+            "Updates",
         ]
     );
 }
@@ -141,8 +144,10 @@ fn non_creatable_report_routes_do_not_have_forms() {
     assert_eq!(Route::Conversions.report_rows_endpoint(), None);
     assert_eq!(Route::DomainSettings.report_rows_endpoint(), None);
     assert_eq!(Route::GeolocationSettings.report_rows_endpoint(), None);
+    assert_eq!(Route::UpdateSettings.report_rows_endpoint(), None);
     assert!(!Route::DomainSettings.is_report());
     assert!(!Route::GeolocationSettings.is_report());
+    assert!(!Route::UpdateSettings.is_report());
     for (route, endpoint) in [
         (Route::Connection, "/api/reports/connection"),
         (Route::Browsers, "/api/reports/browsers"),
@@ -159,12 +164,49 @@ fn non_creatable_report_routes_do_not_have_forms() {
 
 #[test]
 fn settings_routes_are_not_report_routes() {
-    for route in [Route::DomainSettings, Route::GeolocationSettings] {
+    for route in [
+        Route::DomainSettings,
+        Route::GeolocationSettings,
+        Route::UpdateSettings,
+    ] {
         assert!(!route.is_report());
         assert_eq!(route.create_button_label(), None);
         assert_eq!(route.report_rows_endpoint(), None);
         assert_eq!(CreateFormDefinition::for_route(route), None);
     }
+}
+
+#[test]
+fn update_settings_route_and_actions_have_expected_state() {
+    let idle = UpdateStatusResponse {
+        enabled: true,
+        current_version: "v0.1.0".to_string(),
+        latest_version: Some("v0.2.0".to_string()),
+        active_slot: None,
+        phase: UpdatePhase::Idle,
+        last_result: None,
+        rollback: RollbackEligibility::allowed("v0.1.0"),
+        message: None,
+    };
+    let running = UpdateStatusResponse {
+        phase: UpdatePhase::Downloading,
+        ..idle.clone()
+    };
+    let disabled = UpdateStatusResponse {
+        enabled: false,
+        rollback: RollbackEligibility::blocked("disabled"),
+        ..idle.clone()
+    };
+
+    assert_eq!(Route::UpdateSettings.label(), "Updates");
+    assert_eq!(Route::UpdateSettings.path(), "/settings/updates");
+    assert_eq!(phase_label(UpdatePhase::Downloading), "Downloading");
+    assert!(can_install(&idle));
+    assert!(can_rollback(&idle));
+    assert!(!can_install(&running));
+    assert!(!can_rollback(&running));
+    assert!(!can_install(&disabled));
+    assert!(!can_rollback(&disabled));
 }
 
 #[test]

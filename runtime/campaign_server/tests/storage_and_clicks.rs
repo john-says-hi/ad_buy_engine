@@ -9,7 +9,7 @@ use ad_buy_engine_domain::{
 use axum::body::Body;
 use axum::http::header::USER_AGENT;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
-use campaign_server::config::{BaseUrlOverrides, ServerConfig};
+use campaign_server::config::{BaseUrlOverrides, ServerConfig, UpdateConfig};
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
 use campaign_server::services::geoip::GeoIpService;
 use campaign_server::storage::database::connect_database;
@@ -546,5 +546,12 @@ fn test_config(
         geolite_city_database_path: data_dir.join("GeoLite2-City.mmdb").display().to_string(),
         geolite_country_database_path: data_dir.join("GeoLite2-Country.mmdb").display().to_string(),
         geolite_asn_database_path: data_dir.join("GeoLite2-ASN.mmdb").display().to_string(),
+        updates: UpdateConfig {
+            enabled: false,
+            control_dir: data_dir.join("update_control"),
+            repo: "john-says-hi/ad_buy_engine".to_string(),
+            target_triple: "x86_64-unknown-linux-gnu".to_string(),
+            active_slot: None,
+        },
     }
 }

@@ -14,5 +14,7 @@ pub async fn health(State(state): State<AppState>) -> ServerResult<Json<HealthRe
         ok: true,
         app_version: row.try_get("app_version")?,
         schema_version: row.try_get("schema_version")?,
+        active_slot: state.update_config.active_slot,
+        ready: true,
     }))
 }

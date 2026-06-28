@@ -3,6 +3,7 @@ members = [
     "core/domain",
     "feats/admin_dashboard",
     "runtime/campaign_server",
+    "runtime/update_agent",
 ]
 resolver = "3"
 
@@ -15,22 +16,25 @@ publish = false
 [workspace.dependencies]
 ad_buy_engine_domain = { path = "core/domain" }
 anyhow = "1.0.98"
+async-trait = "0.1.85"
 argon2 = { version = "0.5.3", features = ["std"] }
 axum = { version = "0.8.4", features = ["macros"] }
 chrono = { version = "0.4.41", default-features = false, features = ["clock", "serde"] }
 chrono-tz = "0.10.3"
 flate2 = "1.1.5"
 gloo-net = "0.6.0"
+gloo-timers = "0.3.0"
 js-sys = "0.3"
 maxminddb = "0.24.0"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 reqwest = { version = "0.12.24", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "uuid", "migrate"] }
 tar = "0.4.44"
 thiserror = "2.0.12"
-tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread", "signal", "net"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread", "signal", "net", "time"] }
 tower-http = { version = "0.6.6", features = ["cors", "fs", "trace"] }
 tower-sessions = "0.14.0"
 tracing = "0.1.41"

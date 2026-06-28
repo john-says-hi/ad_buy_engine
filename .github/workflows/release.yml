@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  linux-release:
+    runs-on: ubuntu-24.04
+    env:
+      ABE_RELEASE_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.90.0
+        with:
+          targets: wasm32-unknown-unknown,x86_64-unknown-linux-gnu
+
+      - name: Install Trunk
+        run: cargo install trunk --version 0.21.14 --locked
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked
+
+      - name: Test workspace
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo nextest run --workspace
+          cargo check -p admin_dashboard --target wasm32-unknown-unknown
+
+      - name: Package release
+        run: infra/scripts/package_release --version "${GITHUB_REF_NAME}" --target "${ABE_RELEASE_TARGET_TRIPLE}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/ad_buy_engine-${GITHUB_REF_NAME}-${ABE_RELEASE_TARGET_TRIPLE}.tar.gz" \
+            "dist/ad_buy_engine-${GITHUB_REF_NAME}-${ABE_RELEASE_TARGET_TRIPLE}.tar.gz.sha256" \
+            --verify-tag \
+            --title "Ad Buy Engine ${GITHUB_REF_NAME}" \
+            --notes "Ad Buy Engine ${GITHUB_REF_NAME} release package."

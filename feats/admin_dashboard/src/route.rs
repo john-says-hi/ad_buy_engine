@@ -40,6 +40,8 @@ pub enum Route {
     DomainSettings,
     #[at("/settings/geolocation")]
     GeolocationSettings,
+    #[at("/settings/updates")]
+    UpdateSettings,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,7 +51,7 @@ pub struct NavigationItem {
     pub icon: &'static str,
 }
 
-pub const NAVIGATION_ITEMS: [NavigationItem; 16] = [
+pub const NAVIGATION_ITEMS: [NavigationItem; 17] = [
     NavigationItem::new(Route::Dashboard, "Dashboard", "home"),
     NavigationItem::new(Route::Campaigns, "Campaigns", "world"),
     NavigationItem::new(Route::Offers, "Offers", "tag"),
@@ -66,6 +68,7 @@ pub const NAVIGATION_ITEMS: [NavigationItem; 16] = [
     NavigationItem::new(Route::DayParting, "Day Parting", "clock"),
     NavigationItem::new(Route::DomainSettings, "Domain Settings", "world"),
     NavigationItem::new(Route::GeolocationSettings, "Geo Settings", "settings"),
+    NavigationItem::new(Route::UpdateSettings, "Updates", "refresh"),
 ];
 
 impl NavigationItem {
@@ -93,6 +96,7 @@ impl Route {
             Self::DayParting => "Day Parting",
             Self::DomainSettings => "Domain Settings",
             Self::GeolocationSettings => "Geo Settings",
+            Self::UpdateSettings => "Updates",
         }
     }
 
@@ -114,6 +118,7 @@ impl Route {
             Self::DayParting => "/day-parting",
             Self::DomainSettings => "/settings/domain",
             Self::GeolocationSettings => "/settings/geolocation",
+            Self::UpdateSettings => "/settings/updates",
         }
     }
 
@@ -128,7 +133,10 @@ impl Route {
     pub const fn is_report(self) -> bool {
         !matches!(
             self.render_route(),
-            Self::Dashboard | Self::DomainSettings | Self::GeolocationSettings
+            Self::Dashboard
+                | Self::DomainSettings
+                | Self::GeolocationSettings
+                | Self::UpdateSettings
         )
     }
 

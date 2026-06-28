@@ -1,7 +1,7 @@
 use ad_buy_engine_domain::{
     DomainSettingsResponse, DomainSettingsUpdate, EntityRecord, EntityRow,
     GeolocationDownloadResponse, GeolocationSettingsResponse, GeolocationSettingsUpdate,
-    ReportDimensionKey, SessionResponse,
+    ReportDimensionKey, SessionResponse, UpdateStatusResponse,
 };
 
 use crate::route::Route;
@@ -20,7 +20,8 @@ pub fn primary_domain_from_settings(settings: &DomainSettingsResponse) -> String
 mod wasm {
     use ad_buy_engine_domain::{
         ApiErrorBody, Campaign, CredentialUpdateRequest, Funnel, LandingPage, ListResponse,
-        LoginRequest, Offer, OfferSource, OptionsResponse, TrafficSource,
+        LoginRequest, Offer, OfferSource, OptionsResponse, TrafficSource, UpdateCheckRequest,
+        UpdateRollbackRequest, UpdateStartRequest,
     };
     use gloo_net::http::Request;
     use serde::Serialize;
@@ -116,6 +117,46 @@ mod wasm {
         update: DomainSettingsUpdate,
     ) -> Result<DomainSettingsResponse, String> {
         put_json("/api/settings/domain", &update).await
+    }
+
+    pub async fn get_update_status() -> Result<UpdateStatusResponse, String> {
+        get_json("/api/updates/status").await
+    }
+
+    pub async fn check_updates() -> Result<UpdateStatusResponse, String> {
+        post_json(
+            "/api/updates/check",
+            &UpdateCheckRequest {
+                confirmation: "CHECK".to_string(),
+            },
+        )
+        .await
+    }
+
+    pub async fn start_update(
+        current_password: String,
+        requested_version: Option<String>,
+    ) -> Result<UpdateStatusResponse, String> {
+        post_json(
+            "/api/updates/start",
+            &UpdateStartRequest {
+                current_password,
+                confirmation: "INSTALL".to_string(),
+                requested_version,
+            },
+        )
+        .await
+    }
+
+    pub async fn rollback_update(current_password: String) -> Result<UpdateStatusResponse, String> {
+        post_json(
+            "/api/updates/rollback",
+            &UpdateRollbackRequest {
+                current_password,
+                confirmation: "ROLLBACK".to_string(),
+            },
+        )
+        .await
     }
 
     pub async fn load_options() -> Result<FormOptionLists, String> {
@@ -414,6 +455,27 @@ mod native {
     pub async fn save_domain_settings(
         _update: DomainSettingsUpdate,
     ) -> Result<DomainSettingsResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn get_update_status() -> Result<UpdateStatusResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn check_updates() -> Result<UpdateStatusResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn start_update(
+        _current_password: String,
+        _requested_version: Option<String>,
+    ) -> Result<UpdateStatusResponse, String> {
+        Err(native_error())
+    }
+
+    pub async fn rollback_update(
+        _current_password: String,
+    ) -> Result<UpdateStatusResponse, String> {
         Err(native_error())
     }
 

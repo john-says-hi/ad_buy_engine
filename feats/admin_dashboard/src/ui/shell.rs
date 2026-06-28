@@ -15,6 +15,7 @@ use crate::ui::report_table::ReportTable;
 use crate::ui::report_toolbar::ReportToolbar;
 use crate::ui::settings_page::{DomainSettingsPage, GeolocationSettingsPage};
 use crate::ui::top_bar::TopBar;
+use crate::ui::update_settings_page::UpdateSettingsPage;
 
 #[derive(Clone, Debug, PartialEq, Properties)]
 pub struct ShellProps {
@@ -197,6 +198,8 @@ pub fn shell(props: &ShellProps) -> Html {
                     html! { <DomainSettingsPage /> }
                 } else if route == Route::GeolocationSettings {
                     html! { <GeolocationSettingsPage /> }
+                } else if route == Route::UpdateSettings {
+                    html! { <UpdateSettingsPage /> }
                 } else {
                     let mut report = ReportState::for_route(route, *first_grouping);
                     report.date_range = *date_range;

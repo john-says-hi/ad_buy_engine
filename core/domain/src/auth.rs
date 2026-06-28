@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::updates::UpdateSlot;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub username: String,
@@ -25,4 +27,6 @@ pub struct HealthResponse {
     pub ok: bool,
     pub app_version: String,
     pub schema_version: i64,
+    pub active_slot: Option<UpdateSlot>,
+    pub ready: bool,
 }

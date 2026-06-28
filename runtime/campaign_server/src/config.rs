@@ -1,6 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
+use ad_buy_engine_domain::UpdateSlot;
 use anyhow::{Context, Result};
 
 #[derive(Clone, Debug)]
@@ -19,6 +20,16 @@ pub struct ServerConfig {
     pub geolite_city_database_path: String,
     pub geolite_country_database_path: String,
     pub geolite_asn_database_path: String,
+    pub updates: UpdateConfig,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UpdateConfig {
+    pub enabled: bool,
+    pub control_dir: PathBuf,
+    pub repo: String,
+    pub target_triple: String,
+    pub active_slot: Option<UpdateSlot>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,6 +67,19 @@ impl ServerConfig {
             .unwrap_or_else(|_| "runtime/data/GeoLite2-Country.mmdb".to_string());
         let geolite_asn_database_path = env::var("ABE_GEOLITE_ASN_DATABASE_PATH")
             .unwrap_or_else(|_| "runtime/data/GeoLite2-ASN.mmdb".to_string());
+        let updates = UpdateConfig {
+            enabled: env_bool("ABE_UPDATE_ENABLED"),
+            control_dir: env::var("ABE_UPDATE_CONTROL_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| repo_root.join("runtime/update_control")),
+            repo: env::var("ABE_UPDATE_REPO")
+                .unwrap_or_else(|_| "john-says-hi/ad_buy_engine".to_string()),
+            target_triple: env::var("ABE_UPDATE_TARGET_TRIPLE")
+                .unwrap_or_else(|_| "x86_64-unknown-linux-gnu".to_string()),
+            active_slot: env::var("ABE_ACTIVE_SLOT")
+                .ok()
+                .and_then(|value| UpdateSlot::from_env(&value)),
+        };
 
         Ok(Self {
             database_url,
@@ -72,6 +96,7 @@ impl ServerConfig {
             geolite_city_database_path,
             geolite_country_database_path,
             geolite_asn_database_path,
+            updates,
         })
     }
 
@@ -82,6 +107,17 @@ impl ServerConfig {
             public_base_url_fallback: self.public_base_url.clone(),
         }
     }
+}
+
+fn env_bool(key: &str) -> bool {
+    env::var(key)
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
 }
 
 fn env_base_url(key: &str) -> Option<String> {
