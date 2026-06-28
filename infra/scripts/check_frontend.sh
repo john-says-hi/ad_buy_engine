@@ -9,7 +9,8 @@ cd "${REPO_ROOT}"
 
 rustup target add wasm32-unknown-unknown
 cargo fmt --check
-cargo nextest run -p admin_dashboard
+cargo check -p campaign_server
+cargo nextest run --workspace
 cargo check -p admin_dashboard --target wasm32-unknown-unknown
 
 if ! command -v trunk >/dev/null 2>&1; then
