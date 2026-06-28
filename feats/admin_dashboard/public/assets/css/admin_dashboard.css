@@ -278,6 +278,7 @@ textarea {
 .abe-settings-panel {
   max-width: 980px;
   padding: 18px 14px 28px;
+  background: var(--abe-surface);
 }
 
 .abe-settings-panel h1 {

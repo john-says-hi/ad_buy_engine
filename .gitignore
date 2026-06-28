@@ -23,6 +23,7 @@ crate/wasm-pack.log
 *.sqlite3-shm
 *.sqlite3-wal
 runtime/data/
+tmp/
 .cache
 GeoLite2-City.mmdb
 GeoLite2-Country.mmdb

@@ -5,3 +5,4 @@ pub mod report_toolbar;
 pub mod settings_page;
 pub mod shell;
 pub mod top_bar;
+pub mod update_settings_page;

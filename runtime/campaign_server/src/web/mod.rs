@@ -6,3 +6,4 @@ pub mod health;
 pub mod reports;
 pub mod router;
 pub mod settings;
+pub mod updates;

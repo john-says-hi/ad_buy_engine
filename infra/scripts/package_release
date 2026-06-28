@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+VERSION=""
+TARGET_TRIPLE="${ABE_RELEASE_TARGET_TRIPLE:-x86_64-unknown-linux-gnu}"
+MANIFEST_SCHEMA_VERSION="${ABE_RELEASE_MANIFEST_SCHEMA_VERSION:-1}"
+MIN_SCHEMA="${ABE_RELEASE_MIN_SCHEMA:-1}"
+MAX_SCHEMA="${ABE_RELEASE_MAX_SCHEMA:-3}"
+ROLLBACK_SAFE="${ABE_RELEASE_SCHEMA_ROLLBACK_SAFE:-true}"
+ROLLBACK_REQUIRES_RESTORE="${ABE_RELEASE_REQUIRES_DATABASE_RESTORE:-false}"
+ROLLBACK_NOTES="${ABE_RELEASE_ROLLBACK_NOTES:-Expand-only migrations are rollback safe.}"
+
+usage() {
+  cat <<'USAGE'
+Usage: infra/scripts/package_release --version v0.1.0 [--target x86_64-unknown-linux-gnu]
+
+Builds campaign_server, builds the dashboard dist, writes manifest.json with
+SHA-256 metadata, and creates dist/ad_buy_engine-<version>-<target>.tar.gz.
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version)
+      VERSION="${2:-}"
+      shift 2
+      ;;
+    --target)
+      TARGET_TRIPLE="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "${VERSION}" ]]; then
+  VERSION="$(git -C "${REPO_ROOT}" describe --tags --exact-match 2>/dev/null || true)"
+fi
+
+if [[ -z "${VERSION}" ]]; then
+  echo "--version is required when HEAD is not exactly on a tag" >&2
+  exit 2
+fi
+
+bool_json() {
+  case "${1,,}" in
+    1|true|yes|on) echo "true" ;;
+    0|false|no|off) echo "false" ;;
+    *)
+      echo "Expected boolean value, got: $1" >&2
+      exit 2
+      ;;
+  esac
+}
+
+main() {
+  cd "${REPO_ROOT}"
+  local git_sha
+  git_sha="$(git rev-parse HEAD)"
+  local output_dir="${REPO_ROOT}/dist"
+  local staging_dir="${REPO_ROOT}/tmp/release-package-${VERSION}-${TARGET_TRIPLE}"
+  local package_name="ad_buy_engine-${VERSION}-${TARGET_TRIPLE}.tar.gz"
+
+  rm -rf "${staging_dir}"
+  mkdir -p "${staging_dir}/dist" "${output_dir}"
+
+  cargo build --release -p campaign_server --target "${TARGET_TRIPLE}"
+  rustup target add wasm32-unknown-unknown
+  (cd feats/admin_dashboard && env -u NO_COLOR trunk build --release)
+
+  cp "target/${TARGET_TRIPLE}/release/campaign_server" "${staging_dir}/campaign_server"
+  cp -R feats/admin_dashboard/dist/. "${staging_dir}/dist/"
+
+  python3 - "$staging_dir" "$VERSION" "$git_sha" "$TARGET_TRIPLE" \
+    "$MANIFEST_SCHEMA_VERSION" "$MIN_SCHEMA" "$MAX_SCHEMA" \
+    "$(bool_json "$ROLLBACK_SAFE")" "$(bool_json "$ROLLBACK_REQUIRES_RESTORE")" \
+    "$ROLLBACK_NOTES" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+version = sys.argv[2]
+git_sha = sys.argv[3]
+target_triple = sys.argv[4]
+manifest_schema = int(sys.argv[5])
+minimum_schema = int(sys.argv[6])
+maximum_schema = int(sys.argv[7])
+rollback_safe = json.loads(sys.argv[8])
+requires_restore = json.loads(sys.argv[9])
+rollback_notes = sys.argv[10]
+
+artifacts = []
+for path in sorted(p for p in root.rglob("*") if p.is_file() and p.name != "manifest.json"):
+    relative = path.relative_to(root).as_posix()
+    artifacts.append({
+        "path": relative,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    })
+
+manifest = {
+    "version": version,
+    "git_sha": git_sha,
+    "target_triple": target_triple,
+    "schema": {
+        "manifest_version": manifest_schema,
+        "minimum_supported_schema": minimum_schema,
+        "maximum_supported_schema": maximum_schema,
+        "migrations_backward_compatible": rollback_safe,
+    },
+    "rollback": {
+        "schema_rollback_safe": rollback_safe,
+        "requires_database_restore": requires_restore,
+        "notes": rollback_notes,
+    },
+    "binary_path": "campaign_server",
+    "dashboard_path": "dist/index.html",
+    "artifacts": artifacts,
+}
+root.joinpath("manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+PY
+
+  tar -C "${staging_dir}" -czf "${output_dir}/${package_name}" .
+  sha256sum "${output_dir}/${package_name}" > "${output_dir}/${package_name}.sha256"
+  echo "Created ${output_dir}/${package_name}"
+}
+
+main "$@"

@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://john-says-hi.github.io/ad_buy_engine/release_manifest.schema.json",
+  "title": "Ad Buy Engine Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "git_sha",
+    "target_triple",
+    "schema",
+    "rollback",
+    "binary_path",
+    "dashboard_path",
+    "artifacts"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "git_sha": {
+      "type": "string",
+      "minLength": 7
+    },
+    "target_triple": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_version",
+        "minimum_supported_schema",
+        "maximum_supported_schema",
+        "migrations_backward_compatible"
+      ],
+      "properties": {
+        "manifest_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_supported_schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_supported_schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "migrations_backward_compatible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_rollback_safe",
+        "requires_database_restore",
+        "notes"
+      ],
+      "properties": {
+        "schema_rollback_safe": {
+          "type": "boolean"
+        },
+        "requires_database_restore": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "binary_path": {
+      "type": "string",
+      "const": "campaign_server"
+    },
+    "dashboard_path": {
+      "type": "string",
+      "pattern": "^dist/"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

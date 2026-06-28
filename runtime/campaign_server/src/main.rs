@@ -29,7 +29,14 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!(listen_address = %config.listen_address, "campaign server listening");
     axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .context("campaign server failed")?;
     Ok(())
+}
+
+async fn shutdown_signal() {
+    if let Err(error) = tokio::signal::ctrl_c().await {
+        tracing::error!(error = %error, "failed to listen for shutdown signal");
+    }
 }

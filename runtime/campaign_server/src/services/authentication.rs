@@ -132,6 +132,11 @@ pub async fn require_session(
     Ok(username)
 }
 
+pub async fn verify_operator_password(pool: &SqlitePool, password: &str) -> ServerResult<()> {
+    let credentials = load_operator_credentials(pool).await?;
+    verify_password(&credentials.password_hash, password)
+}
+
 async fn load_operator_credentials(pool: &SqlitePool) -> ServerResult<OperatorCredentials> {
     let row = sqlx::query(
         "SELECT username, password_hash, must_change_credentials FROM operator_credentials WHERE id = 1",

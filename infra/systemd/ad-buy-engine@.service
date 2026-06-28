@@ -1,0 +1,24 @@
+[Unit]
+Description=Ad Buy Engine campaign server (%i slot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__ABE_APP_USER__
+Group=__ABE_APP_GROUP__
+EnvironmentFile=__ABE_ENV_FILE__
+EnvironmentFile=-__ABE_SLOT_ENV_DIR__/ad-buy-engine-%i.env
+Environment=ABE_ACTIVE_SLOT=%i
+WorkingDirectory=__ABE_RELEASE_ROOT__/%i
+ExecStart=__ABE_RELEASE_ROOT__/%i/campaign_server
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__ABE_STATE_DIR__ __ABE_UPDATE_CONTROL_DIR__ __ABE_RELEASE_ROOT__
+
+[Install]
+WantedBy=multi-user.target
