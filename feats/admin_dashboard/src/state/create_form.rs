@@ -83,6 +83,12 @@ impl CreateFormDefinition {
                 title: "New Lander",
                 sections: &LANDER_SECTIONS,
             }),
+            Route::Conversions => Some(Self {
+                route: Route::Conversions,
+                modal_id: "conversions",
+                title: "New Conversion Event",
+                sections: &CONVERSION_SECTIONS,
+            }),
             Route::Funnels => Some(Self {
                 route: Route::Funnels,
                 modal_id: "funnels",
@@ -347,6 +353,67 @@ const LANDER_NOTES_FIELDS: [CreateFormField; 1] = [CreateFormField::TextArea {
     value: "",
     rows: 4,
 }];
+
+const CONVERSION_SECTIONS: [CreateFormSection; 2] = [
+    CreateFormSection {
+        title: None,
+        fields: &CONVERSION_CORE_FIELDS,
+    },
+    CreateFormSection {
+        title: Some("Reporting Rules"),
+        fields: &CONVERSION_REPORTING_FIELDS,
+    },
+];
+
+const CONVERSION_CATEGORY_OPTIONS: &[&str] = &["lead", "sale", "custom"];
+
+const CONVERSION_CORE_FIELDS: [CreateFormField; 4] = [
+    CreateFormField::Text {
+        label: "Event Name",
+        placeholder: "Lead",
+        value: "",
+    },
+    CreateFormField::Text {
+        label: "Event Key",
+        placeholder: "Lead",
+        value: "",
+    },
+    CreateFormField::Text {
+        label: "Accepted Aliases",
+        placeholder: "lead,email_submit",
+        value: "",
+    },
+    CreateFormField::Select {
+        label: "Event Category",
+        selected: "custom",
+        options: CONVERSION_CATEGORY_OPTIONS,
+    },
+];
+
+const CONVERSION_REPORTING_FIELDS: [CreateFormField; 5] = [
+    CreateFormField::Toggle {
+        label: "Include in Conversions",
+        checked: true,
+    },
+    CreateFormField::Toggle {
+        label: "Include in Revenue",
+        checked: false,
+    },
+    CreateFormField::Toggle {
+        label: "Include in Cost",
+        checked: false,
+    },
+    CreateFormField::Toggle {
+        label: "Send Postback to Traffic Source",
+        checked: true,
+    },
+    CreateFormField::TextArea {
+        label: "Notes",
+        placeholder: "",
+        value: "",
+        rows: 4,
+    },
+];
 
 const FUNNEL_SECTIONS: [CreateFormSection; 3] = [
     CreateFormSection {

@@ -185,6 +185,9 @@ pub async fn option_items(pool: &SqlitePool, table: &str) -> ServerResult<Vec<Op
         }
         "offers" => "SELECT id, name FROM offers WHERE archived = 0 ORDER BY name ASC",
         "landers" => "SELECT id, name FROM landing_pages WHERE archived = 0 ORDER BY name ASC",
+        "conversion-events" => {
+            "SELECT id, name FROM conversion_event_types WHERE archived = 0 ORDER BY name ASC"
+        }
         "traffic-sources" => {
             "SELECT id, name FROM traffic_sources WHERE archived = 0 ORDER BY name ASC"
         }
@@ -365,13 +368,15 @@ pub async fn create_landing_page(
     draft: LandingPageDraft,
 ) -> ServerResult<LandingPage> {
     ensure_valid(&draft)?;
+    ensure_conversion_event_type_ids(pool, &draft.expected_conversion_event_type_ids).await?;
     let id = new_id();
     let now = now_millis()?;
     sqlx::query(
         "INSERT INTO landing_pages
          (id, country, name, tags_json, url, url_tokens_json, cta_count, language, vertical,
-          weight, notes, archived, created_at_millis, updated_at_millis)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+          role, expected_conversion_event_type_ids_json, weight, notes, archived,
+          created_at_millis, updated_at_millis)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
     )
     .bind(&id)
     .bind(&draft.country)
@@ -382,6 +387,8 @@ pub async fn create_landing_page(
     .bind(i64::from(draft.cta_count))
     .bind(&draft.language)
     .bind(&draft.vertical)
+    .bind(landing_page_role_to_str(&draft.role))
+    .bind(json_string(&draft.expected_conversion_event_type_ids)?)
     .bind(i64::from(draft.weight))
     .bind(&draft.notes)
     .bind(now)
@@ -397,11 +404,13 @@ pub async fn update_landing_page(
     draft: LandingPageDraft,
 ) -> ServerResult<LandingPage> {
     ensure_valid(&draft)?;
+    ensure_conversion_event_type_ids(pool, &draft.expected_conversion_event_type_ids).await?;
     let now = now_millis()?;
     let result = sqlx::query(
         "UPDATE landing_pages SET
             country = ?, name = ?, tags_json = ?, url = ?, url_tokens_json = ?,
-            cta_count = ?, language = ?, vertical = ?, weight = ?, notes = ?,
+            cta_count = ?, language = ?, vertical = ?, role = ?,
+            expected_conversion_event_type_ids_json = ?, weight = ?, notes = ?,
             updated_at_millis = ?
          WHERE id = ? AND archived = 0",
     )
@@ -413,6 +422,8 @@ pub async fn update_landing_page(
     .bind(i64::from(draft.cta_count))
     .bind(&draft.language)
     .bind(&draft.vertical)
+    .bind(landing_page_role_to_str(&draft.role))
+    .bind(json_string(&draft.expected_conversion_event_type_ids)?)
     .bind(i64::from(draft.weight))
     .bind(&draft.notes)
     .bind(now)
@@ -778,6 +789,10 @@ fn row_to_landing_page(row: SqliteRow) -> ServerResult<LandingPage> {
             url: row.try_get("url")?,
             url_tokens: json_value(row.try_get::<String, _>("url_tokens_json")?)?,
             cta_count: integer_to_u8(row.try_get("cta_count")?, "cta_count")?,
+            role: landing_page_role_from_str(row.try_get::<String, _>("role")?)?,
+            expected_conversion_event_type_ids: json_value(
+                row.try_get::<String, _>("expected_conversion_event_type_ids_json")?,
+            )?,
             language: row.try_get("language")?,
             vertical: row.try_get("vertical")?,
             weight: integer_to_u32(row.try_get("weight")?, "weight")?,
@@ -858,6 +873,24 @@ fn row_to_campaign(row: SqliteRow) -> ServerResult<Campaign> {
 
 async fn ensure_offer_source_exists(pool: &SqlitePool, id: &str) -> ServerResult<()> {
     ensure_exists(pool, "offer_sources", id, "Offer source not found").await
+}
+
+async fn ensure_conversion_event_type_ids(pool: &SqlitePool, ids: &[String]) -> ServerResult<()> {
+    for id in ids {
+        if id.trim().is_empty() {
+            continue;
+        }
+        let found: Option<String> = sqlx::query_scalar(
+            "SELECT id FROM conversion_event_types WHERE id = ? AND archived = 0",
+        )
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+        if found.is_none() {
+            return Err(ServerError::not_found("Conversion event type not found"));
+        }
+    }
+    Ok(())
 }
 
 async fn ensure_campaign_references(pool: &SqlitePool, draft: &CampaignDraft) -> ServerResult<()> {
@@ -1033,6 +1066,29 @@ fn destination_type_from_str(value: String) -> ServerResult<DestinationType> {
         "direct_sequence" => Ok(DestinationType::DirectSequence),
         _ => Err(ServerError::internal(format!(
             "invalid destination type stored: {value}"
+        ))),
+    }
+}
+
+fn landing_page_role_to_str(role: &ad_buy_engine_domain::LandingPageRole) -> &'static str {
+    match role {
+        ad_buy_engine_domain::LandingPageRole::Standard => "standard",
+        ad_buy_engine_domain::LandingPageRole::LeadCapture => "lead_capture",
+        ad_buy_engine_domain::LandingPageRole::Advertorial => "advertorial",
+        ad_buy_engine_domain::LandingPageRole::AfterOptin => "after_optin",
+    }
+}
+
+fn landing_page_role_from_str(
+    value: String,
+) -> ServerResult<ad_buy_engine_domain::LandingPageRole> {
+    match value.as_str() {
+        "standard" => Ok(ad_buy_engine_domain::LandingPageRole::Standard),
+        "lead_capture" => Ok(ad_buy_engine_domain::LandingPageRole::LeadCapture),
+        "advertorial" => Ok(ad_buy_engine_domain::LandingPageRole::Advertorial),
+        "after_optin" => Ok(ad_buy_engine_domain::LandingPageRole::AfterOptin),
+        _ => Err(ServerError::internal(format!(
+            "invalid landing page role stored: {value}"
         ))),
     }
 }

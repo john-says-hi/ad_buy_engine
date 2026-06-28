@@ -1,7 +1,7 @@
 use crate::api::FieldError;
 use crate::entities::{
-    CampaignDraft, DestinationType, FunnelDraft, LandingPageDraft, OfferDraft, OfferSourceDraft,
-    TrafficSourceDraft,
+    CampaignDraft, ConversionEventTypeDraft, DestinationType, FunnelDraft, LandingPageDraft,
+    OfferDraft, OfferSourceDraft, TrafficSourceDraft,
 };
 use crate::funnel::{FunnelPath, FunnelSequence, SequenceType};
 
@@ -45,6 +45,31 @@ impl ValidateDraft for LandingPageDraft {
 impl ValidateDraft for TrafficSourceDraft {
     fn validate(&self) -> Vec<FieldError> {
         required_text_errors(&[("name", &self.name)])
+    }
+}
+
+impl ValidateDraft for ConversionEventTypeDraft {
+    fn validate(&self) -> Vec<FieldError> {
+        let mut errors = required_text_errors(&[
+            ("name", &self.name),
+            ("event_key", &self.event_key),
+            ("currency", &self.currency),
+        ]);
+        if self.event_key.chars().any(char::is_whitespace) {
+            errors.push(field_error(
+                "event_key",
+                "Event key must not contain whitespace",
+            ));
+        }
+        for (index, alias) in self.aliases.iter().enumerate() {
+            if alias.chars().any(char::is_whitespace) {
+                errors.push(field_error(
+                    format!("aliases.{index}"),
+                    "Event aliases must not contain whitespace",
+                ));
+            }
+        }
+        errors
     }
 }
 
@@ -142,16 +167,17 @@ fn validate_path(
     if matches!(
         sequence_type,
         SequenceType::LandingPageAndOffers | SequenceType::Matrix
-    ) && path
-        .landing_page_id
-        .as_deref()
-        .unwrap_or_default()
-        .trim()
-        .is_empty()
+    ) && path.offers.is_empty()
+        && path
+            .landing_page_id
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
     {
         errors.push(field_error(
             format!("{prefix}.landing_page_id"),
-            "A landing page is required for this sequence type",
+            "A landing page is required before child paths",
         ));
     }
     if path.offers.is_empty() && path.children.is_empty() {

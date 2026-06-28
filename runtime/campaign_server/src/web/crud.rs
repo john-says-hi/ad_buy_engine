@@ -1,7 +1,7 @@
 use ad_buy_engine_domain::{
-    Campaign, CampaignDraft, EntityRow, Funnel, FunnelDraft, LandingPage, LandingPageDraft,
-    ListResponse, Offer, OfferDraft, OfferSource, OfferSourceDraft, OptionsResponse, TrafficSource,
-    TrafficSourceDraft,
+    Campaign, CampaignDraft, ConversionEventType, ConversionEventTypeDraft, EntityRow, Funnel,
+    FunnelDraft, LandingPage, LandingPageDraft, ListResponse, Offer, OfferDraft, OfferSource,
+    OfferSourceDraft, OptionsResponse, TrafficSource, TrafficSourceDraft,
 };
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -10,6 +10,7 @@ use tower_sessions::Session;
 
 use crate::error::ServerResult;
 use crate::services::authentication::require_session;
+use crate::storage::conversions;
 use crate::storage::entities;
 use crate::storage::settings::effective_tracking_base_url;
 use crate::web::date_filter::DateFilterQuery;
@@ -169,6 +170,62 @@ pub async fn archive_landing_page(
 ) -> ServerResult<StatusCode> {
     require_session(&state.pool, &session, false).await?;
     entities::archive_landing_page(&state.pool, &id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn list_conversion_event_types(
+    State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
+    session: Session,
+) -> ServerResult<Json<ListResponse<EntityRow>>> {
+    require_session(&state.pool, &session, false).await?;
+    Ok(Json(ListResponse {
+        items: conversions::list_conversion_event_type_rows(&state.pool, date_filter.into())
+            .await?,
+    }))
+}
+
+pub async fn create_conversion_event_type(
+    State(state): State<AppState>,
+    session: Session,
+    Json(draft): Json<ConversionEventTypeDraft>,
+) -> ServerResult<Json<ConversionEventType>> {
+    require_session(&state.pool, &session, false).await?;
+    conversions::create_conversion_event_type(&state.pool, draft)
+        .await
+        .map(Json)
+}
+
+pub async fn get_conversion_event_type(
+    State(state): State<AppState>,
+    session: Session,
+    Path(id): Path<String>,
+) -> ServerResult<Json<ConversionEventType>> {
+    require_session(&state.pool, &session, false).await?;
+    conversions::get_conversion_event_type(&state.pool, &id)
+        .await
+        .map(Json)
+}
+
+pub async fn update_conversion_event_type(
+    State(state): State<AppState>,
+    session: Session,
+    Path(id): Path<String>,
+    Json(draft): Json<ConversionEventTypeDraft>,
+) -> ServerResult<Json<ConversionEventType>> {
+    require_session(&state.pool, &session, false).await?;
+    conversions::update_conversion_event_type(&state.pool, &id, draft)
+        .await
+        .map(Json)
+}
+
+pub async fn archive_conversion_event_type(
+    State(state): State<AppState>,
+    session: Session,
+    Path(id): Path<String>,
+) -> ServerResult<StatusCode> {
+    require_session(&state.pool, &session, false).await?;
+    conversions::archive_conversion_event_type(&state.pool, &id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

@@ -10,8 +10,14 @@ pub struct TopBarProps {
 
 #[function_component(TopBar)]
 pub fn top_bar(props: &TopBarProps) -> Html {
+    let navigator = use_navigator();
     let on_logout = props.on_logout.clone();
     let logout = Callback::from(move |_| on_logout.emit(()));
+    let open_settings = Callback::from(move |_| {
+        if let Some(navigator) = navigator.as_ref() {
+            navigator.push(&Route::Settings);
+        }
+    });
 
     html! {
         <nav class="uk-navbar-container abe-top-bar" uk-navbar="">
@@ -42,9 +48,16 @@ pub fn top_bar(props: &TopBarProps) -> Html {
                         </div>
                     </li>
                     <li class="uk-navbar-item">
-                        <div class="abe-status-pill" uk-tooltip="title: This Feature is Not Built Yet">
-                            <span uk-icon="icon: question"></span>
-                        </div>
+                        <button
+                            class="abe-status-pill abe-status-button"
+                            type="button"
+                            aria-label="Settings"
+                            uk-tooltip="title: Settings"
+                            onclick={open_settings}
+                        >
+                            <span uk-icon="icon: cog"></span>
+                            <span>{ "Settings" }</span>
+                        </button>
                     </li>
                     <li class="uk-navbar-item">
                         <button class="uk-button uk-button-default uk-button-small abe-button" type="button" onclick={logout}>

@@ -2,11 +2,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ad_buy_engine_domain::{
-    CampaignDraft, DestinationType, DomainSettingsUpdate, EntityRow, FunnelDraft, FunnelPath,
-    FunnelSequence, LandingPageDraft, OfferDraft, OfferSourceDraft, ReportDimensionKey,
-    SequenceType, TrafficSourceDraft, UrlToken, WeightedReference,
+    CampaignDraft, ConversionTrackingResponse, DestinationType, DomainSettingsUpdate, EntityRow,
+    FunnelDraft, FunnelPath, FunnelSequence, LandingPageDraft, LandingPageRole, OfferDraft,
+    OfferSourceDraft, ReportDimensionKey, SequenceType, TrafficSourceDraft, UrlToken,
+    WeightedReference,
 };
-use axum::body::Body;
+use axum::body::{Body, to_bytes};
 use axum::http::header::USER_AGENT;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use campaign_server::config::{BaseUrlOverrides, ServerConfig, UpdateConfig};
@@ -95,6 +96,8 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
             url: "https://lander.test/?go={click_url_1}".to_string(),
             url_tokens: default_tokens(),
             cta_count: 1,
+            role: LandingPageRole::Standard,
+            expected_conversion_event_type_ids: Vec::new(),
             language: "en".to_string(),
             vertical: "demo".to_string(),
             weight: 100,
@@ -307,6 +310,322 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
 }
 
 #[tokio::test]
+async fn processes_lead_capture_lander_to_advertorial_to_offer()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tempdir = tempdir()?;
+    let database_path = tempdir.path().join("multi-step.sqlite3");
+    let dashboard_dist = tempdir.path().join("dist");
+    fs::create_dir(&dashboard_dist)?;
+    fs::write(dashboard_dist.join("index.html"), "<main>dashboard</main>")?;
+    let config = test_config(
+        &database_path,
+        dashboard_dist,
+        tempdir.path(),
+        "https://track.test",
+        "https://admin.test",
+        "http://127.0.0.1:8088",
+    );
+    let pool = connect_database(&config).await?;
+    let geoip = GeoIpService::shared(&load_geolocation_settings(&pool).await?.geoip_settings())?;
+
+    let offer_source = create_offer_source(
+        &pool,
+        OfferSourceDraft {
+            name: "Network".to_string(),
+            tokens: default_tokens(),
+            tracking_domain: "main".to_string(),
+            tracking_method: "postback".to_string(),
+            payout_currency: "USD".to_string(),
+            postback_url: String::new(),
+            append_click_id: true,
+            accept_duplicate_postbacks: false,
+            whitelist_postback_ips: Vec::new(),
+            referrer_handling: "do_nothing".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let offer = create_offer(
+        &pool,
+        OfferDraft {
+            offer_source_id: offer_source.id,
+            country: "Global".to_string(),
+            name: "Sales Page".to_string(),
+            tags: Vec::new(),
+            url: "https://sales.test/?cid={clickid}&src={src}".to_string(),
+            url_tokens: default_tokens(),
+            payout_model: "fixed".to_string(),
+            payout_value: 25.0,
+            currency: "USD".to_string(),
+            language: "en".to_string(),
+            vertical: "demo".to_string(),
+            weight: 100,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let lead_lander = create_landing_page(
+        &pool,
+        LandingPageDraft {
+            country: "Global".to_string(),
+            name: "Lead Capture".to_string(),
+            tags: Vec::new(),
+            url: "https://lead.test/?next={click_url_1}".to_string(),
+            url_tokens: default_tokens(),
+            cta_count: 1,
+            role: LandingPageRole::LeadCapture,
+            expected_conversion_event_type_ids: vec!["lead".to_string()],
+            language: "en".to_string(),
+            vertical: "demo".to_string(),
+            weight: 100,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let advertorial = create_landing_page(
+        &pool,
+        LandingPageDraft {
+            country: "Global".to_string(),
+            name: "Advertorial".to_string(),
+            tags: Vec::new(),
+            url: "https://advertorial.test/?next={click_url_1}".to_string(),
+            url_tokens: default_tokens(),
+            cta_count: 1,
+            role: LandingPageRole::Advertorial,
+            expected_conversion_event_type_ids: Vec::new(),
+            language: "en".to_string(),
+            vertical: "demo".to_string(),
+            weight: 100,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let traffic_source = create_traffic_source(
+        &pool,
+        TrafficSourceDraft {
+            name: "Traffic".to_string(),
+            external_id_parameter: "subid".to_string(),
+            cost_parameter: "cost".to_string(),
+            custom_parameters: Vec::new(),
+            currency: "USD".to_string(),
+            postback_urls: Vec::new(),
+            pixel_url: String::new(),
+            track_impressions: false,
+            direct_tracking: true,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let funnel = create_funnel(
+        &pool,
+        FunnelDraft {
+            country: "Global".to_string(),
+            name: "Lead Funnel".to_string(),
+            redirect_handling: "default".to_string(),
+            referrer_handling: "do_nothing".to_string(),
+            conditional_sequences: Vec::new(),
+            default_sequences: vec![FunnelSequence {
+                id: "default".to_string(),
+                name: "Default".to_string(),
+                active: true,
+                weight: 100,
+                sequence_type: SequenceType::Matrix,
+                conditions: Vec::new(),
+                paths: vec![FunnelPath {
+                    id: "lead".to_string(),
+                    weight: 100,
+                    landing_page_id: Some(lead_lander.id),
+                    offers: Vec::new(),
+                    children: vec![FunnelPath {
+                        id: "advertorial".to_string(),
+                        weight: 100,
+                        landing_page_id: Some(advertorial.id),
+                        offers: Vec::new(),
+                        children: vec![FunnelPath {
+                            id: "sale".to_string(),
+                            weight: 100,
+                            landing_page_id: None,
+                            offers: vec![WeightedReference {
+                                id: offer.id.clone(),
+                                weight: 100,
+                            }],
+                            children: Vec::new(),
+                        }],
+                    }],
+                }],
+            }],
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let campaign = create_campaign(
+        &pool,
+        &config.tracking_base_url,
+        CampaignDraft {
+            traffic_source_id: traffic_source.id,
+            destination_type: DestinationType::Funnel,
+            funnel_id: Some(funnel.id),
+            direct_sequence: None,
+            cost_model: "CPC".to_string(),
+            cost_value: 0.0,
+            country: "Global".to_string(),
+            name: "Lead Campaign".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+
+    let headers = HeaderMap::new();
+    let outcome =
+        process_campaign_click(&pool, &campaign.id, &headers, Some("src=paid"), &geoip).await?;
+    assert!(outcome.target.starts_with("https://lead.test/"));
+    let first_slot = route_slot(&outcome.target)?;
+    let visit_id = route_visit_id(&outcome.target)?;
+
+    let advertorial_outcome = process_lander_click(&pool, &visit_id, first_slot).await?;
+    assert!(
+        advertorial_outcome
+            .target
+            .starts_with("https://advertorial.test/")
+    );
+    let second_slot = route_slot(&advertorial_outcome.target)?;
+
+    let offer_outcome = process_lander_click(&pool, &visit_id, second_slot).await?;
+    assert!(offer_outcome.target.starts_with("https://sales.test/"));
+    assert!(offer_outcome.target.contains("src=paid"));
+    Ok(())
+}
+
+#[tokio::test]
+async fn postback_tracks_custom_conversion_and_dedupes_pii()
+-> Result<(), Box<dyn std::error::Error>> {
+    let tempdir = tempdir()?;
+    let database_path = tempdir.path().join("postback.sqlite3");
+    let dashboard_dist = tempdir.path().join("dist");
+    fs::create_dir(&dashboard_dist)?;
+    fs::write(dashboard_dist.join("index.html"), "<main>dashboard</main>")?;
+    let config = test_config(
+        &database_path,
+        dashboard_dist,
+        tempdir.path(),
+        "https://track.test",
+        "https://admin.test",
+        "http://127.0.0.1:8088",
+    );
+    let pool = connect_database(&config).await?;
+    let offer_source = create_offer_source(
+        &pool,
+        OfferSourceDraft {
+            name: "Network".to_string(),
+            tokens: default_tokens(),
+            tracking_domain: "main".to_string(),
+            tracking_method: "postback".to_string(),
+            payout_currency: "USD".to_string(),
+            postback_url: String::new(),
+            append_click_id: true,
+            accept_duplicate_postbacks: false,
+            whitelist_postback_ips: Vec::new(),
+            referrer_handling: "do_nothing".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let offer = create_offer(
+        &pool,
+        OfferDraft {
+            offer_source_id: offer_source.id,
+            country: "Global".to_string(),
+            name: "Offer".to_string(),
+            tags: Vec::new(),
+            url: "https://offer.test/?cid={clickid}".to_string(),
+            url_tokens: default_tokens(),
+            payout_model: "fixed".to_string(),
+            payout_value: 1.0,
+            currency: "USD".to_string(),
+            language: "en".to_string(),
+            vertical: "demo".to_string(),
+            weight: 100,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let traffic_source = create_traffic_source(
+        &pool,
+        TrafficSourceDraft {
+            name: "Traffic".to_string(),
+            external_id_parameter: "subid".to_string(),
+            cost_parameter: String::new(),
+            custom_parameters: Vec::new(),
+            currency: "USD".to_string(),
+            postback_urls: Vec::new(),
+            pixel_url: String::new(),
+            track_impressions: false,
+            direct_tracking: true,
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let campaign = create_campaign(
+        &pool,
+        &config.tracking_base_url,
+        CampaignDraft {
+            traffic_source_id: traffic_source.id,
+            destination_type: DestinationType::DirectSequence,
+            funnel_id: None,
+            direct_sequence: Some(FunnelSequence::default_offer(offer.id)),
+            cost_model: "CPC".to_string(),
+            cost_value: 0.0,
+            country: "Global".to_string(),
+            name: "Campaign".to_string(),
+            notes: String::new(),
+        },
+    )
+    .await?;
+    let geoip = GeoIpService::shared(&load_geolocation_settings(&pool).await?.geoip_settings())?;
+    let visit =
+        process_campaign_click(&pool, &campaign.id, &HeaderMap::new(), None, &geoip).await?;
+    let visit_id = visit
+        .target
+        .split("cid=")
+        .nth(1)
+        .ok_or_else(|| std::io::Error::other("visit id missing"))?;
+
+    let app = build_router(config.clone(), pool.clone()).await?;
+    let uri = format!("/postback?cid={visit_id}&type=Lead&email=test@example.com&eventid=lead-1");
+    let response = app
+        .oneshot(Request::builder().uri(uri).body(Body::empty())?)
+        .await?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), 64 * 1024).await?;
+    let tracked: ConversionTrackingResponse = serde_json::from_slice(&body)?;
+    assert!(!tracked.duplicate);
+    assert_eq!(tracked.event_type_id, "lead");
+
+    let app = build_router(config.clone(), pool.clone()).await?;
+    let duplicate_uri =
+        format!("/postback?cid={visit_id}&type=Lead&email=test@example.com&eventid=lead-1");
+    let duplicate_response = app
+        .oneshot(Request::builder().uri(duplicate_uri).body(Body::empty())?)
+        .await?;
+    let duplicate_body = to_bytes(duplicate_response.into_body(), 64 * 1024).await?;
+    let duplicate: ConversionTrackingResponse = serde_json::from_slice(&duplicate_body)?;
+    assert!(duplicate.duplicate);
+
+    let raw_payloads: Vec<String> = sqlx::query_scalar(
+        "SELECT raw_payload_json FROM conversion_events ORDER BY created_at_millis",
+    )
+    .fetch_all(&pool)
+    .await?;
+    assert_eq!(raw_payloads.len(), 2);
+    assert!(
+        raw_payloads
+            .iter()
+            .all(|payload| !payload.contains("test@example.com"))
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn fresh_database_seeds_domain_base_urls() -> Result<(), Box<dyn std::error::Error>> {
     let tempdir = tempdir()?;
     let database_path = tempdir.path().join("fresh.sqlite3");
@@ -509,6 +828,28 @@ fn default_tokens() -> Vec<UrlToken> {
         name: "clickid".to_string(),
         token: "{clickid}".to_string(),
     }]
+}
+
+fn route_visit_id(target: &str) -> Result<String, std::io::Error> {
+    target
+        .split("/go/")
+        .nth(1)
+        .and_then(|tail| tail.split('/').next())
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| std::io::Error::other("visit id missing from click URL"))
+}
+
+fn route_slot(target: &str) -> Result<u8, std::io::Error> {
+    target
+        .split("/go/")
+        .nth(1)
+        .and_then(|tail| tail.split('/').nth(1))
+        .and_then(|slot| {
+            slot.split(|character| ['?', '&'].contains(&character))
+                .next()
+        })
+        .and_then(|slot| slot.parse().ok())
+        .ok_or_else(|| std::io::Error::other("slot missing from click URL"))
 }
 
 fn assert_row_counts(rows: &[EntityRow], name: &str, visits: i64, unique_visits: i64) {

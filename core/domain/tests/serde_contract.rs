@@ -1,7 +1,7 @@
 use ad_buy_engine_domain::{
     CampaignDraft, ConditionRule, DestinationType, DomainSettingsResponse, DomainSettingsUpdate,
-    DomainSetupStatus, FunnelDraft, FunnelSequence, LandingPageDraft, OfferDraft, OfferSourceDraft,
-    TrafficSourceDraft, UrlToken, ValidateDraft,
+    DomainSetupStatus, FunnelDraft, FunnelSequence, LandingPageDraft, LandingPageRole, OfferDraft,
+    OfferSourceDraft, TrafficSourceDraft, UrlToken, ValidateDraft,
 };
 
 #[test]
@@ -91,6 +91,8 @@ fn every_create_dto_has_validation_and_serialization() -> Result<(), Box<dyn std
         url: "https://example.com/lander".to_string(),
         url_tokens: vec![token],
         cta_count: 1,
+        role: LandingPageRole::Standard,
+        expected_conversion_event_type_ids: Vec::new(),
         language: "en".to_string(),
         vertical: "demo".to_string(),
         weight: 100,

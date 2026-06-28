@@ -36,6 +36,8 @@ pub enum Route {
     Date,
     #[at("/day-parting")]
     DayParting,
+    #[at("/settings")]
+    Settings,
     #[at("/settings/domain")]
     DomainSettings,
     #[at("/settings/geolocation")]
@@ -51,7 +53,7 @@ pub struct NavigationItem {
     pub icon: &'static str,
 }
 
-pub const NAVIGATION_ITEMS: [NavigationItem; 17] = [
+pub const NAVIGATION_ITEMS: [NavigationItem; 14] = [
     NavigationItem::new(Route::Dashboard, "Dashboard", "home"),
     NavigationItem::new(Route::Campaigns, "Campaigns", "world"),
     NavigationItem::new(Route::Offers, "Offers", "tag"),
@@ -66,9 +68,6 @@ pub const NAVIGATION_ITEMS: [NavigationItem; 17] = [
     NavigationItem::new(Route::Os, "OS", "cog"),
     NavigationItem::new(Route::Date, "Date", "calendar"),
     NavigationItem::new(Route::DayParting, "Day Parting", "clock"),
-    NavigationItem::new(Route::DomainSettings, "Domain Settings", "world"),
-    NavigationItem::new(Route::GeolocationSettings, "Geo Settings", "settings"),
-    NavigationItem::new(Route::UpdateSettings, "Updates", "refresh"),
 ];
 
 impl NavigationItem {
@@ -94,6 +93,7 @@ impl Route {
             Self::Os => "OS",
             Self::Date => "Date",
             Self::DayParting => "Day Parting",
+            Self::Settings => "Settings",
             Self::DomainSettings => "Domain Settings",
             Self::GeolocationSettings => "Geo Settings",
             Self::UpdateSettings => "Updates",
@@ -116,6 +116,7 @@ impl Route {
             Self::Os => "/os",
             Self::Date => "/date",
             Self::DayParting => "/day-parting",
+            Self::Settings => "/settings",
             Self::DomainSettings => "/settings/domain",
             Self::GeolocationSettings => "/settings/geolocation",
             Self::UpdateSettings => "/settings/updates",
@@ -123,7 +124,12 @@ impl Route {
     }
 
     pub const fn render_route(self) -> Self {
-        self
+        match self {
+            Self::DomainSettings | Self::GeolocationSettings | Self::UpdateSettings => {
+                Self::Settings
+            }
+            _ => self,
+        }
     }
 
     pub const fn is_dashboard(self) -> bool {
@@ -131,13 +137,7 @@ impl Route {
     }
 
     pub const fn is_report(self) -> bool {
-        !matches!(
-            self.render_route(),
-            Self::Dashboard
-                | Self::DomainSettings
-                | Self::GeolocationSettings
-                | Self::UpdateSettings
-        )
+        !matches!(self.render_route(), Self::Dashboard | Self::Settings)
     }
 
     pub const fn create_button_label(self) -> Option<&'static str> {
@@ -145,6 +145,7 @@ impl Route {
             Self::Campaigns => Some("New Campaign"),
             Self::Offers => Some("New Offer"),
             Self::Landers => Some("New Lander"),
+            Self::Conversions => Some("New Conversion Event"),
             Self::Funnels => Some("New Funnel"),
             Self::TrafficSources => Some("New Traffic Source"),
             Self::OfferSources => Some("New Offer Source"),
@@ -169,6 +170,7 @@ impl Route {
             Self::Campaigns => Some(ReportDimensionKey::Campaigns),
             Self::Offers => Some(ReportDimensionKey::Offers),
             Self::Landers => Some(ReportDimensionKey::Landers),
+            Self::Conversions => Some(ReportDimensionKey::Conversions),
             Self::Funnels => Some(ReportDimensionKey::Funnels),
             Self::TrafficSources => Some(ReportDimensionKey::TrafficSources),
             Self::OfferSources => Some(ReportDimensionKey::OfferSources),
@@ -189,6 +191,7 @@ impl Route {
             ReportDimensionKey::OfferSources => Some(Self::OfferSources),
             ReportDimensionKey::Offers => Some(Self::Offers),
             ReportDimensionKey::Landers => Some(Self::Landers),
+            ReportDimensionKey::Conversions => Some(Self::Conversions),
             ReportDimensionKey::Funnels => Some(Self::Funnels),
             ReportDimensionKey::Browsers => Some(Self::Browsers),
             ReportDimensionKey::OperatingSystems => Some(Self::Os),

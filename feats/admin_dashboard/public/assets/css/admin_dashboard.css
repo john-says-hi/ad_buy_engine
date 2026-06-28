@@ -75,6 +75,16 @@ textarea {
   color: var(--abe-purple);
 }
 
+.abe-status-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.abe-status-button:hover {
+  color: var(--abe-purple);
+}
+
 .abe-main-nav {
   margin: 24px 0 0;
   background: var(--abe-surface);
@@ -275,7 +285,13 @@ textarea {
   gap: 0.35rem;
 }
 
+.abe-settings-page {
+  background: var(--abe-surface);
+}
+
 .abe-settings-panel {
+  box-sizing: border-box;
+  width: min(980px, 100%);
   max-width: 980px;
   padding: 18px 14px 28px;
   background: var(--abe-surface);
@@ -285,6 +301,27 @@ textarea {
   margin: 0 0 18px;
   color: #25202c;
   font-size: 1.35rem;
+}
+
+.abe-settings-sections {
+  display: grid;
+  gap: 26px;
+}
+
+.abe-settings-section {
+  padding-top: 4px;
+}
+
+.abe-settings-section + .abe-settings-section {
+  padding-top: 24px;
+  border-top: 1px solid #f3f0f7;
+}
+
+.abe-settings-section h2 {
+  margin: 0 0 14px;
+  color: #25202c;
+  font-size: 1rem;
+  line-height: 1.3;
 }
 
 .abe-settings-form {
@@ -319,6 +356,9 @@ textarea {
 }
 
 .abe-settings-status {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
   margin-top: 20px;
 }
 
@@ -481,8 +521,22 @@ textarea {
     display: none;
   }
 
+  .abe-top-status {
+    gap: 0.05rem;
+  }
+
+  .abe-top-status > li.uk-navbar-item {
+    padding: 0 4px;
+  }
+
+  .abe-status-pill a,
   .abe-status-pill span:not([uk-icon]) {
     display: none;
+  }
+
+  .abe-status-button {
+    justify-content: center;
+    min-width: 32px;
   }
 
   .abe-main-nav .uk-navbar-nav > li > a {
