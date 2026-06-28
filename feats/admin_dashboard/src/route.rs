@@ -131,5 +131,5 @@ impl Route {
 }
 
 pub fn switch(route: Route) -> Html {
-    html! { <Shell route={route.render_route()} /> }
+    html! { <Shell route={route.render_route()} on_logout={Callback::from(|_| ())} /> }
 }

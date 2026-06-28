@@ -1,5 +1,9 @@
 [workspace]
-members = ["feats/admin_dashboard"]
+members = [
+    "core/domain",
+    "feats/admin_dashboard",
+    "runtime/campaign_server",
+]
 resolver = "3"
 
 [workspace.package]
@@ -9,6 +13,30 @@ rust-version = "1.90.0"
 publish = false
 
 [workspace.dependencies]
+ad_buy_engine_domain = { path = "core/domain" }
+anyhow = "1.0.98"
+argon2 = { version = "0.5.3", features = ["std"] }
+axum = { version = "0.8.4", features = ["macros"] }
+chrono = { version = "0.4.41", default-features = false, features = ["clock", "serde"] }
+chrono-tz = "0.10.3"
+gloo-net = "0.6.0"
+maxminddb = "0.24.0"
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono", "uuid", "migrate"] }
+thiserror = "2.0.12"
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread", "signal", "net"] }
+tower-http = { version = "0.6.6", features = ["cors", "fs", "trace"] }
+tower-sessions = "0.14.0"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
+url = "2.5.4"
+urlencoding = "2.1.3"
+user-agent-parser = "0.3.6"
+uuid = { version = "1.17.0", features = ["v4", "serde", "js"] }
+wasm-bindgen-futures = "0.4.50"
+web-time = "1.1.0"
 yew = { version = "0.23.0", features = ["csr"] }
 yew-router = "0.20.0"
 wasm-bindgen = "0.2"

@@ -34,10 +34,12 @@ fn navigation_labels_match_initial_shell_scope() {
 }
 
 #[test]
-fn offer_sources_has_expected_button_and_report_state() {
+fn offer_sources_has_expected_button_and_report_state() -> Result<(), &'static str> {
     let route = Route::OfferSources;
     let report = ReportState::for_route(route);
-    let form = CreateFormDefinition::for_route(route).expect("offer sources should have a form");
+    let Some(form) = CreateFormDefinition::for_route(route) else {
+        return Err("offer sources should have a form");
+    };
 
     assert_eq!(route.label(), "Offer Sources");
     assert_eq!(route.create_button_label(), Some("New Offer Source"));
@@ -50,6 +52,7 @@ fn offer_sources_has_expected_button_and_report_state() {
     assert_eq!(report.third_grouping, "Drill Down");
     assert_eq!(report.visit_total, 0);
     assert_eq!(report.unique_total, 0);
+    Ok(())
 }
 
 #[test]
@@ -61,7 +64,7 @@ fn dashboard_is_not_a_report_page() {
 }
 
 #[test]
-fn creatable_routes_have_legacy_modal_metadata() {
+fn creatable_routes_have_legacy_modal_metadata() -> Result<(), String> {
     let cases = [
         (
             Route::Campaigns,
@@ -108,14 +111,16 @@ fn creatable_routes_have_legacy_modal_metadata() {
     ];
 
     for (route, button_label, modal_id, title, expected_field) in cases {
-        let form = CreateFormDefinition::for_route(route)
-            .unwrap_or_else(|| panic!("missing create form for {}", route.label()));
+        let Some(form) = CreateFormDefinition::for_route(route) else {
+            return Err(format!("missing create form for {}", route.label()));
+        };
 
         assert_eq!(route.create_button_label(), Some(button_label));
         assert_eq!(form.modal_id, modal_id);
         assert_eq!(form.title, title);
         assert!(form.contains_field_label(expected_field));
     }
+    Ok(())
 }
 
 #[test]

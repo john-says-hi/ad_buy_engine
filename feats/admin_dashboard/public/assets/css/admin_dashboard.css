@@ -121,6 +121,49 @@ textarea {
   letter-spacing: 0;
 }
 
+.abe-auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.abe-auth-panel {
+  width: min(420px, 100%);
+  padding: 28px;
+  border-radius: 4px;
+  background: var(--abe-surface);
+  box-shadow: 0 22px 60px rgba(31, 27, 38, 0.32);
+}
+
+.abe-auth-logo {
+  display: block;
+  height: 42px;
+  margin: 0 auto 18px;
+}
+
+.abe-auth-panel h1 {
+  margin: 0 0 20px;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.abe-auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.abe-auth-field {
+  display: grid;
+  gap: 6px;
+}
+
+.abe-auth-field span {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .abe-report {
   min-height: calc(100vh - 170px);
 }
@@ -207,6 +250,41 @@ textarea {
 
 .abe-table tfoot td {
   font-weight: 600;
+}
+
+.abe-row-name {
+  font-weight: 600;
+}
+
+.abe-row-detail,
+.abe-row-link {
+  display: block;
+  max-width: min(680px, 72vw);
+  overflow: hidden;
+  color: var(--abe-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+}
+
+.abe-row-link {
+  color: var(--abe-purple-dark);
+}
+
+.abe-row-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.abe-inline-status,
+.abe-inline-error,
+.abe-form-error {
+  margin: 10px 14px;
+  font-size: 0.86rem;
+}
+
+.abe-inline-error,
+.abe-form-error {
+  color: #b42318;
 }
 
 .abe-modal-backdrop {
