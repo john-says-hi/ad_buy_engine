@@ -16,6 +16,7 @@ version = "0.1.0"
 dependencies = [
  "ad_buy_engine_domain",
  "gloo-net 0.6.0",
+ "js-sys",
  "serde",
  "serde_json",
  "wasm-bindgen",

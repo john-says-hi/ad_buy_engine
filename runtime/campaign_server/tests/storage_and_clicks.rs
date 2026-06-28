@@ -11,6 +11,7 @@ use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use campaign_server::config::ServerConfig;
 use campaign_server::services::click_processor::{process_campaign_click, process_lander_click};
 use campaign_server::storage::database::connect_database;
+use campaign_server::storage::date_filter::VisitDateFilter;
 use campaign_server::storage::entities::{
     create_campaign, create_funnel, create_landing_page, create_offer, create_offer_source,
     create_traffic_source, list_campaign_rows, list_funnel_rows, list_landing_page_rows,
@@ -196,26 +197,54 @@ async fn creates_campaign_and_processes_lander_flow() -> Result<(), Box<dyn std:
     .await?;
     assert!(outcome.target.starts_with("https://lander.test/"));
 
-    let rows = list_campaign_rows(&pool).await?;
+    let all_time = VisitDateFilter::default();
+    let rows = list_campaign_rows(&pool, all_time).await?;
     assert_row_counts(&rows, "Campaign", 2, 2);
-    assert_row_counts(&list_offer_rows(&pool).await?, "Offer", 2, 2);
-    assert_row_counts(&list_offer_source_rows(&pool).await?, "Network", 2, 2);
-    assert_row_counts(&list_landing_page_rows(&pool).await?, "Lander", 2, 2);
-    assert_row_counts(&list_traffic_source_rows(&pool).await?, "Traffic", 2, 2);
-    assert_row_counts(&list_funnel_rows(&pool).await?, "Funnel", 2, 2);
+    assert_row_counts(&list_offer_rows(&pool, all_time).await?, "Offer", 2, 2);
+    assert_row_counts(
+        &list_offer_source_rows(&pool, all_time).await?,
+        "Network",
+        2,
+        2,
+    );
+    assert_row_counts(
+        &list_landing_page_rows(&pool, all_time).await?,
+        "Lander",
+        2,
+        2,
+    );
+    assert_row_counts(
+        &list_traffic_source_rows(&pool, all_time).await?,
+        "Traffic",
+        2,
+        2,
+    );
+    assert_row_counts(&list_funnel_rows(&pool, all_time).await?, "Funnel", 2, 2);
 
-    let browser_rows = list_browser_rows(&pool).await?;
+    let future = VisitDateFilter::new(Some(i64::MAX - 1), None);
+    assert_row_counts(&list_offer_rows(&pool, future).await?, "Offer", 0, 0);
+    assert_eq!(sum_visits(&list_browser_rows(&pool, future).await?), 0);
+
+    let browser_rows = list_browser_rows(&pool, all_time).await?;
     assert_row_counts(&browser_rows, "Chrome", 1, 1);
     assert_eq!(sum_visits(&browser_rows), 2);
-    let device_rows = list_device_rows(&pool).await?;
+    let device_rows = list_device_rows(&pool, all_time).await?;
     assert_row_counts(&device_rows, "Desktop", 1, 1);
     assert_eq!(sum_visits(&device_rows), 2);
-    let os_rows = list_os_rows(&pool).await?;
+    let os_rows = list_os_rows(&pool, all_time).await?;
     assert_row_counts(&os_rows, "Linux", 1, 1);
     assert_eq!(sum_visits(&os_rows), 2);
-    assert_row_counts(&list_connection_rows(&pool).await?, "Unknown", 2, 2);
-    assert_eq!(sum_visits(&list_date_rows(&pool).await?), 2);
-    assert_eq!(sum_visits(&list_day_parting_rows(&pool).await?), 2);
+    assert_row_counts(
+        &list_connection_rows(&pool, all_time).await?,
+        "Unknown",
+        2,
+        2,
+    );
+    assert_eq!(sum_visits(&list_date_rows(&pool, all_time).await?), 2);
+    assert_eq!(
+        sum_visits(&list_day_parting_rows(&pool, all_time).await?),
+        2
+    );
 
     let visit_id = outcome
         .target

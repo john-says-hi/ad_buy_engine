@@ -2,6 +2,7 @@ use ad_buy_engine_domain::{EntityRecord, EntityRow, SessionResponse};
 
 use crate::route::Route;
 use crate::state::entity_form::{EntityKind, FormOptionLists, SaveDraft};
+use crate::state::report::ReportDateRange;
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
@@ -50,16 +51,24 @@ mod wasm {
         .await
     }
 
-    pub async fn list_rows(kind: EntityKind) -> Result<Vec<EntityRow>, String> {
-        let response: ListResponse<EntityRow> = get_json(kind.endpoint()).await?;
+    pub async fn list_rows(
+        kind: EntityKind,
+        date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
+        let response: ListResponse<EntityRow> =
+            get_json(&url_with_date_range(kind.endpoint(), date_range)).await?;
         Ok(response.items)
     }
 
-    pub async fn list_report_rows(route: Route) -> Result<Vec<EntityRow>, String> {
+    pub async fn list_report_rows(
+        route: Route,
+        date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
         let endpoint = route
             .report_rows_endpoint()
             .ok_or_else(|| "This report does not have a data source yet".to_string())?;
-        let response: ListResponse<EntityRow> = get_json(endpoint).await?;
+        let response: ListResponse<EntityRow> =
+            get_json(&url_with_date_range(endpoint, date_range)).await?;
         Ok(response.items)
     }
 
@@ -237,6 +246,60 @@ mod wasm {
             Err(error) => error.to_string(),
         }
     }
+
+    fn url_with_date_range(endpoint: &str, date_range: ReportDateRange) -> String {
+        match date_range_bounds(date_range) {
+            Some(bounds) => format!(
+                "{endpoint}?start_at_millis={}&end_at_millis={}",
+                bounds.start_at_millis, bounds.end_at_millis
+            ),
+            None => endpoint.to_string(),
+        }
+    }
+
+    struct DateRangeBounds {
+        start_at_millis: i64,
+        end_at_millis: i64,
+    }
+
+    fn date_range_bounds(date_range: ReportDateRange) -> Option<DateRangeBounds> {
+        let today_start = local_midnight_today();
+        let tomorrow_start = today_start + MILLIS_PER_DAY;
+        match date_range {
+            ReportDateRange::Today => Some(DateRangeBounds {
+                start_at_millis: today_start,
+                end_at_millis: tomorrow_start,
+            }),
+            ReportDateRange::Yesterday => Some(DateRangeBounds {
+                start_at_millis: today_start - MILLIS_PER_DAY,
+                end_at_millis: today_start,
+            }),
+            ReportDateRange::Last3Days => Some(last_days_bounds(today_start, 3)),
+            ReportDateRange::Last7Days => Some(last_days_bounds(today_start, 7)),
+            ReportDateRange::Last14Days => Some(last_days_bounds(today_start, 14)),
+            ReportDateRange::Last30Days => Some(last_days_bounds(today_start, 30)),
+            ReportDateRange::Last6Months => Some(last_days_bounds(today_start, 183)),
+            ReportDateRange::AllTime => None,
+        }
+    }
+
+    const MILLIS_PER_DAY: i64 = 86_400_000;
+
+    fn last_days_bounds(today_start: i64, days: i64) -> DateRangeBounds {
+        DateRangeBounds {
+            start_at_millis: today_start - ((days - 1) * MILLIS_PER_DAY),
+            end_at_millis: today_start + MILLIS_PER_DAY,
+        }
+    }
+
+    fn local_midnight_today() -> i64 {
+        let today = js_sys::Date::new_0();
+        today.set_hours(0);
+        today.set_minutes(0);
+        today.set_seconds(0);
+        today.set_milliseconds(0);
+        today.get_time().round() as i64
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -263,11 +326,17 @@ mod native {
         Err(native_error())
     }
 
-    pub async fn list_rows(_kind: EntityKind) -> Result<Vec<EntityRow>, String> {
+    pub async fn list_rows(
+        _kind: EntityKind,
+        _date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
         Err(native_error())
     }
 
-    pub async fn list_report_rows(_route: Route) -> Result<Vec<EntityRow>, String> {
+    pub async fn list_report_rows(
+        _route: Route,
+        _date_range: ReportDateRange,
+    ) -> Result<Vec<EntityRow>, String> {
         Err(native_error())
     }
 

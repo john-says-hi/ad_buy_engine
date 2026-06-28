@@ -2,7 +2,9 @@ use ad_buy_engine_domain::EntityRow;
 use admin_dashboard::route::{NAVIGATION_ITEMS, Route};
 use admin_dashboard::state::create_form::CreateFormDefinition;
 use admin_dashboard::state::entity_form::{EntityKind, FieldType, form_fields};
-use admin_dashboard::state::report::{ReportState, ReportTotals};
+use admin_dashboard::state::report::{
+    DATE_RANGE_OPTIONS, ReportDateRange, ReportState, ReportTotals, filter_rows_by_search,
+};
 
 #[test]
 fn default_route_is_dashboard() {
@@ -52,6 +54,8 @@ fn offer_sources_has_expected_button_and_report_state() -> Result<(), &'static s
     assert_eq!(report.first_grouping, "Offer Sources");
     assert_eq!(report.second_grouping, "Drill Down");
     assert_eq!(report.third_grouping, "Drill Down");
+    assert_eq!(report.date_range, ReportDateRange::Today);
+    assert_eq!(report.date_range.label(), "Today");
     assert_eq!(report.visit_total, 0);
     assert_eq!(report.unique_total, 0);
     Ok(())
@@ -173,6 +177,48 @@ fn report_totals_sum_loaded_rows() {
     assert_eq!(totals.unique_total, 3);
 }
 
+#[test]
+fn date_range_options_match_toolbar_labels() {
+    let labels: Vec<&str> = DATE_RANGE_OPTIONS
+        .iter()
+        .map(|option| option.label())
+        .collect();
+
+    assert_eq!(
+        labels,
+        vec![
+            "Today",
+            "Yesterday",
+            "Last 3 Days",
+            "Last 7 Days",
+            "Last 14 Days",
+            "Last 30 Days",
+            "Last 6 Months",
+            "All of Time",
+        ]
+    );
+}
+
+#[test]
+fn search_filter_matches_name_detail_id_and_tracking_url() {
+    let rows = vec![
+        entity_row_with_detail("offer-one", "Home Page", "JVZoo", None),
+        entity_row_with_detail(
+            "campaign-two",
+            "Search Campaign",
+            "Traffic",
+            Some("http://127.0.0.1:8088/c/search".to_string()),
+        ),
+    ];
+
+    assert_eq!(filter_rows_by_search(&rows, "home").len(), 1);
+    assert_eq!(filter_rows_by_search(&rows, "jvzoo").len(), 1);
+    assert_eq!(filter_rows_by_search(&rows, "campaign-two").len(), 1);
+    assert_eq!(filter_rows_by_search(&rows, "/c/search").len(), 1);
+    assert_eq!(filter_rows_by_search(&rows, "missing").len(), 0);
+    assert_eq!(filter_rows_by_search(&rows, "   ").len(), 2);
+}
+
 fn field_type(kind: EntityKind, key: &str) -> Option<FieldType> {
     form_fields(kind)
         .into_iter()
@@ -181,13 +227,34 @@ fn field_type(kind: EntityKind, key: &str) -> Option<FieldType> {
 }
 
 fn entity_row(name: &str, visits: i64, unique_visits: i64) -> EntityRow {
+    entity_row_with_detail(name, name, "", None).with_counts(visits, unique_visits)
+}
+
+trait EntityRowTestExt {
+    fn with_counts(self, visits: i64, unique_visits: i64) -> Self;
+}
+
+impl EntityRowTestExt for EntityRow {
+    fn with_counts(mut self, visits: i64, unique_visits: i64) -> Self {
+        self.visits = visits;
+        self.unique_visits = unique_visits;
+        self
+    }
+}
+
+fn entity_row_with_detail(
+    id: &str,
+    name: &str,
+    detail: &str,
+    tracking_url: Option<String>,
+) -> EntityRow {
     EntityRow {
-        id: name.to_string(),
+        id: id.to_string(),
         name: name.to_string(),
-        detail: String::new(),
-        visits,
-        unique_visits,
+        detail: detail.to_string(),
+        visits: 0,
+        unique_visits: 0,
         updated_at_millis: 0,
-        tracking_url: None,
+        tracking_url,
     }
 }

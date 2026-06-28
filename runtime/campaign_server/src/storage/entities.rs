@@ -5,15 +5,21 @@ use ad_buy_engine_domain::{
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use sqlx::sqlite::SqliteRow;
-use sqlx::{Row, SqlitePool};
+use sqlx::query::Query;
+use sqlx::sqlite::{SqliteArguments, SqliteRow};
+use sqlx::{Row, Sqlite, SqlitePool};
 use uuid::Uuid;
 
 use crate::error::{ServerError, ServerResult};
+use crate::storage::date_filter::VisitDateFilter;
 use crate::time::now_millis;
 
-pub async fn list_offer_source_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_offer_source_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT offer_sources.id, offer_sources.name, offer_sources.tracking_method AS detail,
                 offer_sources.updated_at_millis,
                 COUNT(visits.id) AS visits,
@@ -21,34 +27,50 @@ pub async fn list_offer_source_rows(pool: &SqlitePool) -> ServerResult<Vec<Entit
          FROM offer_sources
          LEFT JOIN offers ON offers.offer_source_id = offer_sources.id
          LEFT JOIN visits ON visits.selected_offer_id = offers.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE offer_sources.archived = 0
          GROUP BY offer_sources.id
          ORDER BY offer_sources.updated_at_millis DESC, offer_sources.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
     rows.into_iter().map(counted_entity_row).collect()
 }
 
-pub async fn list_offer_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_offer_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT offers.id, offers.name, offer_sources.name AS detail, offers.updated_at_millis,
                 COUNT(visits.id) AS visits,
                 COUNT(DISTINCT CASE WHEN visits.id IS NULL THEN NULL ELSE COALESCE(visits.ip_address, '') || '|' || COALESCE(visits.user_agent, '') END) AS unique_visits
          FROM offers
          JOIN offer_sources ON offer_sources.id = offers.offer_source_id
          LEFT JOIN visits ON visits.selected_offer_id = offers.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE offers.archived = 0
          GROUP BY offers.id
          ORDER BY offers.updated_at_millis DESC, offers.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
     rows.into_iter().map(counted_entity_row).collect()
 }
 
-pub async fn list_landing_page_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_landing_page_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT landing_pages.id, landing_pages.name,
                 landing_pages.country || ' / ' || landing_pages.cta_count || ' CTA' AS detail,
                 landing_pages.updated_at_millis,
@@ -56,50 +78,74 @@ pub async fn list_landing_page_rows(pool: &SqlitePool) -> ServerResult<Vec<Entit
                 COUNT(DISTINCT CASE WHEN visits.id IS NULL THEN NULL ELSE COALESCE(visits.ip_address, '') || '|' || COALESCE(visits.user_agent, '') END) AS unique_visits
          FROM landing_pages
          LEFT JOIN visits ON visits.selected_landing_page_id = landing_pages.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE landing_pages.archived = 0
          GROUP BY landing_pages.id
          ORDER BY landing_pages.updated_at_millis DESC, landing_pages.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
     rows.into_iter().map(counted_entity_row).collect()
 }
 
-pub async fn list_traffic_source_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_traffic_source_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT traffic_sources.id, traffic_sources.name, traffic_sources.currency AS detail,
                 traffic_sources.updated_at_millis,
                 COUNT(visits.id) AS visits,
                 COUNT(DISTINCT CASE WHEN visits.id IS NULL THEN NULL ELSE COALESCE(visits.ip_address, '') || '|' || COALESCE(visits.user_agent, '') END) AS unique_visits
          FROM traffic_sources
          LEFT JOIN visits ON visits.traffic_source_id = traffic_sources.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE traffic_sources.archived = 0
          GROUP BY traffic_sources.id
          ORDER BY traffic_sources.updated_at_millis DESC, traffic_sources.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
     rows.into_iter().map(counted_entity_row).collect()
 }
 
-pub async fn list_funnel_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_funnel_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT funnels.id, funnels.name, funnels.country AS detail, funnels.updated_at_millis,
                 COUNT(visits.id) AS visits,
                 COUNT(DISTINCT CASE WHEN visits.id IS NULL THEN NULL ELSE COALESCE(visits.ip_address, '') || '|' || COALESCE(visits.user_agent, '') END) AS unique_visits
          FROM funnels
          LEFT JOIN visits ON visits.selected_funnel_id = funnels.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE funnels.archived = 0
          GROUP BY funnels.id
          ORDER BY funnels.updated_at_millis DESC, funnels.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
     rows.into_iter().map(counted_entity_row).collect()
 }
 
-pub async fn list_campaign_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    let rows = sqlx::query(
+pub async fn list_campaign_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    let rows = bind_visit_date_filter(
+        sqlx::query(
         "SELECT campaigns.id, campaigns.name, traffic_sources.name AS detail,
                 campaigns.updated_at_millis, campaigns.tracking_url,
                 COUNT(visits.id) AS visits,
@@ -107,9 +153,13 @@ pub async fn list_campaign_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow
          FROM campaigns
          JOIN traffic_sources ON traffic_sources.id = campaigns.traffic_source_id
          LEFT JOIN visits ON visits.campaign_id = campaigns.id
+            AND (? IS NULL OR visits.created_at_millis >= ?)
+            AND (? IS NULL OR visits.created_at_millis < ?)
          WHERE campaigns.archived = 0
          GROUP BY campaigns.id
          ORDER BY campaigns.updated_at_millis DESC, campaigns.name ASC",
+        ),
+        date_filter,
     )
     .fetch_all(pool)
     .await?;
@@ -642,6 +692,17 @@ pub async fn mark_campaign_clicked(
         .execute(pool)
         .await?;
     Ok(())
+}
+
+fn bind_visit_date_filter<'q>(
+    query: Query<'q, Sqlite, SqliteArguments<'q>>,
+    date_filter: VisitDateFilter,
+) -> Query<'q, Sqlite, SqliteArguments<'q>> {
+    query
+        .bind(date_filter.start_at_millis)
+        .bind(date_filter.start_at_millis)
+        .bind(date_filter.end_at_millis)
+        .bind(date_filter.end_at_millis)
 }
 
 fn counted_entity_row(row: SqliteRow) -> ServerResult<EntityRow> {

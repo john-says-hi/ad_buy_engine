@@ -6,6 +6,7 @@ use sqlx::{Row, SqlitePool};
 
 use crate::error::ServerResult;
 use crate::services::user_agent::{detect_browser, detect_device_type, detect_operating_system};
+use crate::storage::date_filter::VisitDateFilter;
 
 #[derive(Clone, Debug)]
 struct VisitFact {
@@ -24,8 +25,11 @@ struct ReportBucket {
     updated_at_millis: i64,
 }
 
-pub async fn list_browser_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |visit| {
+pub async fn list_browser_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |visit| {
         let name = visit
             .user_agent
             .as_deref()
@@ -36,8 +40,11 @@ pub async fn list_browser_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>
     .await
 }
 
-pub async fn list_device_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |visit| {
+pub async fn list_device_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |visit| {
         let name = visit
             .user_agent
             .as_deref()
@@ -48,8 +55,11 @@ pub async fn list_device_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>>
     .await
 }
 
-pub async fn list_os_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |visit| {
+pub async fn list_os_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |visit| {
         let name = visit
             .user_agent
             .as_deref()
@@ -60,8 +70,11 @@ pub async fn list_os_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
     .await
 }
 
-pub async fn list_connection_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |_| {
+pub async fn list_connection_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |_| {
         (
             "Unknown".to_string(),
             "Connection provider not configured".to_string(),
@@ -70,8 +83,11 @@ pub async fn list_connection_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityR
     .await
 }
 
-pub async fn list_date_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |visit| {
+pub async fn list_date_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |visit| {
         match visit_datetime(visit.created_at_millis) {
             Some(datetime) => (
                 format!(
@@ -91,8 +107,11 @@ pub async fn list_date_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
     .await
 }
 
-pub async fn list_day_parting_rows(pool: &SqlitePool) -> ServerResult<Vec<EntityRow>> {
-    list_derived_rows(pool, |visit| {
+pub async fn list_day_parting_rows(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<EntityRow>> {
+    list_derived_rows(pool, date_filter, |visit| {
         match visit_datetime(visit.created_at_millis) {
             Some(datetime) => {
                 let hour = datetime.hour();
@@ -112,18 +131,28 @@ pub async fn list_day_parting_rows(pool: &SqlitePool) -> ServerResult<Vec<Entity
 
 async fn list_derived_rows(
     pool: &SqlitePool,
+    date_filter: VisitDateFilter,
     labeler: impl Fn(&VisitFact) -> (String, String),
 ) -> ServerResult<Vec<EntityRow>> {
-    let visits = visit_facts(pool).await?;
+    let visits = visit_facts(pool, date_filter).await?;
     Ok(rows_by_label(&visits, labeler))
 }
 
-async fn visit_facts(pool: &SqlitePool) -> ServerResult<Vec<VisitFact>> {
+async fn visit_facts(
+    pool: &SqlitePool,
+    date_filter: VisitDateFilter,
+) -> ServerResult<Vec<VisitFact>> {
     let rows = sqlx::query(
         "SELECT id, ip_address, user_agent, created_at_millis
          FROM visits
+         WHERE (? IS NULL OR created_at_millis >= ?)
+            AND (? IS NULL OR created_at_millis < ?)
          ORDER BY created_at_millis DESC",
     )
+    .bind(date_filter.start_at_millis)
+    .bind(date_filter.start_at_millis)
+    .bind(date_filter.end_at_millis)
+    .bind(date_filter.end_at_millis)
     .fetch_all(pool)
     .await?;
 

@@ -4,22 +4,24 @@ use ad_buy_engine_domain::{
     TrafficSourceDraft,
 };
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use tower_sessions::Session;
 
 use crate::error::ServerResult;
 use crate::services::authentication::require_session;
 use crate::storage::entities;
+use crate::web::date_filter::DateFilterQuery;
 use crate::web::router::AppState;
 
 pub async fn list_offer_sources(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_offer_source_rows(&state.pool).await?,
+        items: entities::list_offer_source_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 
@@ -67,11 +69,12 @@ pub async fn archive_offer_source(
 
 pub async fn list_offers(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_offer_rows(&state.pool).await?,
+        items: entities::list_offer_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 
@@ -117,11 +120,12 @@ pub async fn archive_offer(
 
 pub async fn list_landing_pages(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_landing_page_rows(&state.pool).await?,
+        items: entities::list_landing_page_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 
@@ -169,11 +173,12 @@ pub async fn archive_landing_page(
 
 pub async fn list_traffic_sources(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_traffic_source_rows(&state.pool).await?,
+        items: entities::list_traffic_source_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 
@@ -223,11 +228,12 @@ pub async fn archive_traffic_source(
 
 pub async fn list_funnels(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_funnel_rows(&state.pool).await?,
+        items: entities::list_funnel_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 
@@ -273,11 +279,12 @@ pub async fn archive_funnel(
 
 pub async fn list_campaigns(
     State(state): State<AppState>,
+    Query(date_filter): Query<DateFilterQuery>,
     session: Session,
 ) -> ServerResult<Json<ListResponse<EntityRow>>> {
     require_session(&state.pool, &session, false).await?;
     Ok(Json(ListResponse {
-        items: entities::list_campaign_rows(&state.pool).await?,
+        items: entities::list_campaign_rows(&state.pool, date_filter.into()).await?,
     }))
 }
 

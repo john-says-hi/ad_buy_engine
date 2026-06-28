@@ -5,7 +5,7 @@ use yew::prelude::*;
 use crate::client;
 use crate::route::Route;
 use crate::state::entity_form::EntityKind;
-use crate::state::report::ReportState;
+use crate::state::report::{ReportDateRange, ReportState, filter_rows_by_search};
 use crate::ui::create_modal::CreateModal;
 use crate::ui::navigation_bar::NavigationBar;
 use crate::ui::report_table::ReportTable;
@@ -26,41 +26,57 @@ pub fn shell(props: &ShellProps) -> Html {
     let loading_rows = use_state(|| false);
     let row_error = use_state(|| None::<String>);
     let refresh_version = use_state(|| 0_u64);
+    let date_range = use_state(|| ReportDateRange::Today);
+    let search_query = use_state(String::new);
+
+    {
+        let search_query = search_query.clone();
+        use_effect_with(route, move |_| {
+            search_query.set(String::new());
+            || ()
+        });
+    }
 
     {
         let rows = rows.clone();
         let loading_rows = loading_rows.clone();
         let row_error = row_error.clone();
         let refresh_version = *refresh_version;
-        use_effect_with((route, refresh_version), move |(route, _)| {
-            let route = *route;
-            if let Some(kind) = EntityKind::from_route(route) {
-                loading_rows.set(true);
-                row_error.set(None);
-                spawn_local(async move {
-                    match client::list_rows(kind).await {
-                        Ok(loaded_rows) => rows.set(loaded_rows),
-                        Err(message) => row_error.set(Some(message)),
-                    }
+        let selected_date_range = *date_range;
+        use_effect_with(
+            (route, refresh_version, selected_date_range),
+            move |(route, _, selected_date_range)| {
+                let route = *route;
+                if let Some(kind) = EntityKind::from_route(route) {
+                    loading_rows.set(true);
+                    row_error.set(None);
+                    let selected_date_range = *selected_date_range;
+                    spawn_local(async move {
+                        match client::list_rows(kind, selected_date_range).await {
+                            Ok(loaded_rows) => rows.set(loaded_rows),
+                            Err(message) => row_error.set(Some(message)),
+                        }
+                        loading_rows.set(false);
+                    });
+                } else if route.report_rows_endpoint().is_some() {
+                    loading_rows.set(true);
+                    row_error.set(None);
+                    let selected_date_range = *selected_date_range;
+                    spawn_local(async move {
+                        match client::list_report_rows(route, selected_date_range).await {
+                            Ok(loaded_rows) => rows.set(loaded_rows),
+                            Err(message) => row_error.set(Some(message)),
+                        }
+                        loading_rows.set(false);
+                    });
+                } else {
+                    rows.set(Vec::new());
                     loading_rows.set(false);
-                });
-            } else if route.report_rows_endpoint().is_some() {
-                loading_rows.set(true);
-                row_error.set(None);
-                spawn_local(async move {
-                    match client::list_report_rows(route).await {
-                        Ok(loaded_rows) => rows.set(loaded_rows),
-                        Err(message) => row_error.set(Some(message)),
-                    }
-                    loading_rows.set(false);
-                });
-            } else {
-                rows.set(Vec::new());
-                loading_rows.set(false);
-                row_error.set(None);
-            }
-            || ()
-        });
+                    row_error.set(None);
+                }
+                || ()
+            },
+        );
     }
 
     let open_create_modal = {
@@ -110,6 +126,19 @@ pub fn shell(props: &ShellProps) -> Html {
             });
         })
     };
+    let on_refresh = {
+        let refresh_version = refresh_version.clone();
+        Callback::from(move |_| refresh_version.set(*refresh_version + 1))
+    };
+    let on_search = {
+        let search_query = search_query.clone();
+        Callback::from(move |query| search_query.set(query))
+    };
+    let on_date_range_change = {
+        let date_range = date_range.clone();
+        Callback::from(move |selected_date_range| date_range.set(selected_date_range))
+    };
+    let visible_rows = filter_rows_by_search((*rows).as_slice(), search_query.as_str());
 
     html! {
         <div class="abe-app">
@@ -119,10 +148,20 @@ pub fn shell(props: &ShellProps) -> Html {
                 if route.is_dashboard() {
                     html! { <DashboardPage /> }
                 } else {
-                    let report = ReportState::for_route(route);
+                    let mut report = ReportState::for_route(route);
+                    report.date_range = *date_range;
                     html! {
                         <main class="abe-report">
-                            <ReportToolbar route={route} report={report} on_create={open_create_modal} />
+                            <ReportToolbar
+                                route={route}
+                                report={report}
+                                search_query={(*search_query).clone()}
+                                loading={*loading_rows}
+                                on_create={open_create_modal}
+                                on_search={on_search}
+                                on_date_range_change={on_date_range_change}
+                                on_refresh={on_refresh}
+                            />
                             {
                                 row_error.as_ref().map(|message| html! {
                                     <p class="abe-inline-error">{ message }</p>
@@ -130,7 +169,7 @@ pub fn shell(props: &ShellProps) -> Html {
                             }
                             <ReportTable
                                 report={report}
-                                rows={(*rows).clone()}
+                                rows={visible_rows}
                                 loading={*loading_rows}
                                 actions_enabled={EntityKind::from_route(route).is_some()}
                                 on_edit={on_edit}
