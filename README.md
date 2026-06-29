@@ -25,6 +25,47 @@ Campaign links are generated as:
 
 The dashboard uses `ABE_ADMIN_BASE_URL` for display/access settings.
 
+## Fake Traffic Generator
+
+The public workspace includes a local-first HTTP simulator for testing campaign
+tracking:
+
+```bash
+cargo run -p fake_traffic_generator -- \
+  --campaign-url http://127.0.0.1:8088/c/{campaign_id} \
+  --users 5 \
+  --sessions 10 \
+  --conversion-rate 0.25 \
+  --conversion-type lead
+```
+
+The binary name is `abe-fake-traffic` when installed or built directly:
+
+```bash
+cargo run -p fake_traffic_generator -- --help
+```
+
+Safety defaults are intentionally local-only. By default the tool allows only
+`localhost`, `127.0.0.0/8`, and `::1` targets. Public hosts are blocked unless
+you pass `--allow-host`, and private network IPs require
+`--allow-private-network` or an explicit host allowlist. Use `--dry-run` to
+validate a planned run without sending HTTP requests.
+
+The simulator performs black-box HTTP calls only. It does not import
+`runtime/campaign_server`, read storage, or seed fixtures. It varies request
+headers and query params, follows local `/go/{visit_id}/{slot}` continuation
+URLs found in redirect targets, stops at unsafe terminal offer URLs, optionally
+sends `/postback?cid={visit_id}` conversions, and prints either table or JSON
+metrics:
+
+```bash
+cargo run -p fake_traffic_generator -- \
+  --campaign-url http://127.0.0.1:8088/c/{campaign_id} \
+  --users 2 \
+  --sessions 5 \
+  --output json
+```
+
 ## VPS Install
 
 The first server installer targets Ubuntu 24.04 LTS only. Before running it:
