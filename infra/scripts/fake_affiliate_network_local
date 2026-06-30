@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
+DRY_RUN=false
+EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    *)
+      EXTRA_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+run() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+load_private_env() {
+  if [[ -f "${PRIVATE_ENV}" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "${PRIVATE_ENV}"
+    set +a
+  fi
+}
+
+main() {
+  cd "${REPO_ROOT}"
+  load_private_env
+
+  local listen_address="${ABE_FAKE_AFFILIATE_NETWORK_LISTEN_ADDRESS:-127.0.0.1:8090}"
+  local postback_template="${ABE_FAKE_AFFILIATE_NETWORK_POSTBACK_TEMPLATE:-}"
+  if [[ -z "${postback_template}" ]]; then
+    postback_template='http://127.0.0.1:8088/postback?cid={click_id}&type={event_type}&payout={payout}&currency={currency}&status={status}&txid={transaction_id}'
+  fi
+  local lead_threshold="${ABE_FAKE_AFFILIATE_NETWORK_LEAD_THRESHOLD:-10}"
+  local sale_threshold="${ABE_FAKE_AFFILIATE_NETWORK_SALE_THRESHOLD:-100}"
+  local timeout_seconds="${ABE_FAKE_AFFILIATE_NETWORK_TIMEOUT_SECONDS:-5}"
+  local allow_hosts="${ABE_FAKE_AFFILIATE_NETWORK_ALLOW_HOSTS:-}"
+  local allow_private_network="${ABE_FAKE_AFFILIATE_NETWORK_ALLOW_PRIVATE_NETWORK:-false}"
+
+  local cargo_args=(
+    run -p fake_affiliate_network --
+    --listen-address "${listen_address}"
+    --postback-template "${postback_template}"
+    --lead-threshold "${lead_threshold}"
+    --sale-threshold "${sale_threshold}"
+    --request-timeout-seconds "${timeout_seconds}"
+  )
+
+  if [[ -n "${allow_hosts}" ]]; then
+    cargo_args+=(--allow-host "${allow_hosts}")
+  fi
+  case "${allow_private_network,,}" in
+    1|true|yes|on)
+      cargo_args+=(--allow-private-network)
+      ;;
+  esac
+
+  echo "Fake Affiliate Network dashboard: http://${listen_address}"
+  run cargo "${cargo_args[@]}" "${EXTRA_ARGS[@]}"
+}
+
+main "$@"

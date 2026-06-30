@@ -7,14 +7,30 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DASHBOARD_DIR="${REPO_ROOT}/feats/admin_dashboard"
 PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
 DRY_RUN=false
+ENABLE_FAKE_AFFILIATE_NETWORK=false
+EXTRA_ARGS=()
 
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=true
-fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --with-fake-affiliate-network)
+      ENABLE_FAKE_AFFILIATE_NETWORK=true
+      shift
+      ;;
+    *)
+      EXTRA_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
 
 run() {
   if [[ "${DRY_RUN}" == "true" ]]; then
-    printf '+ %q' "$@"
+    printf '+'
+    printf ' %q' "$@"
     printf '\n'
   else
     "$@"
@@ -57,6 +73,10 @@ main() {
   export ABE_PUBLIC_BASE_URL="${ABE_PUBLIC_BASE_URL:-http://127.0.0.1:8088}"
   export ABE_LISTEN_ADDRESS="${ABE_LISTEN_ADDRESS:-127.0.0.1:8088}"
   export ABE_DASHBOARD_DIST="${ABE_DASHBOARD_DIST:-${DASHBOARD_DIR}/dist}"
+  if [[ "${ENABLE_FAKE_AFFILIATE_NETWORK}" == "true" ]]; then
+    export ABE_DEMO_SEED_FAKE_AFFILIATE_NETWORK=true
+    export ABE_FAKE_AFFILIATE_NETWORK_BASE_URL="${ABE_FAKE_AFFILIATE_NETWORK_BASE_URL:-http://127.0.0.1:8090}"
+  fi
 
   ensure_wasm_target
   ensure_trunk
@@ -64,7 +84,7 @@ main() {
   build_dashboard
 
   echo "Ad Buy Engine dashboard: ${ABE_ADMIN_BASE_URL:-${ABE_PUBLIC_BASE_URL}}"
-  run cargo run -p campaign_server
+  run cargo run -p campaign_server -- "${EXTRA_ARGS[@]}"
 }
 
 main "$@"

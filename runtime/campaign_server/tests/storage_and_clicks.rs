@@ -1119,6 +1119,8 @@ fn test_config(
         geolite_city_database_path: data_dir.join("GeoLite2-City.mmdb").display().to_string(),
         geolite_country_database_path: data_dir.join("GeoLite2-Country.mmdb").display().to_string(),
         geolite_asn_database_path: data_dir.join("GeoLite2-ASN.mmdb").display().to_string(),
+        demo_seed_fake_affiliate_network: false,
+        fake_affiliate_network_base_url: "http://127.0.0.1:8090".to_string(),
         updates: UpdateConfig {
             enabled: false,
             control_dir: data_dir.join("update_control"),

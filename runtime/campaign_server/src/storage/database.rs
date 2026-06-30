@@ -10,6 +10,7 @@ use sqlx::{Executor, Row, SqlitePool};
 
 use crate::config::ServerConfig;
 use crate::error::{ServerError, ServerResult};
+use crate::storage::demo::seed_fake_affiliate_network_catalog;
 use crate::storage::settings::domain_from_base_url;
 use crate::time::now_millis;
 
@@ -33,6 +34,9 @@ pub async fn connect_database(config: &ServerConfig) -> ServerResult<SqlitePool>
     seed_operator_credentials(&pool).await?;
     seed_app_settings(&pool, config).await?;
     seed_conversion_event_types(&pool).await?;
+    if config.demo_seed_fake_affiliate_network {
+        seed_fake_affiliate_network_catalog(&pool, config).await?;
+    }
     Ok(pool)
 }
 

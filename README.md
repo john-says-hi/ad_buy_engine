@@ -25,6 +25,53 @@ Campaign links are generated as:
 
 The dashboard uses `ABE_ADMIN_BASE_URL` for display/access settings.
 
+## Fake Affiliate Network
+
+The public workspace includes a browser-openable fake CPA network for local
+lead and sale attribution testing:
+
+```bash
+./fake_affiliate_network_local
+```
+
+The dashboard runs at `http://127.0.0.1:8090` by default and shows five
+public-safe fake offers: three lead offers and two sale offers. Each offer has a
+copyable network-style click URL:
+
+```text
+http://127.0.0.1:8090/click/{fake_offer_id}?subid={clickid}
+```
+
+The fake network records click reporting by offer and SubID/click ID alias,
+generates deterministic conversions, and sends postbacks to Ad Buy Engine. Lead
+offers convert every 10 qualifying clicks by default. Sale offers convert every
+100 qualifying clicks by default. Current-run settings, sample Lead/Sale
+postbacks, successful callbacks, failed callbacks, and safety-blocked callbacks
+are visible in the fake network dashboard. Logs are in memory and reset on
+restart.
+
+To seed matching fake offers into Ad Buy Engine for a local run:
+
+```bash
+./ad_buy_engine_local --with-fake-affiliate-network
+```
+
+Equivalent environment values are:
+
+```bash
+ABE_DEMO_SEED_FAKE_AFFILIATE_NETWORK=true
+ABE_FAKE_AFFILIATE_NETWORK_BASE_URL=http://127.0.0.1:8090
+```
+
+Persistent local values belong in the private `../abe_private_ops/.env` file.
+The seed gate defaults to false, so production/default database initialization
+does not create fake offer sources or offers.
+
+Safety defaults are loopback-first. Fake network postbacks use
+`http://127.0.0.1:8088/postback` by default. Public callback hosts are blocked
+unless the operator passes `--allow-host`; private network IPs require
+`--allow-private-network` or an explicit host allowlist.
+
 ## Fake Traffic Generator
 
 The public workspace includes a local-first HTTP simulator for testing campaign

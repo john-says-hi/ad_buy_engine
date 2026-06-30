@@ -1,8 +1,9 @@
 use std::env;
 use std::path::PathBuf;
 
-use ad_buy_engine_domain::UpdateSlot;
+use ad_buy_engine_domain::{FAKE_AFFILIATE_DEFAULT_BASE_URL, UpdateSlot};
 use anyhow::{Context, Result};
+use url::{Host, Url};
 
 #[derive(Clone, Debug)]
 pub struct ServerConfig {
@@ -20,6 +21,8 @@ pub struct ServerConfig {
     pub geolite_city_database_path: String,
     pub geolite_country_database_path: String,
     pub geolite_asn_database_path: String,
+    pub demo_seed_fake_affiliate_network: bool,
+    pub fake_affiliate_network_base_url: String,
     pub updates: UpdateConfig,
 }
 
@@ -67,6 +70,12 @@ impl ServerConfig {
             .unwrap_or_else(|_| "runtime/data/GeoLite2-Country.mmdb".to_string());
         let geolite_asn_database_path = env::var("ABE_GEOLITE_ASN_DATABASE_PATH")
             .unwrap_or_else(|_| "runtime/data/GeoLite2-ASN.mmdb".to_string());
+        let demo_seed_fake_affiliate_network = env_bool("ABE_DEMO_SEED_FAKE_AFFILIATE_NETWORK");
+        let fake_affiliate_network_base_url = env_base_url("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL")
+            .unwrap_or_else(|| FAKE_AFFILIATE_DEFAULT_BASE_URL.to_string());
+        if demo_seed_fake_affiliate_network {
+            validate_fake_affiliate_network_base_url(&fake_affiliate_network_base_url)?;
+        }
         let updates = UpdateConfig {
             enabled: env_bool("ABE_UPDATE_ENABLED"),
             control_dir: env::var("ABE_UPDATE_CONTROL_DIR")
@@ -96,6 +105,8 @@ impl ServerConfig {
             geolite_city_database_path,
             geolite_country_database_path,
             geolite_asn_database_path,
+            demo_seed_fake_affiliate_network,
+            fake_affiliate_network_base_url,
             updates,
         })
     }
@@ -132,5 +143,30 @@ fn normalize_base_url(value: &str) -> Option<String> {
         None
     } else {
         Some(trimmed.to_string())
+    }
+}
+
+pub fn validate_fake_affiliate_network_base_url(value: &str) -> Result<()> {
+    let url = Url::parse(value).context("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must be a URL")?;
+    if !matches!(url.scheme(), "http" | "https") {
+        anyhow::bail!("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must use http or https");
+    }
+    if !is_loopback_url(&url) {
+        anyhow::bail!("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must be loopback for demo seeding");
+    }
+    if url.query().is_some() || url.fragment().is_some() {
+        anyhow::bail!(
+            "ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must not include a query string or fragment"
+        );
+    }
+    Ok(())
+}
+
+fn is_loopback_url(url: &Url) -> bool {
+    match url.host() {
+        Some(Host::Domain(domain)) => domain.eq_ignore_ascii_case("localhost"),
+        Some(Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
     }
 }
