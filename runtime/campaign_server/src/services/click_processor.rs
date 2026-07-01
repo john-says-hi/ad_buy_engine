@@ -412,6 +412,7 @@ type ClickMapFuture<'a> = Pin<
     Box<dyn Future<Output = ServerResult<(Vec<ClickMapEntry>, Vec<ClickUrlToken>)>> + Send + 'a>,
 >;
 
+#[allow(clippy::too_many_arguments)]
 fn click_map_for_path_exits<'a>(
     pool: &'a SqlitePool,
     tracking_base_url: &'a str,
@@ -541,6 +542,7 @@ fn click_entries_for_path_target<'a>(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn click_entry_for_offer(
     pool: &SqlitePool,
     tracking_base_url: &str,
