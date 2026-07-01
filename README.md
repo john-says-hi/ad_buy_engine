@@ -72,6 +72,55 @@ Safety defaults are loopback-first. Fake network postbacks use
 unless the operator passes `--allow-host`; private network IPs require
 `--allow-private-network` or an explicit host allowlist.
 
+## Fake Landing Page Server
+
+The public workspace also includes a separate local fake landing page server
+for testing lander routing before a fake offer:
+
+```bash
+./fake_landing_page_server_local
+```
+
+The server runs at `http://127.0.0.1:8091` by default and hosts five public-safe
+preset pages: standard click-through, lead capture, advertorial, after-opt-in
+thank-you, and multi-CTA split-test. Each page identifies its preset and uses
+only continuation URLs supplied by Ad Buy Engine.
+
+The fake lead-capture page is navigation-only. It shows a fake email form, but
+the server discards submitted fields, stores no email values, and does not send
+Lead or Sale conversion postbacks. Conversion testing remains the fake affiliate
+network's job.
+
+To seed matching fake landers into Ad Buy Engine for a local run:
+
+```bash
+./ad_buy_engine_local --with-fake-landing-pages
+```
+
+Equivalent environment values are:
+
+```bash
+ABE_DEMO_SEED_FAKE_LANDING_PAGES=true
+ABE_FAKE_LANDING_PAGE_BASE_URL=http://127.0.0.1:8091
+```
+
+Use all three local services together for a browser-readable funnel test:
+
+```bash
+./ad_buy_engine_local --with-fake-landing-pages --with-fake-affiliate-network
+./fake_landing_page_server_local
+./fake_affiliate_network_local
+```
+
+Default local ports are Ad Buy Engine `8088`, fake landing pages `8091`, and
+the fake affiliate network `8090`. Persistent local values belong in the
+private `../abe_private_ops/.env` file. The fake lander seed gate defaults to
+false, so production/default database initialization stays clean.
+
+Safety defaults are loopback-first. Public continuation hosts are blocked unless
+the operator passes `--allow-host`; private network IPs require
+`--allow-private-network` or an explicit host allowlist.
+
 ## Fake Traffic Generator
 
 The public workspace includes a local-first HTTP simulator for testing campaign

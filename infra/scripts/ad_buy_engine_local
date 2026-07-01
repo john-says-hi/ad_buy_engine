@@ -8,6 +8,7 @@ DASHBOARD_DIR="${REPO_ROOT}/feats/admin_dashboard"
 PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
 DRY_RUN=false
 ENABLE_FAKE_AFFILIATE_NETWORK=false
+ENABLE_FAKE_LANDING_PAGES=false
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -18,6 +19,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-fake-affiliate-network)
       ENABLE_FAKE_AFFILIATE_NETWORK=true
+      shift
+      ;;
+    --with-fake-landing-pages)
+      ENABLE_FAKE_LANDING_PAGES=true
       shift
       ;;
     *)
@@ -76,6 +81,11 @@ main() {
   if [[ "${ENABLE_FAKE_AFFILIATE_NETWORK}" == "true" ]]; then
     export ABE_DEMO_SEED_FAKE_AFFILIATE_NETWORK=true
     export ABE_FAKE_AFFILIATE_NETWORK_BASE_URL="${ABE_FAKE_AFFILIATE_NETWORK_BASE_URL:-http://127.0.0.1:8090}"
+  fi
+  if [[ "${ENABLE_FAKE_LANDING_PAGES}" == "true" ]]; then
+    export ABE_DEMO_SEED_FAKE_LANDING_PAGES=true
+    export ABE_FAKE_LANDING_PAGE_BASE_URL="${ABE_FAKE_LANDING_PAGE_BASE_URL:-http://127.0.0.1:8091}"
+    echo "Fake landing page demo seed: ${ABE_FAKE_LANDING_PAGE_BASE_URL}"
   fi
 
   ensure_wasm_target
