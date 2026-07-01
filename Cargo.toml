@@ -3,6 +3,7 @@ members = [
     "core/domain",
     "feats/admin_dashboard",
     "infra/fake_affiliate_network",
+    "infra/fake_landing_page_server",
     "infra/fake_traffic_generator",
     "runtime/campaign_server",
     "runtime/update_agent",

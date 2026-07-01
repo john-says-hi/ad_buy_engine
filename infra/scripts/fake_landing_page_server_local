@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PRIVATE_ENV="${ABE_PRIVATE_ENV:-${REPO_ROOT}/../abe_private_ops/.env}"
+DRY_RUN=false
+EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    *)
+      EXTRA_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+run() {
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+load_private_env() {
+  if [[ -f "${PRIVATE_ENV}" ]]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "${PRIVATE_ENV}"
+    set +a
+  fi
+}
+
+main() {
+  cd "${REPO_ROOT}"
+  load_private_env
+
+  local listen_address="${ABE_FAKE_LANDING_PAGE_SERVER_LISTEN_ADDRESS:-127.0.0.1:8091}"
+  local allow_hosts="${ABE_FAKE_LANDING_PAGE_SERVER_ALLOW_HOSTS:-}"
+  local allow_private_network="${ABE_FAKE_LANDING_PAGE_SERVER_ALLOW_PRIVATE_NETWORK:-false}"
+
+  local cargo_args=(
+    run -p fake_landing_page_server --
+    --listen-address "${listen_address}"
+  )
+
+  if [[ -n "${allow_hosts}" ]]; then
+    cargo_args+=(--allow-host "${allow_hosts}")
+  fi
+  case "${allow_private_network,,}" in
+    1|true|yes|on)
+      cargo_args+=(--allow-private-network)
+      ;;
+  esac
+
+  echo "Fake Landing Page Server: http://${listen_address}"
+  run cargo "${cargo_args[@]}" "${EXTRA_ARGS[@]}"
+}
+
+main "$@"

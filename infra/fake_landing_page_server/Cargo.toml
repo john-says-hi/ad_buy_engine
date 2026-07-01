@@ -1,0 +1,31 @@
+[package]
+name = "fake_landing_page_server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "abe-fake-landing-page-server"
+path = "src/main.rs"
+
+[dependencies]
+ad_buy_engine_domain.workspace = true
+anyhow.workspace = true
+axum.workspace = true
+clap.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+campaign_server = { path = "../../runtime/campaign_server" }
+reqwest.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tempfile = "3.20.0"
+tower = { version = "0.5.2", features = ["util"] }
+
+[lints]
+workspace = true

@@ -630,6 +630,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "fake_landing_page_server"
+version = "0.1.0"
+dependencies = [
+ "ad_buy_engine_domain",
+ "anyhow",
+ "axum",
+ "campaign_server",
+ "clap",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower",
+ "url",
+]
+
+[[package]]
 name = "fake_traffic_generator"
 version = "0.1.0"
 dependencies = [

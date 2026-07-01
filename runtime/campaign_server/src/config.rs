@@ -1,7 +1,9 @@
 use std::env;
 use std::path::PathBuf;
 
-use ad_buy_engine_domain::{FAKE_AFFILIATE_DEFAULT_BASE_URL, UpdateSlot};
+use ad_buy_engine_domain::{
+    FAKE_AFFILIATE_DEFAULT_BASE_URL, FAKE_LANDING_PAGE_DEFAULT_BASE_URL, UpdateSlot,
+};
 use anyhow::{Context, Result};
 use url::{Host, Url};
 
@@ -23,6 +25,8 @@ pub struct ServerConfig {
     pub geolite_asn_database_path: String,
     pub demo_seed_fake_affiliate_network: bool,
     pub fake_affiliate_network_base_url: String,
+    pub demo_seed_fake_landing_pages: bool,
+    pub fake_landing_page_base_url: String,
     pub updates: UpdateConfig,
 }
 
@@ -76,6 +80,12 @@ impl ServerConfig {
         if demo_seed_fake_affiliate_network {
             validate_fake_affiliate_network_base_url(&fake_affiliate_network_base_url)?;
         }
+        let demo_seed_fake_landing_pages = env_bool("ABE_DEMO_SEED_FAKE_LANDING_PAGES");
+        let fake_landing_page_base_url = env_base_url("ABE_FAKE_LANDING_PAGE_BASE_URL")
+            .unwrap_or_else(|| FAKE_LANDING_PAGE_DEFAULT_BASE_URL.to_string());
+        if demo_seed_fake_landing_pages {
+            validate_fake_landing_page_base_url(&fake_landing_page_base_url)?;
+        }
         let updates = UpdateConfig {
             enabled: env_bool("ABE_UPDATE_ENABLED"),
             control_dir: env::var("ABE_UPDATE_CONTROL_DIR")
@@ -107,6 +117,8 @@ impl ServerConfig {
             geolite_asn_database_path,
             demo_seed_fake_affiliate_network,
             fake_affiliate_network_base_url,
+            demo_seed_fake_landing_pages,
+            fake_landing_page_base_url,
             updates,
         })
     }
@@ -147,17 +159,23 @@ fn normalize_base_url(value: &str) -> Option<String> {
 }
 
 pub fn validate_fake_affiliate_network_base_url(value: &str) -> Result<()> {
-    let url = Url::parse(value).context("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must be a URL")?;
+    validate_loopback_base_url("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL", value)
+}
+
+pub fn validate_fake_landing_page_base_url(value: &str) -> Result<()> {
+    validate_loopback_base_url("ABE_FAKE_LANDING_PAGE_BASE_URL", value)
+}
+
+fn validate_loopback_base_url(env_key: &str, value: &str) -> Result<()> {
+    let url = Url::parse(value).with_context(|| format!("{env_key} must be a URL"))?;
     if !matches!(url.scheme(), "http" | "https") {
-        anyhow::bail!("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must use http or https");
+        anyhow::bail!("{env_key} must use http or https");
     }
     if !is_loopback_url(&url) {
-        anyhow::bail!("ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must be loopback for demo seeding");
+        anyhow::bail!("{env_key} must be loopback for demo seeding");
     }
     if url.query().is_some() || url.fragment().is_some() {
-        anyhow::bail!(
-            "ABE_FAKE_AFFILIATE_NETWORK_BASE_URL must not include a query string or fragment"
-        );
+        anyhow::bail!("{env_key} must not include a query string or fragment");
     }
     Ok(())
 }
